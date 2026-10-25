@@ -39,18 +39,18 @@ expect tpar118 60
 shot drum_pads.png
 tapkey w3
 wait 40
-expect row 3
+expect row 6
 expect tpar118 65
 spin K3 -20
 wait 30
 expect p24 44
 tapkey w4
 wait 40
-expect row 4
-# the level page
-spin SELECT 4
-wait 30
 expect row 8
+# the level page
+spin SELECT 8
+wait 30
+expect row 16
 shot drum_levels.png
 # ---- the grid: the picked pad (CH, from the key above: w3) on step 1, BD joins it, BD alone on 5
 tapkey w3

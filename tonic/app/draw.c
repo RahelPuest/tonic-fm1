@@ -502,6 +502,8 @@ static void o_va(int x0, int y0, const sound_t *s)
 static void o_kit(int x0, int y0, const sound_t *s)
 {
     int i, cp = pad_of(ttrk()->tp[P_NOTE - NSP]);
+    if (ui.grp == G_SYN && ui.row[G_SYN] < NDRM_PAD_ROWS)   /* (0.12.1) a pad's page: that pad */
+        cp = ui.row[G_SYN] / 2;
     for (i = 0; i < NPAD; i++) {
         int x = x0 + (i & 1) * 13, y = y0 + (i >> 1) * 10;
         const char *nm = DM_SHORT[s->s[S_DM1 + i] % NDM];
@@ -738,7 +740,7 @@ static void o_row(const row_t *rr, int x0, int pitch, int y, int active)
     const item_t *it = rr->it;
     if (it[0].kind == IK_SND && !touched) {
         if (it[0].id == P_AATK || it[0].id == P_BATK) graph = 0;
-        else if (it[0].id == P_FATK || it[0].id == P_EATK) graph = 1;
+        else if (it[0].id == P_FATK || it[0].id == P_EATK || it[0].id == P_MATK) graph = 1;   /* (0.12.1: MENV) */
         else if (it[0].id == P_FREQ) graph = 2;      /* the filter's curve [TONIC] */
     }
     for (k = 0; k < 4; k++) {
@@ -760,6 +762,8 @@ static void o_row(const row_t *rr, int x0, int pitch, int y, int active)
             o_filter(x0, y + 1, 4 * pitch - 2, 16, s->p[P_FTYP], fn, fs, rn);
         } else if (it[0].id == P_FATK)
             o_env(x0, y + 1, 4 * pitch - 2, 16, s->p[P_FATK], s->p[P_FDEC], s->p[P_FSUS], s->p[P_FREL], 1, 2);
+        else if (it[0].id == P_MATK)
+            o_env(x0, y + 1, 4 * pitch - 2, 16, s->p[P_MATK], s->p[P_MDEC], s->p[P_MSUS], s->p[P_MREL], 1, 4);
         else
             o_env(x0, y + 1, 4 * pitch - 2, 16, s->p[P_EATK], s->p[P_EDEC], s->p[P_ESUS], s->p[P_EREL], 1, 3);
         for (j = 0; j < n; j++) {                    /* the names under the picture */
@@ -1718,7 +1722,7 @@ static void o_help(int b)
                                         "EUCLID  RHYTHMS: LEN HITS", "  ROT STYLE / ACC GHOST", "  NOTES (KIT: ALL PADS)",
                                         "TRACK  ITS LEN AND SCALE", 0};
     static const char *const H_EDIT[] = {"THE SOUND'S ENGINE:", "FM  SYN1 SYN2 (OPERATORS)", "VA  OSC ENV SHAPE",
-                                         "DRUM  PADS LEVEL CTL KIT", "ENGINE  K4, THE LAST ROW", 0};
+                                         "DRUM  PAD 1-8 LEVEL KIT", "ENGINE  K4, THE LAST ROW", 0};
     static const char *const H_ENV[] = {"FLTR  FILTER, ITS ENVELOPE", "AMP  ENVELOPE DRIVE PAN", "AMP 2  FX SENDS",
                                         "LOFI  SAMPLE RATE, BITS", "INSRT  DIST FOLD CRUSH", 0};
     static const char *const H_LFO[] = {"LFO1 LFO2  SPEED DEST", "WAVE MODE DEPTH", "LFO2 ALSO MOVES LFO1",

@@ -1,9 +1,8 @@
 # Installing TONIC, and going back to the stock firmware
 
-> **Status:** TONIC has **not yet been installed on a physical FM-1** by its authors. The package is built by
-> fm1-base's toolchain and has run in the instruction-level emulator (fm1-emu), but the install path itself (USB-MIDI
-> update, the loader, the flash write) is exercised only by fm1-base's protocol tests, not on hardware. Install at your
-> own risk, and take the backup in step 0 first.
+> **Status:** TONIC has been installed and runs on an M-VAVE FM-1. The package is built by fm1-base's toolchain and
+> each release also runs in the instruction-level emulator (fm1-emu). It is a custom firmware: install it at your own
+> risk, and take the backup in step 0 first.
 
 The procedures below are those of the fm1-base/felucca-bsp update tools that TONIC uses unchanged; every step is
 traced to code in the research notes (`research/fm1/INSTALL_RESTORE.md`, with file and line references; not in the
@@ -14,8 +13,8 @@ public repository).
 - An M-VAVE FM-1 and a USB **data** cable. Close every other program that uses MIDI.
 - Either **Chrome or Edge** (Web MIDI with SysEx) for the web installer, or **Python 3** with
   `pip3 install mido python-rtmidi` for the command line.
-- The package: **`release/tonic-0.12.fwsc`** (identity `FM-1_47001200`, SHA-256 in `release/SHA256SUMS`; the earlier
-  `release/tonic-0.1.fwsc` … `tonic-0.11.fwsc` stay beside it and install the same way), or your
+- The package: **`release/tonic-0.12.1.fwsc`** (identity `FM-1_47001201`, SHA-256 in `release/SHA256SUMS`; the earlier
+  `release/tonic-0.1.fwsc` … `tonic-0.12.fwsc` stay beside it and install the same way), or your
   own build `tonic/build/tonic.fwsc` (identity `FM-1_4700`). The installer refuses a package for another model.
 - For the way back: M-VAVE's **V15** package, `FM-1_015.fwsc`, SHA-256
   `db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a` (699,956 bytes). It is in M-VAVE's own
@@ -38,14 +37,14 @@ firmware. The community's advice is to go back to stock before installing a diff
 
 ```sh
 python3 base/tools/fm1_install.py --info                 # the connected FM-1's identity
-python3 base/tools/fm1_install.py release/tonic-0.12.fwsc # check, stage, write, verify
+python3 base/tools/fm1_install.py release/tonic-0.12.1.fwsc # check, stage, write, verify
 ```
 
 **Web installer:** serve the site and open it from `localhost` (Web MIDI needs a secure context):
 
 ```sh
 cd release/site && python3 -m http.server 8000             # the prebuilt site (or make your own:
-#   python3 base/tools/make_site.py tonic tonic/build/tonic-0.12.fwsc 0.12 /tmp/tonic-site)
+#   python3 base/tools/make_site.py tonic tonic/build/tonic-0.12.1.fwsc 0.12.1 /tmp/tonic-site)
 # open http://localhost:8000/ in Chrome or Edge, connect the FM-1, press Install
 ```
 

@@ -669,7 +669,7 @@ int engine_env_view(int trk, int which, float *lvl)
     int v = newest(trk);
     const env_t *e;
     if (v < 0) { *lvl = 0; return 0; }
-    e = which == 0 ? &vc[v].ea : which == 1 ? &vc[v].eb : which == 2 ? &vc[v].ef : &vc[v].eamp;
+    e = which == 0 ? &vc[v].ea : which == 1 ? &vc[v].eb : which == 2 ? &vc[v].ef : which == 4 ? &vc[v].em : &vc[v].eamp;
     *lvl = e->lvl;
     return e->stage;
 }

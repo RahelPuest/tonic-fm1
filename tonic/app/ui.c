@@ -567,8 +567,8 @@ static void play_note_on(int k)
     if (tsnd()->s[S_ENGINE] == ENG_DR) {             /* a kit: the pad played is the one the grid places, its row
                                                       * the one the knobs edit [TONIC] */
         ttrk()->tp[P_NOTE - NSP] = (int16_t)note;
-        if (ui.grp == G_SYN && ui.row[G_SYN] < NPAD)
-            ui.row[G_SYN] = (uint8_t)pad_of(note);
+        if (ui.grp == G_SYN && ui.row[G_SYN] < NDRM_PAD_ROWS)   /* (0.12.1: the pad's own page) */
+            ui.row[G_SYN] = (uint8_t)(2 * pad_of(note) + (ui.row[G_SYN] & 1));
         ui.redraw = 1;
     } else if (ttrk()->kchord >= 2)                  /* CHORD [MANUAL 10.4]: a three or four note chord */
         for (c = 0; c < 3; c++)
@@ -1946,11 +1946,12 @@ static void euc_hist(int op)
 }
 
 /* a kit's pad picked [TONIC 0.6.1]: the one the grid places (the track's NOTE), its row on the SYN pages */
+static int syn_row(void) { return ui.row[G_SYN]; }
 static void pad_pick(int p)
 {
     ttrk()->tp[P_NOTE - NSP] = PAD_NOTE[p];
-    if (ui.grp == G_SYN && ui.row[G_SYN] < NPAD)
-        ui.row[G_SYN] = (uint8_t)p;
+    if (ui.grp == G_SYN && drum_trk() && ui.row[G_SYN] < NDRM_PAD_ROWS)   /* (0.12.1) on to the pad's own page */
+        ui.row[G_SYN] = (uint8_t)(2 * p + (ui.row[G_SYN] & 1));
     app_say("PAD", pad_label(p));
     mark_dirty();
     ui.redraw = 1;

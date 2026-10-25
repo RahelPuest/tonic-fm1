@@ -71,32 +71,33 @@ static const row_t R_SYN[] = {
     {"SYN2 2", {S_(P_BDEL), S_(P_BTRG), S_(P_BRST), ST(S_ENGINE)}},
 };
 /* the DRUM engine's SYN pages [TONIC]: a row a pad (MODEL TUNE DEC TONE), the pads' levels, the engine */
-static const char T_KIT1[] = "PAD 1-2", T_KIT2[] = "PAD 3-4", T_KIT3[] = "PAD 5-6", T_KIT4[] = "PAD 7-8";
-static const char T_CTL1[] = "CTL 1-2", T_CTL2[] = "CTL 3-4", T_CTL3[] = "CTL 5-6", T_CTL4[] = "CTL 7-8";   /* (0.12) */
+/* the DRUM engine's SYN pages [TONIC; 0.12.1: a page a pad]: a pad's MODEL TUNE DEC TONE, its two controls of the model,
+ * PAN and LEV; the pads' levels together; the engine */
+static const char T_PAD1[] = "PAD 1", T_PAD2[] = "PAD 2", T_PAD3[] = "PAD 3", T_PAD4[] = "PAD 4", T_PAD5[] = "PAD 5",
+                  T_PAD6[] = "PAD 6", T_PAD7[] = "PAD 7", T_PAD8[] = "PAD 8", T_LEVEL[] = "LEVEL";
 static const row_t R_DRM[] = {
-    {T_KIT1, {ST(S_DM1), S_(P_MIX), S_(P_AATK), S_(P_ADEC)}},
-    {T_KIT1, {ST(S_DM2), S_(P_OFSC), S_(P_ALEV), S_(P_BATK)}},
-    {T_KIT2, {ST(S_DM3), S_(P_OFSA), S_(P_BEND), S_(P_BLEV)}},
-    {T_KIT2, {ST(S_DM4), S_(P_OFSB1), S_(P_BDEL), S_(P_RATB)}},
-    {T_KIT3, {ST(S_DM5), S_(P_D5TUN), S_(P_D5DEC), S_(P_D5TON)}},
-    {T_KIT3, {ST(S_DM6), S_(P_D6TUN), S_(P_D6DEC), S_(P_D6TON)}},
-    {T_KIT4, {ST(S_DM7), S_(P_D7TUN), S_(P_D7DEC), S_(P_D7TON)}},
-    {T_KIT4, {ST(S_DM8), S_(P_D8TUN), S_(P_D8DEC), S_(P_D8TON)}},
-    {"LEVEL", {S_(P_AEND), S_(P_BDEC), S_(P_ADEL), S_(P_OFSB2)}},
-    {"LEVEL", {S_(P_D5LEV), S_(P_D6LEV), S_(P_D7LEV), S_(P_D8LEV)}},
-    /* (0.12) each pad's two controls of its model (named by it: SWEEP CLICK, SNAP BODY, ...) and its pan */
-    {T_CTL1, {S_(P_DA1), S_(P_DB1), S_(P_DPN1), NO}},
-    {T_CTL1, {S_(P_DA2), S_(P_DB2), S_(P_DPN2), NO}},
-    {T_CTL2, {S_(P_DA3), S_(P_DB3), S_(P_DPN3), NO}},
-    {T_CTL2, {S_(P_DA4), S_(P_DB4), S_(P_DPN4), NO}},
-    {T_CTL3, {S_(P_DA5), S_(P_DB5), S_(P_DPN5), NO}},
-    {T_CTL3, {S_(P_DA6), S_(P_DB6), S_(P_DPN6), NO}},
-    {T_CTL4, {S_(P_DA7), S_(P_DB7), S_(P_DPN7), NO}},
-    {T_CTL4, {S_(P_DA8), S_(P_DB8), S_(P_DPN8), NO}},
+    {T_PAD1, {ST(S_DM1), S_(P_MIX), S_(P_AATK), S_(P_ADEC)}},
+    {T_PAD1, {S_(P_DA1), S_(P_DB1), S_(P_DPN1), S_(P_AEND)}},
+    {T_PAD2, {ST(S_DM2), S_(P_OFSC), S_(P_ALEV), S_(P_BATK)}},
+    {T_PAD2, {S_(P_DA2), S_(P_DB2), S_(P_DPN2), S_(P_BDEC)}},
+    {T_PAD3, {ST(S_DM3), S_(P_OFSA), S_(P_BEND), S_(P_BLEV)}},
+    {T_PAD3, {S_(P_DA3), S_(P_DB3), S_(P_DPN3), S_(P_ADEL)}},
+    {T_PAD4, {ST(S_DM4), S_(P_OFSB1), S_(P_BDEL), S_(P_RATB)}},
+    {T_PAD4, {S_(P_DA4), S_(P_DB4), S_(P_DPN4), S_(P_OFSB2)}},
+    {T_PAD5, {ST(S_DM5), S_(P_D5TUN), S_(P_D5DEC), S_(P_D5TON)}},
+    {T_PAD5, {S_(P_DA5), S_(P_DB5), S_(P_DPN5), S_(P_D5LEV)}},
+    {T_PAD6, {ST(S_DM6), S_(P_D6TUN), S_(P_D6DEC), S_(P_D6TON)}},
+    {T_PAD6, {S_(P_DA6), S_(P_DB6), S_(P_DPN6), S_(P_D6LEV)}},
+    {T_PAD7, {ST(S_DM7), S_(P_D7TUN), S_(P_D7DEC), S_(P_D7TON)}},
+    {T_PAD7, {S_(P_DA7), S_(P_DB7), S_(P_DPN7), S_(P_D7LEV)}},
+    {T_PAD8, {ST(S_DM8), S_(P_D8TUN), S_(P_D8DEC), S_(P_D8TON)}},
+    {T_PAD8, {S_(P_DA8), S_(P_DB8), S_(P_DPN8), S_(P_D8LEV)}},
+    {T_LEVEL, {S_(P_AEND), S_(P_BDEC), S_(P_ADEL), S_(P_OFSB2)}},
+    {T_LEVEL, {S_(P_D5LEV), S_(P_D6LEV), S_(P_D7LEV), S_(P_D8LEV)}},
     {"KIT", {NO, NO, NO, ST(S_ENGINE)}},       /* (K4, as on the FM and VA pages: the knob stays the same) */
 };
 #define NDRM_ROWS 19
-#define DRM_CTL_ROW 10
+#define NDRM_PAD_ROWS 16                       /* (a pad's page: rows 2 x pad, 2 x pad + 1) */
 /* the VA engine's SYN pages [TONIC]: the FM pages' places under their VA names, and SHAPE (0.6) */
 static const char T_OSC[] = "OSC", T_OSC2[] = "OSC 2", T_VENV[] = "ENV", T_VENV2[] = "ENV 2", T_SHAPE[] = "SHAPE";
 static const row_t R_VA[] = {
@@ -147,8 +148,9 @@ static const row_t R_ARP[] = {
     {"ARP", {ST(S_ARPMODE), ST(S_ARPSPD), ST(S_ARPRNG), ST(S_ARPLEN)}},
     {"ARP", {ST(S_ARPSTEPS), AS(AS_STEP_), AS(AS_OFS_), AS(AS_ON_)}},
     {T_CHD, {ST(S_ARPCHD), ST(S_ARPINV), ST(S_CHVOIC), ST(S_CHBASS)}},   /* [TONIC 0.6, 0.8] a chord on each note, */
-    {T_CHD, {ST(S_CHSTRM), ST(S_CHSDIR), ST(S_SCALE), ST(S_SCROOT)}},   /* with or without the arp; (0.12) the
-                                                                         * sound's scale: its chords by degrees */
+    {T_CHD, {ST(S_CHSTRM), ST(S_CHSDIR), NO, NO}},                      /* with or without the arp */
+    {"SCALE", {ST(S_SCALE), ST(S_SCROOT), NO, NO}},                     /* (0.12) the sound's scale: notes snap to it,
+                                                                         * its chords by degrees */
 };
 static const row_t R_GLO[] = {
     {"TEMPO", {PF(PF_BPM_), PF(PF_SWING_), GL(GL_TMODE_), GL(GL_MET_)}},
@@ -204,19 +206,12 @@ static int is_roll(const row_t *r) { return r && r->it[0].kind == IK_VIEW; }   /
 
 /* a row's title as the track's engine shows it: under VA the SYN pages are OSC and MOD ENV; a DRUM kit's pads
  * show their models (BD SD) [TONIC] */
+static const char *pad_label(int k);
+static int syn_row(void);                    /* ui.c: the SYN group's row now */
 static const char *row_title(const row_t *r)
 {
-    if ((r >= R_DRM && r < R_DRM + 8) || (r >= R_DRM + DRM_CTL_ROW && r < R_DRM + DRM_CTL_ROW + 8)) {
-        static char kt[8][8];
-        int ctl = r >= R_DRM + DRM_CTL_ROW, pg = (int)(r - R_DRM - (ctl ? DRM_CTL_ROW : 0)) / 2;
-        char *b = kt[pg + 4 * ctl];
-        const sound_t *s = tsnd();
-        int m1 = s->s[S_DM1 + 2 * pg] % NDM, m2 = s->s[S_DM2 + 2 * pg] % NDM;
-        b[0] = DM_SHORT[m1][0]; b[1] = DM_SHORT[m1][1]; b[2] = ' ';
-        b[3] = DM_SHORT[m2][0]; b[4] = DM_SHORT[m2][1]; b[5] = 0;
-        if (r >= R_DRM + DRM_CTL_ROW) { b[5] = '+'; b[6] = 0; }   /* (0.12) the pads' controls: "BD SD+" */
-        return b;
-    }
+    if (r >= R_DRM && r < R_DRM + NDRM_PAD_ROWS)     /* a pad's page: its number and model, "1 BD" */
+        return pad_label((int)(r - R_DRM) / 2);
     if (r >= R_SYN && r < R_SYN + 7 && tsnd()->s[S_ENGINE] == ENG_VA) {
         static const char *const VT[7] = {"OSC", "OSC", "OSC 2", "ENV", "ENV", "ENV 2", "ENV 2"};
         return VT[r - R_SYN];
@@ -294,9 +289,8 @@ static int tx_len(const char *s) { int n = 0; while (s[n]) n++; return n; }
 /* a kit's pad as its knobs are named: its number and its model's letters, "1 BD" [TONIC] */
 static const char *pad_label(int k)
 {
-    static char b[4][6];
-    static uint8_t n;
-    char *t = b[n++ & 3];
+    static char b[NPAD][6];                      /* (a buffer a pad: the tab bar names all eight at once) */
+    char *t = b[k & 7];
     const char *m = DM_SHORT[tsnd()->s[S_DM1 + (k & 7)] % NDM];
     t[0] = (char)('1' + (k & 7)); t[1] = ' '; t[2] = m[0]; t[3] = m[1]; t[4] = 0;
     return t;
@@ -327,8 +321,8 @@ static const char *item_name(const item_t *it)
         if (drum_trk()) {                            /* a kit's levels: the pad, "1 BD" */
             int k;
             for (k = 0; k < NPAD; k++)
-                if (DRP[k][DK_LEV] == it->id)
-                    return pad_label(k);
+                if (DRP[k][DK_LEV] == it->id)      /* (on a pad's own page: LEV) */
+                    return grp_rows(G_SYN)[syn_row() % NDRM_ROWS].title == T_LEVEL ? pad_label(k) : "LEV";
             if (it->id >= P_DA1 && it->id <= P_DB8) {   /* (0.12) the controls as the pad's model names them */
                 int b = it->id >= P_DB1, pd = it->id - (b ? P_DB1 : P_DA1);
                 return dr_ctl_name(tsnd()->s[S_DM1 + pd] % NDM, b);

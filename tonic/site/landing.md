@@ -5,17 +5,18 @@ FM engine with eight algorithms, a virtual-analog engine and a DRUM engine (a ki
 
 ![TONIC's home screen: pattern A01 GROUND, four tracks with their sounds and levels, the steps below](manual/img/home.png "TONIC on the FM-1's screen")
 
-Version {{VERSION}}. **Not yet tested on a physical FM-1** (it runs in the instruction-level emulator fm1-emu).
-Installing is at your own risk; the installer can put M-VAVE's own firmware back.
+Version {{VERSION}}. It runs on the M-VAVE FM-1 and each release is also tested in the instruction-level emulator
+fm1-emu. It is a custom firmware: installing is at your own risk; the installer can put M-VAVE's own firmware back.
 
 - [Try it in the browser](emu/): the same code the FM-1 runs, with sound and Web MIDI. No FM-1 needed.
 - [Install](install/): from Chrome or Edge, with the FM-1 connected by USB.
 - [Manual](manual/): sound design, sequencing, performing, saving.
 - [Download {{PKG}}](firmware/{{PKG}}): for the command-line installer, `python3 base/tools/fm1_install.py {{PKG}}`.
 - [Source code on GitHub](https://github.com/RahelPuest/tonic-fm1).
-- 0.12 saves its projects in a new format: older versions cannot read what 0.12 saved. Take a USB backup first if you
+- Since 0.12 projects are saved in a new format: versions before 0.12 cannot read what 0.12 or later saved. Take a USB backup first if you
   may want to go back.
-- Earlier versions stay available: [0.11](firmware/tonic-0.11.fwsc) (twelve voices, before the drum controls, the insert, the modulation envelope and the scales),
+- Earlier versions stay available: [0.12](firmware/tonic-0.12.fwsc) (the drum controls on CTL pages, the scale on the CHORD page),
+  [0.11](firmware/tonic-0.11.fwsc) (twelve voices, before the drum controls, the insert, the modulation envelope and the scales),
   [0.10.1](firmware/tonic-0.10.1.fwsc) (eight voices, the performance audit),
   [0.10](firmware/tonic-0.10.fwsc) (the PUMP page, before the performance audit),
   [0.9.2](firmware/tonic-0.9.2.fwsc) (the functional audit's fixes, before PUMP),

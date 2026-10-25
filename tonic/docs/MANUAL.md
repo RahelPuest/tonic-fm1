@@ -2,7 +2,7 @@
 
 TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the original Elektron Digitone (2018). It has four synth tracks sharing twelve voices (the Digitone has eight), a four-operator FM engine with the Digitone's eight algorithms, and two more engines to choose per sound: virtual analog (VA) and DRUM, a kit of eight synthesized drums on one track. The sequencer has parameter locks, sound locks, trig conditions, micro timing and retrig. There is an arpeggiator, a piano roll, chorus, delay and reverb, a DJ filter and sidechain ducking. This manual covers every page, parameter and key combination.
 
-**Status.** TONIC has not yet run on a physical FM-1. It is built and tested in software: engine tests, a host simulator, the browser emulator and fm1-emu, an instruction-level emulator that runs the real firmware file. Install it at your own risk, and read section 2 first.
+**Status.** TONIC runs on the M-VAVE FM-1. Each release is also tested in software: engine tests, a host simulator, the browser emulator and fm1-emu, an instruction-level emulator that runs the real firmware file. It is a custom firmware: install it at your own risk, and read section 2 first.
 
 ![TONIC's home screen with the demo pattern playing](img/home.png "HOME: the pattern, the four tracks with their sounds and levels, the steps")
 
@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.12.fwsc
+python3 base/tools/fm1_install.py tonic-0.12.1.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -101,11 +101,11 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 | **PRESETS** knob | The track's sound: a list (factory sounds, then the user library; SCL: by group), OCT+ loads. On HOME: the pattern. With a step held: a sound lock. In step recording: the active step. On SAVE: the slot. |
 | **MASTER** | The output volume. |
 | **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID, TRACK (length and speed). |
-| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2; a kit: the pads, LEVEL, CTL, KIT). |
+| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2; a kit: a page a pad, LEVEL, KIT). |
 | **ENV** | FLTR, FLTR 2, AMP, AMP 2, LOFI, INSRT. |
 | **LFO** | LFO1, LFO2, MENV. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER, DUCK, PUMP, COMP. |
-| **ARP** | The arpeggiator; CHORD with the sound's SCALE. |
+| **ARP** | The arpeggiator, CHORD, SCALE (the sound's scale). |
 | **GLO** | Tempo, scale and length, voices, sound setup, portamento, modulation, song, keyboard, MIDI. |
 | **HOME** | Tap: the home screen. Hold: the performance layer. Tap twice: lock it. |
 | **SAVE** | The SAVE page. SCL+SAVE saves now. |
@@ -266,14 +266,15 @@ With **ENGINE DRUM** a track becomes a **kit of eight pads**, each a synthesized
 
 | Page | Row | K1 | K2 | K3 | K4 |
 | --- | --- | --- | --- | --- | --- |
-| PAD 1-2 … PAD 7-8 (the tabs show the models, e.g. BD SD) | one row a pad | MODEL | TUNE | DEC | TONE |
+| A page a pad (the tabs show it: 1 BD, 2 SD …) | 1 | MODEL | TUNE | DEC | TONE |
+| | 2 | CTL A | CTL B | PAN | LEV |
 | LEVEL | pads 1–4, pads 5–8 | level | level | level | level |
 | KIT | | | | | ENGINE |
 
-![A drum kit's pad page](img/drum_kit.png "EDIT under DRUM: a row a pad (MODEL TUNE DEC TONE); the kit on the left, lit as its pads sound")
+![A drum kit's pad page](img/drum_kit.png "EDIT under DRUM: pad 1's page (MODEL TUNE DEC TONE / BEND TICK PAN LEV); the kit on the left, lit as its pads sound")
 ![The kit's levels](img/drum_levels.png "LEVEL: the eight pads' levels, named by pad and model")
 
-The knobs are named after their pad (1 BD, 2 SD …). Playing a pad on the keys moves the knobs to its row, so you hit a drum and turn it. The picture on the left shows the eight pads; a pad lights while it sounds, and the pad the grid places (below) is drawn in the foreground.
+Each pad has its own page (since 0.12.1). Playing a pad on the keys, or picking it, moves to its page, so you hit a drum and turn it. The picture on the left shows the eight pads; a pad lights while it sounds, and the page's pad is drawn in the foreground.
 
 | Param | Range | What it does |
 | --- | --- | --- |
@@ -314,7 +315,7 @@ The knobs are named after their pad (1 BD, 2 SD …). Playing a pad on the keys 
 | HH FM | A metallic FM hat: two inharmonic sines, the index falling | Hardness (the FM depth) |
 | HH 606 | A bright noise hat, very short (chokes the open ones) | Brightness |
 
-**The pads' controls (SYN > CTL 1-2 … CTL 7-8, TONIC 0.12).** Each pad has two more knobs whose meaning is its model's, and its own PAN. At 0 the model sounds exactly as before; the knob names follow the model:
+**The pads' controls (each pad's page, row 2; TONIC 0.12).** Each pad has two more knobs whose meaning is its model's, and its own PAN. At 0 the model sounds exactly as before; the knob names follow the model:
 
 | Models | CTL A | CTL B |
 | --- | --- | --- |
@@ -328,7 +329,7 @@ The knobs are named after their pad (1 BD, 2 SD …). Playing a pad on the keys 
 | SHAKER, MARACA, SD BRSH | **RISE**: the swell | **RESO** |
 | NOISE, HH 606 | **RESO** | — |
 
-![The CTL page](img/kit_ctl.png "SYN > CTL 1-2: BEND, TICK and PAN of the BD; SNAP, BODY and PAN of the SD")
+![A hat's page](img/kit_ctl.png "Pad 4 (CH): NOIS, RESO, PAN, LEV in row 2")
 
 **PAN** (−64 left … +63 right) places the pad on its own, on top of the sound's PAN. All three can be locked per step.
 
@@ -441,7 +442,7 @@ Each voice has two LFOs. LFO2 can also modulate LFO1.
 
 ### MENV: the modulation envelope (TONIC 0.12)
 
-![The MENV page](img/menv.png "LFO > MENV: ATK DEC SUS REL / DEL, DEST, DEP")
+![The MENV page](img/menv.png "LFO > MENV: the envelope drawn (the dot: where the newest note is in it) / DEL, DEST, DEP")
 
 A third modulator: an envelope, started by every note, that goes to any destination as an LFO does (DEST: the same list).
 
@@ -657,7 +658,11 @@ ARP turns held notes, from the keys or from trigs, into a pattern. It belongs to
 
 ![The CHORD page](img/chord_page.png "ARP group, CHORD: CHORD, INV, VOICE, BASS / STRUM, DIR")
 
-**The sound's scale (CHORD page, row 2: SCALE, ROOT; TONIC 0.12).** With a SCALE (MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENTA, PENTm, HARMm, WHOLE) and its ROOT, every note the sound plays snaps to the scale: keys, trigs, MIDI, the arpeggiator and its offsets (the nearest scale note, the lower one on a tie). A kit is never affected.
+**The sound's scale (ARP > SCALE: SCALE, ROOT; TONIC 0.12).**
+
+![The SCALE page](img/scale.png "ARP > SCALE: MAJOR, root C")
+
+ With a SCALE (MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENTA, PENTm, HARMm, WHOLE) and its ROOT, every note the sound plays snaps to the scale: keys, trigs, MIDI, the arpeggiator and its offsets (the nearest scale note, the lower one on a tie). A kit is never affected.
 
 With a scale, **CHORD lists the chords by the scale's degrees** instead of their names, so each note gets the chord that belongs to the key:
 

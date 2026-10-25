@@ -93,7 +93,7 @@ spin K1 60
 wait 30
 shot chord_strum.png
 # ---- the arp's CHRD mode
-spin SELECT 1
+spin SELECT 2
 wait 30
 expect row 0
 spin K1 6

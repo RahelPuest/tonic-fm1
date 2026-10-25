@@ -636,9 +636,9 @@ static void voice_control(voice_t *v)
     /* (0.12) the modulation envelope (before the LFOs: it may move LFO 1's parameters) */
     {
         int d3 = v->p[P_MDST];
+        adsr_step(&v->em, v->ps[P_MDEL], v->ps[P_MATK], v->ps[P_MDEC], v->ps[P_MSUS] * (1.0f / 127.0f),
+                  v->ps[P_MREL], v->gate, 1);   /* (always: the MENV page shows it, a destination or not) */
         if (d3 > 0 && d3 < ND && v->p[P_MDEP] != 0) {
-            adsr_step(&v->em, v->ps[P_MDEL], v->ps[P_MATK], v->ps[P_MDEC], v->ps[P_MSUS] * (1.0f / 127.0f),
-                      v->ps[P_MREL], v->gate, 1);
             m[d3] += v->em.lvl * v->ps[P_MDEP] * (1.0f / 64.0f) * lfo_unit(d3, other);
             mw[nmw++] = (uint8_t)d3;
         }

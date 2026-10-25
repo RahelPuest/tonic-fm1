@@ -15,16 +15,17 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.12" src="https://img.shields.io/badge/version-0.12-orange">
-  <img alt="Status: emulation only" src="https://img.shields.io/badge/hardware-not%20yet%20tested-red">
+  <img alt="Version 0.12.1" src="https://img.shields.io/badge/version-0.12.1-orange">
+  <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
 <p align="center"><img src="docs/screens.png" width="784" alt="TONIC's screens: the home page, a drum kit, the piano roll, the euclidean generator on a kit, chords by the scale's degrees, ducking at 1/4"></p>
 
-> [!WARNING]
-> **TONIC has not been tested on a physical FM-1 yet.** It runs in a host simulator, in the browser emulator and in an
-> instruction-level FM-1 emulator that executes the real device binary. Installing it is at your own risk. The
-> installer can put M-VAVE's own firmware back, and [docs/INSTALL.md](docs/INSTALL.md) describes the recovery routes.
+> [!NOTE]
+> TONIC runs on the M-VAVE FM-1. Each release is also tested in software: engine tests, a host simulator, the browser
+> emulator and an instruction-level FM-1 emulator that executes the real device binary. It is a custom firmware, so
+> install it at your own risk; the installer can put M-VAVE's own firmware back, and [docs/INSTALL.md](docs/INSTALL.md)
+> describes the recovery routes.
 
 ## What it is
 
@@ -82,7 +83,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.12.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.12.1.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.

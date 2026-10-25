@@ -37,7 +37,7 @@ From `tonic/`:
 ```sh
 . tools/env.sh                                 # toolchain, SDK, fribidi, emsdk
 python3 ../base/tools/build.py .               # build/tonic.fwsc (identity FM-1_4700) + build/tonic.bin
-python3 ../base/tools/build.py . --release 0.12  # build/tonic-0.12.fwsc (identity FM-1_47001200)
+python3 ../base/tools/build.py . --release 0.12.1 # build/tonic-0.12.1.fwsc (identity FM-1_47001201)
 python3 ../base/tools/build.py . --host        # build/host/tonic_host (the simulator)
 python3 ../base/tools/build.py . --web         # build/emu/ (the browser emulator)
 tools/bench_build.sh                           # build/bench/tonic-bench.fwsc (CPU benchmark firmware)
@@ -49,9 +49,9 @@ The device build checks the memory budget and prints it, e.g.
 `image 174360 B; RAM .data+.bss 84628 B of 98304; pool 334752 B of 344064`.
 
 The installer site (installer page, emulator, manual, backup page):
-`python3 ../base/tools/make_site.py . build/tonic-0.12.fwsc 0.12 OUT_DIR` (needs a release build). Copy the
+`python3 ../base/tools/make_site.py . build/tonic-0.12.1.fwsc 0.12.1 OUT_DIR` (needs a release build). Copy the
 earlier packages into `OUT_DIR/firmware/` to keep them downloadable (the landing page links `tonic-0.1.fwsc`,
-`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc` and `tonic-0.11.fwsc`).
+`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc` and `tonic-0.12.fwsc`).
 
 ## Tests
 
