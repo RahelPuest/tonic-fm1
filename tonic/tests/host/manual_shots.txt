@@ -1,0 +1,155 @@
+# the manual's screenshots (docs/img): tonic_host tests/host/manual_shots.txt docs/img
+wait 1500
+tap PLAY
+wait 1200
+tap HOME
+wait 200
+shot home.png
+press HOME
+wait 500
+shot perform.png
+release HOME
+wait 100
+tap EDIT
+wait 200
+shot syn1.png
+tap ENV
+wait 200
+shot fltr.png
+tap LFO
+wait 200
+shot lfo.png
+tap FX
+wait 30
+spin SELECT 2
+wait 200
+shot delay.png
+spin SELECT 6
+wait 200
+shot duck.png
+tap SEQ
+wait 200
+shot trig.png
+tap REC
+wait 300
+shot grid.png
+tap REC
+wait 100
+tap SEQ
+wait 30
+tap SEQ
+wait 30
+spin ALGO 2
+wait 1800
+shot roll.png
+spin ALGO -2
+wait 1800
+tap SEQ
+wait 30
+spin K1 1
+wait 1800
+shot retrig.png
+spin K1 -1
+wait 30
+tap ARP
+wait 200
+shot arp.png
+tap GLO
+wait 200
+shot glo.png
+spin K1 3
+wait 300
+shot popup.png
+wait 1800
+press REC
+wait 1200
+shot help.png
+release REC
+wait 100
+tap REC
+wait 100
+tap PLAY
+wait 300
+tap SAVE
+wait 200
+shot save.png
+# the VA engine: VA SYNC LEAD (factory 41), its OSC pages
+sound 41
+wait 30
+tap EDIT
+wait 30
+spin SELECT 1
+wait 1800
+shot va_osc.png
+spin SELECT 2
+wait 1800
+shot va_osc2.png
+# the DRUM engine: a beat on B02 with the 909 KIT (factory 65): the kit page while it plays, the levels, the roll
+tap HOME
+wait 800
+press HOME
+wait 400
+tapkey w0
+wait 30
+release HOME
+wait 100
+expect group 7
+expect perf 0
+spin PRESET 17
+wait 400
+expect pattern 17
+sound 65
+wait 30
+expect engine 2
+wait 30
+tap REC
+wait 30
+tap SEQ
+wait 30
+spin SELECT 1
+wait 30
+expect row 4
+tapkey w0
+tapkey w4
+tapkey w8
+tapkey w12
+tapkey w10
+spin K1 3
+wait 30
+tapkey w2
+tapkey w6
+tapkey w10
+tapkey w14
+spin K1 1
+wait 30
+tapkey w15
+spin K1 -3
+wait 30
+tapkey w4
+tapkey w12
+tap REC
+wait 30
+tap PLAY
+wait 500
+expect playing 1
+tap EDIT
+wait 30
+spin SELECT -3
+wait 30
+expect row 0
+wait 1640
+shot drum_kit.png
+spin SELECT 8
+wait 30
+expect row 8
+wait 1800
+shot drum_levels.png
+tap SEQ
+wait 30
+spin SELECT 2
+wait 30
+expect row 6
+wait 1800
+shot drum_roll.png
+tap PLAY
+wait 30

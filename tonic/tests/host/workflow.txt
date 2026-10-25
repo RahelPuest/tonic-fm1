@@ -1,0 +1,215 @@
+# TONIC workflows in the host simulator: grid entry, p-locks, micro timing, lock trigs, length, step recording,
+# live recording, pattern change, save and reboot. P_* numbers: core/tonic.h (P_FREQ 31, P_ALEV 15).
+wait 1500
+# ---- a fresh pattern: B01 (empty)
+press HOME
+wait 30
+wait 400
+tapkey w0
+wait 30
+release HOME
+wait 30
+wait 100
+expect pattern 0
+spin PRESET 16
+wait 100
+expect pattern 16
+expect ntrig 0
+# ---- grid recording: a trig, removed by a short press
+tap REC
+wait 30
+expect grid 1
+tapkey w0
+wait 30
+wait 50
+expect trig0 1
+tapkey w0
+wait 30
+wait 50
+expect trig0 0
+# ---- a held step: K1 on the TRIG page sets its note
+tap SEQ
+wait 30
+key w4 down
+wait 30
+wait 400
+spin K1 3
+key w4 up
+wait 30
+wait 50
+expect trig4 1
+expect note4 63
+shot grid_trig.png
+# ---- a p-lock: FLTR row FREQ, step 5 held
+tap ENV
+wait 30
+expect group 2
+expect row 1
+key w5 down
+wait 30
+wait 50
+key w5 up
+wait 30
+key w5 down
+wait 30
+wait 400
+spin K1 -40
+shot grid_lock.png
+key w5 up
+wait 30
+wait 50
+expect lock5_31 468
+expect nlock 1
+# ---- micro timing on a held step: black key 7 (+), black key 6 (-)
+key w5 down
+wait 30
+wait 400
+tapkey b6
+wait 30
+tapkey b6
+wait 30
+tapkey b5
+wait 30
+key w5 up
+wait 30
+expect micro5 1
+# ---- a lock trig: SEL + key
+press SEL
+wait 30
+tapkey w8
+wait 30
+release SEL
+wait 30
+expect trig8 2
+# ---- length: the second page key held + white key 16 -> 32 steps
+key b1 down
+wait 30
+tapkey w15
+wait 30
+key b1 up
+wait 30
+expect len 32
+tap REC
+wait 30
+expect grid 0
+# ---- step recording: a chord, then a single note
+press SEL
+wait 30
+tap REC
+wait 30
+release SEL
+wait 30
+expect steprec 1
+spin PRESET 2
+expect stepcur 2
+key w0 down
+wait 30
+key w2 down
+wait 30
+key w4 down
+wait 30
+wait 50
+key w0 up
+wait 30
+key w2 up
+wait 30
+key w4 up
+wait 30
+wait 50
+expect nnote2 3
+expect stepcur 3
+tapkey w7
+wait 30
+expect nnote3 1
+expect stepcur 4
+press SEL
+wait 30
+tap REC
+wait 30
+release SEL
+wait 30
+expect steprec 0
+# ---- play, live recording on track 2: REC held + PLAY
+spin ALGO 1
+wait 30
+expect track 1
+expect ntrig 0
+press REC
+wait 30
+tap PLAY
+wait 30
+release REC
+wait 30
+wait 100
+expect playing 1
+expect live 1
+wait 300
+tapkey w10
+wait 30
+wait 400
+tapkey w11
+wait 30
+wait 300
+tap PLAY
+wait 30
+expect live 0
+expect playing 1
+tap PLAY
+wait 30
+expect playing 0
+expect track 1
+expect ntrig >1
+shot after_live.png
+spin ALGO -1
+wait 30
+expect note4 63
+spin ALGO 1
+wait 30
+expect track 1
+# ---- save (the flush waits for the sound to die away), reboot, all of it back
+wait 4000
+expect dirty 0
+reboot
+wait 1500
+expect pattern 16
+spin ALGO 1
+wait 30
+expect ntrig >1
+spin ALGO -1
+wait 30
+expect note4 63
+expect lock5_31 468
+expect micro5 1
+expect len 32
+expect nnote2 3
+# ---- quantize after recording: GLO, SCALE row 2, K4 (MICRO) down to 0
+tap GLO
+wait 30
+spin SELECT 3
+wait 30
+expect row 3
+spin K4 -5
+wait 30
+expect micro5 0
+expect note4 63
+# ---- trig conditions in the OS's order: from none, one right is FILL, two left of that is 99 %
+tap REC
+wait 30
+expect grid 1
+tap SEQ
+wait 30
+expect group 0
+key w5 down
+wait 400
+spin K4 1
+wait 30
+key w5 up
+wait 30
+expect cond5 1
+key w5 down
+wait 400
+spin K4 -2
+wait 30
+key w5 up
+wait 30
+expect cond5 29

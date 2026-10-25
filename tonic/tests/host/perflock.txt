@@ -1,0 +1,39 @@
+# HOME tapped twice: the performance layer stays (white keys patterns, black keys mutes without HOME held); a tap on
+# HOME leaves; HOME held still works as before
+wait 1500
+tap HOME
+wait 100
+tap HOME
+wait 100
+expect perflock 1
+expect perf 1
+wait 500
+expect perf 1
+tapkey b0
+wait 100
+expect mute 1
+tapkey b0
+wait 100
+expect mute 0
+tapkey w1
+wait 100
+expect pattern 1
+shot perf_locked.png
+tap HOME
+wait 100
+expect perflock 0
+expect perf 0
+# held: as before
+press HOME
+wait 400
+expect perf 1
+release HOME
+wait 100
+expect perf 0
+expect perflock 0
+# one tap only: the home screen, no lock
+wait 600
+tap HOME
+wait 600
+expect perflock 0
+expect group 7

@@ -1,0 +1,17 @@
+wait 1500
+expect store_writes 0
+spin PRESET 16
+wait 100
+tap REC
+wait 30
+tapkey w3
+wait 3500
+expect dirty 1
+tap REC
+wait 4000
+expect dirty 0
+expect store_writes 0
+reboot
+wait 1500
+expect pattern 16
+expect trig3 1

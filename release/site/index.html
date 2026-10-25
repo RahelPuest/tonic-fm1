@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TONIC · a Digitone-style FM groovebox</title>
+<meta name="description" content="TONIC, a Digitone-style FM groovebox for TONIC, a firmware for the M-VAVE FM-1.">
+<style>
+/* paper and ink: warm white paper, ink-blue type, vermilion for what is played, mustard for asides; a shade of the
+   paper for code and callouts (CTL-1's; a firmware may restyle its site) */
+:root {
+  --paper: #fbf8f1; --sheet: #efe9dc; --rule: #ddd4c2; --ink: #1e2b5a; --muted: #5d6585;
+  --hot: #e5482e; --hot-t: #f8d3c9; --cool: #d9a21b; --cool-t: #f5e4b8;
+  --hot-ink: #c23a22;                                 /* the vermilion as text: 4.5:1 on the paper */
+  color-scheme: light;
+}
+body {
+  background: var(--paper); color: var(--ink); margin: 0;
+  font: 400 17px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding-inline: 16px; padding-block: 32px 64px;
+}
+main { max-width: 46rem; margin: 0 auto; }
+.page > .site { max-width: 46rem; margin-inline: auto; }
+main:focus { outline: none; }
+h1, h2, h3 { font-family: inherit; text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 .4rem; letter-spacing: .02em; }
+h2 { font-size: 1.3rem; font-weight: 700; margin: 3rem 0 .8rem; padding-top: .8rem; border-top: 2px solid var(--ink); }
+h2 .num { color: var(--hot); margin-right: .5em; font-variant-numeric: tabular-nums; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 .5rem; }
+p, li { max-width: 65ch; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+li { margin: .2rem 0; }
+li::marker { color: var(--hot); }
+strong { font-weight: 700; }
+a { color: var(--ink); text-decoration-color: var(--hot); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { background: var(--hot-t); }
+:focus-visible { outline: 3px solid var(--hot-ink); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -100px; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 0 0 6px 6px; z-index: 1; }
+.skip:focus { top: 0; }
+code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86em; }
+code { background: var(--sheet); padding: .08em .35em; border-radius: 3px; }
+pre { background: var(--sheet); border-radius: 6px; padding: 14px 16px; overflow-x: auto; line-height: 1.45; margin: 0 0 1.2rem; }
+pre code { background: none; padding: 0; font-size: inherit; }
+hr { display: none; }
+.table { overflow-x: auto; margin: 0 0 1.3rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .7rem .45rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); border-bottom: 2px solid var(--ink); }
+td:first-child { white-space: nowrap; }
+.lede { margin-bottom: 1.6rem; }
+.status { background: var(--sheet); border-radius: 6px; padding: 12px 16px; }
+.status p { margin: 0; }
+.site { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.2rem; margin: 0 0 1.6rem; padding-bottom: .5rem; border-bottom: 2px solid var(--ink); }
+.site .home { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); text-decoration: none; }
+.site .home:hover { color: var(--hot-ink); background: none; }
+.site nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .92rem; }
+.site nav a { color: var(--ink); text-underline-offset: 3px; }
+.site nav a[aria-current] { text-decoration: none; color: var(--hot-ink); }
+a.home { color: inherit; text-decoration: none; }
+a.home:hover { background: none; color: var(--hot-ink); }
+main > a.home { display: inline-block; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 .4rem; }
+.callout { border-left: 4px solid var(--cool); background: var(--cool-t); padding: 10px 16px; margin: 0 0 1.2rem; max-width: 65ch; border-radius: 0 6px 6px 0; }
+.callout p { margin: 0; }
+details { background: var(--sheet); border-radius: 6px; padding: 0 16px; margin: 0 0 1.2rem; }
+details > summary { cursor: pointer; padding: 10px 0; }
+details[open] > summary { margin-bottom: .4rem; }
+details > :last-child { margin-bottom: 1rem; }
+.swatch { display: inline-block; width: .7em; height: .7em; margin-right: .4em; vertical-align: .02em; }
+nav.contents ol { columns: 2 14rem; column-gap: 2rem; padding-left: 1.3rem; }
+.figs { display: flex; flex-wrap: wrap; gap: 20px; margin: .4rem 0 1.6rem; }
+figure { margin: 0; flex: 0 1 auto; }
+figure img { display: block; max-width: 100%; height: auto; }
+figure.shot img { width: 300px; image-rendering: pixelated; border-radius: 4px; box-shadow: 0 0 0 1px var(--rule); }
+figure.wide { flex-basis: 100%; }
+figure.wide img { width: 100%; }
+figcaption { color: var(--muted); font-size: .88rem; margin-top: .4rem; max-width: 300px; }
+figure.wide figcaption { max-width: none; }
+nav.contents li { break-inside: avoid; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<div class="page">
+<header class="site"><a class="home" href="./" aria-current="page">TONIC</a><nav><a href="emu/">Emulator</a><a href="install/">Install</a><a href="manual/">Manual</a></nav></header>
+<main id="content" tabindex="-1"><h1>TONIC</h1>
+<p class="lede">TONIC is a Digitone-style FM groovebox for the M-VAVE FM-1: four synth tracks sharing twelve voices, a four-operator FM engine with eight algorithms, a virtual-analog engine and a DRUM engine (a kit of 8 synthesized drums on one track, 31 models with their own controls) as options per sound, an insert effect and a modulation envelope on every voice, a scale per sound with chords by its degrees, a euclidean rhythm generator (accents, ghost notes, named rhythms, melodies), chords on every note (voicings, strum, with or without the arpeggiator), a master compressor, sidechain ducking and tempo-synced volume shaping, momentary performance effects (loop rolls, tape stop, filter sweeps, freeze), a 64-step sequencer with parameter locks, sound locks, trig conditions, micro timing, retrig and a length and speed per track, an arpeggiator, chorus, delay, reverb and a DJ filter. The 16 white keys are its trig keys.</p>
+<div class="figs"><figure class="shot"><img src="manual/img/home.png" alt="TONIC&#x27;s home screen: pattern A01 GROUND, four tracks with their sounds and levels, the steps below" loading="lazy"><figcaption>TONIC on the FM-1's screen</figcaption></figure></div>
+<p>Version 0.12. <strong>Not yet tested on a physical FM-1</strong> (it runs in the instruction-level emulator fm1-emu). Installing is at your own risk; the installer can put M-VAVE's own firmware back.</p>
+<ul><li><a href="emu/">Try it in the browser</a>: the same code the FM-1 runs, with sound and Web MIDI. No FM-1 needed.</li><li><a href="install/">Install</a>: from Chrome or Edge, with the FM-1 connected by USB.</li><li><a href="manual/">Manual</a>: sound design, sequencing, performing, saving.</li><li><a href="firmware/tonic-0.12.fwsc">Download tonic-0.12.fwsc</a>: for the command-line installer, <code>python3 base/tools/fm1_install.py tonic-0.12.fwsc</code>.</li><li><a href="https://github.com/RahelPuest/tonic-fm1">Source code on GitHub</a>.</li><li>0.12 saves its projects in a new format: older versions cannot read what 0.12 saved. Take a USB backup first if you may want to go back.</li><li>Earlier versions stay available: <a href="firmware/tonic-0.11.fwsc">0.11</a> (twelve voices, before the drum controls, the insert, the modulation envelope and the scales), <a href="firmware/tonic-0.10.1.fwsc">0.10.1</a> (eight voices, the performance audit), <a href="firmware/tonic-0.10.fwsc">0.10</a> (the PUMP page, before the performance audit), <a href="firmware/tonic-0.9.2.fwsc">0.9.2</a> (the functional audit's fixes, before PUMP), <a href="firmware/tonic-0.9.1.fwsc">0.9.1</a> (the UI audit's fixes), <a href="firmware/tonic-0.9.fwsc">0.9</a> (before the UI audit's fixes), <a href="firmware/tonic-0.8.fwsc">0.8</a> (21 drum models, fewer LFO destinations), <a href="firmware/tonic-0.7.fwsc">0.7</a> (chords only in the arpeggiator, the first EUCLID), <a href="firmware/tonic-0.6.1.fwsc">0.6.1</a> (before the momentary effects), <a href="firmware/tonic-0.6.fwsc">0.6</a> (a kit's pad picked only through NOTE or by playing it), <a href="firmware/tonic-0.5.2.fwsc">0.5.2</a> (before euclid, arp chords, the compressor and FOLD / RING), <a href="firmware/tonic-0.5.1.fwsc">0.5.1</a> (the same sound, before the optimizations), <a href="firmware/tonic-0.5.fwsc">0.5</a> (the first DRUM engine, its ENGINE knob on K1), <a href="firmware/tonic-0.4.1.fwsc">0.4.1</a> (before the DRUM engine; it cannot read projects saved by 0.5), <a href="firmware/tonic-0.4.fwsc">0.4</a> (the colour screen, the old piano roll), <a href="firmware/tonic-0.3.2.fwsc">0.3.2</a> (the screen before 0.4's colours), <a href="firmware/tonic-0.3.1.fwsc">0.3.1</a> (the preset list, loading as you turn), <a href="firmware/tonic-0.3.fwsc">0.3</a> (22 VA sounds, no preset list), <a href="firmware/tonic-0.2.fwsc">0.2</a> (the first VA engine, 10 VA sounds) and <a href="firmware/tonic-0.1.fwsc">0.1</a> (FM only).</li></ul>
+<p>Built on fm1-base and felucca-bsp (MPL-2.0). TONIC is an independent work inspired by the Elektron Digitone; it is not affiliated with or endorsed by Elektron or M-VAVE. Digitone is a trademark of Elektron; M-VAVE and FM-1 are trademarks of their owners.</p>
+</main>
+</div>
+</body>
+</html>

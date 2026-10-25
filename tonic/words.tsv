@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MPL-2.0
+# TONIC words for a screen reader (fm1-reader): the text on the screen <TAB> what to say.
+# url: https://example.invalid/tonic/words/
+TONIC	tonic
+SYN1	synth page 1
+SYN2	synth page 2
+FLTR	filter
+AMP	amp
+LFO1	L F O 1
+LFO2	L F O 2
+TRIG	trig page
+GRID	grid recording

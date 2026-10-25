@@ -1,0 +1,29 @@
+# the piano roll: SEQ's third page; K1 VIEW (AUTO, then a note), K2 ZOOM; a held step's NOTE on K3 moves its bar
+wait 1500
+tap SEQ
+wait 30
+tap SEQ
+wait 30
+tap SEQ
+wait 30
+expect group 0
+expect row 2
+expect rolllo -1
+spin K2 1
+wait 30
+expect rollzoom 1
+spin K1 49
+wait 30
+expect rolllo 48
+shot roll.png
+tap REC
+wait 30
+expect grid 1
+key w0 down
+wait 400
+spin K3 2
+wait 30
+key w0 up
+wait 30
+expect note0 50
+shot roll_edit.png

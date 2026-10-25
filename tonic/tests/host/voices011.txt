@@ -1,0 +1,50 @@
+# 0.11: 12 voices: 12 held keys sound together, a 13th steals; VOICES reaches 12
+wait 1500
+spin PRESET 16
+wait 100
+expect pattern 16
+sound 75
+wait 50
+key w0 down
+key w1 down
+key w2 down
+key w3 down
+key w4 down
+key w5 down
+key w6 down
+key w7 down
+key w8 down
+key w9 down
+key w10 down
+key w11 down
+wait 200
+expect voices 12
+key w12 down
+wait 200
+expect voices 12
+key w0 up
+key w1 up
+key w2 up
+key w3 up
+key w4 up
+key w5 up
+key w6 up
+key w7 up
+key w8 up
+key w9 up
+key w10 up
+key w11 up
+key w12 up
+wait 3000
+expect voices 0
+tap GLO
+wait 30
+spin SELECT 4
+wait 30
+expect row 4
+spin K3 20
+wait 30
+expect tvoices 12
+spin K3 -12
+wait 30
+expect tvoices 0

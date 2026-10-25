@@ -1,0 +1,179 @@
+# 0.9.2 save fixes: RELOAD/PASTE/CLEAR refused while a pattern change is pending; COPY has its own buffer (not the
+# temporary save's); no undo of what was before a USB restore; LOAD DEMO keeps the user library, empties the rest
+wait 1500
+expect pattern 0
+expect ntrig 6
+# ---- pending change: CLEAR, RELOAD, PASTE wait (pattern 0 untouched, pattern 1 arrives intact)
+tap PLAY
+wait 200
+press HOME
+wait 400
+tapkey w1
+wait 50
+release HOME
+wait 50
+tap SAVE
+wait 50
+spin SELECT 8
+wait 50
+tap SAVE
+wait 50
+tap SAVE
+wait 50
+expect pattern 0
+expect ntrig 6
+spin SELECT -3
+wait 50
+tap SAVE
+wait 50
+tap SAVE
+wait 50
+expect ntrig 6
+spin SELECT 1
+wait 50
+tap SAVE
+wait 50
+spin SELECT 1
+wait 50
+tap SAVE
+wait 50
+expect ntrig 6
+wait 4000
+expect pattern 1
+expect ntrig 3
+tap PLAY
+wait 100
+tap HOME
+wait 50
+spin PRESET -1
+wait 100
+expect pattern 0
+expect ntrig 6
+# ---- COPY (row 6) is not the temporary save: copy A01, temp save the empty A06, paste: A01's trigs
+tap SAVE
+wait 30
+spin SELECT -1
+wait 30
+tap SAVE
+wait 30
+tap HOME
+wait 30
+spin PRESET 5
+wait 50
+expect pattern 5
+expect ntrig 0
+press HOME
+wait 400
+tapkey b8
+wait 30
+release HOME
+wait 30
+tap SAVE
+wait 30
+spin SELECT 1
+wait 30
+tap SAVE
+wait 50
+expect ntrig 6
+press HOME
+wait 400
+tapkey b9
+wait 30
+release HOME
+wait 30
+expect ntrig 0
+# ---- undo after a USB restore: nothing to undo
+tap HOME
+wait 30
+spin PRESET -5
+wait 50
+expect pattern 0
+press SEL
+wait 30
+tap SAVE
+wait 30
+release SEL
+wait 30
+backup out:b1.bin
+tap SAVE
+wait 30
+spin SELECT 1
+wait 30
+tap SAVE
+wait 30
+tap SAVE
+wait 1000
+expect ntrig 0
+press SEL
+wait 30
+tap SAVE
+wait 30
+release SEL
+wait 30
+restore out:b1.bin
+wait 100
+expect restore_rc 0
+expect ntrig 6
+press SEL
+wait 30
+tap HOME
+wait 30
+release SEL
+wait 50
+expect ntrig 6
+# ---- LOAD DEMO: a VA sound in library slot 32 and a trig on A11 before; after: A11 empty, slot 32 kept
+sound 39
+wait 50
+expect engine 1
+tap SAVE
+wait 30
+spin SELECT -7
+wait 30
+spin PRESET 31
+wait 30
+tap SAVE
+wait 30
+tap HOME
+wait 30
+spin PRESET 10
+wait 50
+expect pattern 10
+tap REC
+wait 30
+tapkey w5
+wait 30
+tap REC
+wait 30
+expect ntrig 1
+tap SAVE
+wait 30
+spin SELECT 8
+wait 30
+tap SAVE
+wait 30
+tap SAVE
+wait 300
+expect pattern 0
+reboot
+wait 1500
+expect pattern 0
+expect ntrig 6
+tap HOME
+wait 30
+spin PRESET 10
+wait 50
+expect pattern 10
+expect ntrig 0
+tap EDIT
+wait 30
+spin PRESET 1
+wait 50
+expect plisti 75
+spin PRESET 8
+wait 50
+spin PRESET 1
+wait 50
+expect plisti 107
+tap OCT+
+wait 50
+expect engine 1

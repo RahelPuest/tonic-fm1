@@ -1,0 +1,566 @@
+# every DRUM kit (factory 64-74): its 8 pads one after another, a WAV a pad (kitK_P.wav), on B16
+wait 1500
+spin PRESET -1
+wait 50
+master 4096
+sound 64
+wait 60
+wav kit64_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit64_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit64_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit64_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit64_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit64_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit64_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit64_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 65
+wait 60
+wav kit65_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit65_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit65_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit65_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit65_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit65_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit65_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit65_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 66
+wait 60
+wav kit66_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit66_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit66_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit66_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit66_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit66_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit66_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit66_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 67
+wait 60
+wav kit67_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit67_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit67_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit67_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit67_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit67_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit67_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit67_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 68
+wait 60
+wav kit68_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit68_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit68_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit68_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit68_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit68_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit68_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit68_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 69
+wait 60
+wav kit69_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit69_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit69_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit69_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit69_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit69_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit69_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit69_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 70
+wait 60
+wav kit70_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit70_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit70_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit70_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit70_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit70_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit70_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit70_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 71
+wait 60
+wav kit71_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit71_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit71_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit71_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit71_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit71_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit71_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit71_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 72
+wait 60
+wav kit72_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit72_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit72_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit72_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit72_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit72_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit72_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit72_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 73
+wait 60
+wav kit73_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit73_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit73_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit73_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit73_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit73_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit73_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit73_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700
+sound 74
+wait 60
+wav kit74_1.wav
+key w0 down 110
+wait 20
+key w0 up
+wait 230
+wavstop
+wav kit74_2.wav
+key w1 down 110
+wait 20
+key w1 up
+wait 230
+wavstop
+wav kit74_3.wav
+key w2 down 110
+wait 20
+key w2 up
+wait 230
+wavstop
+wav kit74_4.wav
+key w3 down 110
+wait 20
+key w3 up
+wait 230
+wavstop
+wav kit74_5.wav
+key w4 down 110
+wait 20
+key w4 up
+wait 230
+wavstop
+wav kit74_6.wav
+key w5 down 110
+wait 20
+key w5 up
+wait 230
+wavstop
+wav kit74_7.wav
+key w6 down 110
+wait 20
+key w6 up
+wait 230
+wavstop
+wav kit74_8.wav
+key w7 down 110
+wait 20
+key w7 up
+wait 230
+wavstop
+wait 700

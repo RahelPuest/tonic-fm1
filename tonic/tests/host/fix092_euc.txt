@@ -1,0 +1,274 @@
+# 0.9.2 euclid fixes: STYLE round trip, accents on hits, lock trigs kept, undo, orphan LEV lock, 4 PADS FULL, clip > 128 locks
+wait 1500
+press HOME
+wait 400
+tapkey w0
+release HOME
+wait 100
+spin PRESET 16
+wait 100
+expect pattern 16
+expect ntrig 0
+tap SEQ
+wait 30
+spin SELECT 4
+wait 30
+expect row 4
+# STYLE back to EUCL with HITS 0 clears
+spin K4 1
+wait 30
+expect ntrig 6
+spin K4 -1
+wait 30
+expect ntrig 0
+# STYLE round trip keeps LEN 12 / HITS 5
+spin K1 -4
+wait 30
+spin K2 5
+wait 30
+expect ntrig 7
+expect trig15 1
+spin K4 1
+wait 30
+expect ntrig 6
+spin K4 -1
+wait 30
+expect ntrig 7
+expect trig3 1
+expect trig15 1
+expect trig4 0
+# accents only on hits: LEN 16 HITS 5 ACC 2 -> accents on steps 0 and 10
+spin K1 4
+wait 30
+expect ntrig 5
+spin SELECT 1
+wait 30
+spin K1 2
+wait 30
+expect vel0 120
+expect vel4 72
+expect vel7 72
+expect vel10 120
+expect vel13 72
+spin K2 1
+wait 30
+expect vel0 72
+expect vel4 120
+expect vel13 120
+spin SELECT -1
+wait 30
+spin K2 -5
+wait 30
+expect ntrig 0
+tap HOME
+wait 30
+spin PRESET 1
+wait 100
+tap SEQ
+wait 30
+expect row 4
+expect ntrig 0
+expect nlock 0
+press SEL
+wait 30
+tapkey w1
+wait 30
+release SEL
+wait 30
+sound 64
+wait 50
+expect engine 2
+tap REC
+wait 30
+press SEL
+wait 30
+key w2 down
+wait 30
+release SEL
+wait 30
+tap ENV
+wait 30
+spin K1 -20
+wait 30
+key w2 up
+wait 30
+tap REC
+wait 30
+expect trig2 2
+expect nlock 1
+tap SEQ
+wait 30
+expect row 4
+spin K2 8
+wait 30
+expect trig2 1
+expect nlock 1
+spin K3 1
+wait 30
+expect trig2 2
+expect ntrig 9
+spin K2 -8
+wait 30
+expect ntrig 1
+expect trig2 2
+expect nlock 1
+# undo restores the generator's settings
+spin K2 4
+wait 1500
+spin K2 4
+wait 100
+expect ntrig 9
+press SEL
+wait 30
+tap HOME
+wait 30
+release SEL
+wait 100
+expect ntrig 5
+spin K3 1
+wait 30
+expect ntrig 4
+expect trig2 1
+expect trig1 0
+expect nlock 1
+tap HOME
+wait 30
+spin PRESET 1
+wait 100
+tap SEQ
+wait 30
+expect row 4
+expect ntrig 0
+expect nlock 0
+press SEL
+wait 30
+tapkey w2
+wait 30
+release SEL
+wait 30
+sound 64
+wait 50
+expect engine 2
+expect track 2
+expect row 4
+# orphan LEV lock: pad 1 HITS 4 ACC 1 (3 LEV locks), pad 2 on every step, pad 1 tapped off step 4
+spin K2 4
+wait 30
+spin SELECT 1
+wait 30
+spin K1 1
+wait 30
+expect nlock 3
+spin SELECT -1
+wait 30
+tap OCT+
+wait 30
+spin K2 16
+wait 30
+tap OCT-
+wait 30
+tap REC
+wait 30
+tapkey w4
+wait 400
+expect nnote4 1
+expect nlock 2
+tap REC
+wait 30
+# fifth pad: pads 2..4 on every step too, pad 5 cannot join
+tap OCT+
+wait 30
+tap OCT+
+wait 30
+spin K2 16
+wait 30
+tap OCT+
+wait 30
+spin K2 16
+wait 30
+expect nnote0 4
+tap OCT+
+wait 30
+spin K2 16
+wait 30
+expect nnote0 4
+expect nnote1 4
+tap HOME
+wait 30
+spin PRESET -2
+wait 100
+tap SEQ
+wait 30
+expect row 4
+expect ntrig 0
+expect nlock 0
+press SEL
+wait 30
+tapkey w3
+wait 30
+release SEL
+wait 30
+sound 64
+wait 50
+tap REC
+wait 30
+key b3 down
+wait 30
+tapkey w15
+wait 30
+key b3 up
+wait 30
+tap REC
+wait 30
+expect len 64
+spin K1 48
+wait 30
+spin K2 64
+wait 30
+spin SELECT 1
+wait 30
+spin K1 1
+wait 30
+spin SELECT -1
+wait 30
+expect nlock 63
+tap OCT+
+wait 30
+spin K1 48
+wait 30
+spin K2 64
+wait 30
+spin SELECT 1
+wait 30
+spin K1 1
+wait 30
+spin SELECT -1
+wait 30
+tap OCT+
+wait 30
+spin K1 48
+wait 30
+spin K2 64
+wait 30
+spin SELECT 1
+wait 30
+spin K1 1
+wait 30
+spin SELECT -1
+wait 30
+expect nlock 189
+tap REC
+wait 30
+press SEL
+wait 30
+tapkey b8
+wait 30
+tapkey b10
+wait 30
+expect nlock 0
+tapkey b9
+wait 30
+release SEL
+wait 30
+expect nlock 189
+expect nnote5 3

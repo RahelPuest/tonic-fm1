@@ -1,0 +1,61 @@
+# 0.7: the momentary effects on the performance layer: SCL + white key 1-9 while the key is held (ROLL 1/4 1/8 1/16
+# 1/32, HALF, TAPE, LP, HP, FREEZE); the pattern does not change; a key let go after HOME and SCL still ends its effect
+wait 1500
+tap PLAY
+wait 300
+expect playing 1
+expect pattern 0
+press HOME
+wait 400
+expect perf 1
+press SEL
+wait 30
+key w1 down
+wait 30
+expect pfx 2
+expect pattern 0
+release SEL
+wait 30
+expect pfx 2
+press SEL
+wait 30
+key w6 down
+wait 30
+expect pfx 66
+wait 1300
+shot pfx.png
+release SEL
+key w6 up
+wait 30
+expect pfx 2
+release HOME
+wait 100
+expect perf 0
+expect pfx 2
+key w1 up
+wait 30
+expect pfx 0
+# locked: HOME twice, then SCL + key 6 (TAPE)
+tap HOME
+wait 60
+tap HOME
+wait 100
+expect perflock 1
+press SEL
+wait 30
+key w5 down
+wait 300
+expect pfx 32
+release SEL
+key w5 up
+wait 300
+expect pfx 0
+expect pattern 0
+# without SCL a white key still picks a pattern
+tapkey w1
+wait 4200
+expect pattern 1
+tap HOME
+wait 100
+tap PLAY
+wait 30

@@ -1,0 +1,74 @@
+# audio features: SEQ's RETRIG page (K1 RTRG, K2 RTIM, K3 RVEL), ENV's LO-FI page (SRR, BRR), FX's MIXER FILT and
+# DUCK page; HOME held: K1 the DJ filter, K2 the ducking depth. Ids: SRR 65 BRR 66, RTRG 76 RTIM 77 RVEL 78,
+# FILT 103 DUCK 104 DPTH 105 REL 106 FX 107
+wait 1500
+tap SEQ
+wait 30
+tap SEQ
+wait 30
+tap SEQ
+wait 30
+tap SEQ
+wait 30
+expect group 0
+expect row 3
+spin K1 1
+wait 30
+expect tpar127 1
+spin K2 3
+wait 30
+expect tpar128 12
+spin K3 -20
+wait 30
+expect tpar129 -20
+shot audio_retrig.png
+tap ENV
+wait 30
+expect group 2
+expect row 1
+spin SELECT 5
+wait 30
+expect row 6
+spin K1 10
+wait 30
+expect p65 10
+spin K2 5
+wait 30
+expect p66 5
+shot audio_lofi.png
+spin K1 -10
+spin K2 -5
+wait 30
+expect p65 0
+tap FX
+wait 30
+spin SELECT 7
+wait 30
+expect row 7
+spin K3 -10
+wait 30
+expect fx154 -10
+spin SELECT 1
+wait 30
+expect row 8
+spin K1 1
+wait 30
+expect fx155 1
+shot audio_duck.png
+# the performance layer: K1 FILT, K2 DPTH
+press HOME
+wait 400
+spin K1 5
+wait 30
+expect fx154 -5
+spin K2 -10
+wait 30
+expect fx156 70
+shot audio_perf.png
+release HOME
+wait 100
+# it plays: the demo with T1 retrigged, ducking T1 and a lowpass
+tap PLAY
+wait 1500
+expect playing 1
+expect voices >0

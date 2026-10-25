@@ -1,0 +1,407 @@
+# every factory sound: a C, then an E an octave up; on an empty pattern (B16)
+wait 1500
+spin PRESET -1
+wait 50
+master 4096
+wav sounds.wav
+sound 0
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 1
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 2
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 3
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 4
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 5
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 6
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 7
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 8
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 9
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 10
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 11
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 12
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 13
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 14
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 15
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 16
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 17
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 18
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 19
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 20
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 21
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 22
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 23
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 24
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 25
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 26
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 27
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 28
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 29
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 30
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 31
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 32
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 33
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 34
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 35
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 36
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 37
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 38
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+sound 39
+wait 60
+key w7 down 100
+wait 700
+key w7 up
+wait 300
+key b6 down 80
+wait 500
+key b6 up
+wait 900
+wavstop

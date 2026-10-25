@@ -1,0 +1,2 @@
+CompileFlags:
+  Add: [-std=gnu99, -DPLAT_HOST, -I/Users/axon/Documents/development/fm1/digitone/tonic, -I/Users/axon/Documents/development/fm1/digitone/tonic/core, -I/Users/axon/Documents/development/fm1/digitone/tonic/engine, -I/Users/axon/Documents/development/fm1/digitone/base/include, -I/Users/axon/Documents/development/fm1/digitone/base/lib]

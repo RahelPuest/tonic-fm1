@@ -1,0 +1,138 @@
+# 0.9.2 sound fixes: ping-pong delay at long TIME, LFO HLD, CONTROL ALL per engine, a ringing pad on an engine
+# change, randomize on the LFO row (live destinations only), SEL+PRESET group jumps from the user library
+wait 1500
+# ---- ping-pong delay, TIME 1/1, a long release: renders (was SIGSEGV)
+tap FX
+wait 30
+spin SELECT 2
+wait 30
+spin K1 300
+wait 30
+expect fx137 3072
+spin K2 1
+wait 30
+expect fx138 1
+peakreset
+tapkey w0
+wait 500
+tapkey w2
+wait 3000
+expect peak_db_min -40
+# ---- LFO MODE HLD: the mode set, the note held at one pitch (checked by ear / wav in the audit)
+sound 75
+wait 50
+tap LFO
+wait 30
+spin K4 19
+wait 30
+expect p52 19
+spin SELECT 1
+wait 30
+spin K3 2
+wait 30
+expect p55 2
+# ---- CONTROL ALL: FM tracks 1, 3, 4 take it; the kit on track 2 keeps its value
+spin ALGO 1
+wait 30
+sound 69
+spin ALGO 1
+wait 30
+sound 75
+spin ALGO -2
+wait 30
+expect track 0
+expect tp2_7 -2
+tap EDIT
+wait 30
+expect row 0
+spin SELECT 1
+wait 30
+expect row 1
+wait 30
+press EDIT
+wait 30
+spin K4 20
+wait 30
+release EDIT
+wait 30
+expect p7 20
+expect tp3_7 20
+expect tp4_7 20
+expect tp2_7 -2
+# ---- randomize on the LFO row of a kit: never a dead destination (--- : 1-3 5-7 20-26)
+spin ALGO 1
+wait 30
+expect engine 2
+tap LFO
+wait 30
+spin SELECT -1
+wait 30
+expect row 0
+press LFO
+wait 30
+tap REC
+wait 37
+expect p52 27
+tap REC
+wait 37
+expect p52 72
+tap REC
+wait 37
+expect p52 45
+tap REC
+wait 37
+expect p52 4
+tap REC
+wait 37
+expect p52 45
+tap REC
+wait 37
+expect p52 76
+release LFO
+wait 30
+# ---- a held kit pad, the engine changed to FM: the voice ends (no FM drone)
+tap EDIT
+wait 30
+spin SELECT 17
+wait 30
+expect row 18
+key w0 down
+wait 100
+expect voices 1
+spin K4 -2
+wait 30
+expect engine 0
+wait 1500
+expect voices 0
+key w0 up
+wait 300
+# ---- the sound list: SEL+PRESET from the user library on to the first group, back to the last (INIT)
+sound 0
+tap EDIT
+wait 30
+spin PRESET 1
+wait 30
+expect plist 1
+expect plisti 0
+spin PRESET -1
+wait 30
+expect plisti 83
+press SEL
+wait 30
+spin PRESET 1
+wait 30
+expect plisti 0
+spin PRESET 1
+wait 30
+expect plisti 5
+spin PRESET -1
+wait 30
+expect plisti 0
+spin PRESET -1
+wait 30
+expect plisti 76
+spin PRESET -1
+wait 30
+expect plisti 75
+release SEL
+wait 30

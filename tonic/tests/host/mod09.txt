@@ -1,0 +1,41 @@
+# 0.9 / 0.9.1: LFO 1's DEST runs past its own parameters to SRR, BRR (0.12: and the insert's I AMT I TONE I MIX); on an FM sound the kit's destinations ("---")
+# are skipped, on a kit they come (pads 5-8, ALL ...) and the FM-only ones are skipped
+wait 1500
+tap LFO
+wait 30
+expect group 3
+expect row 0
+spin K4 50
+wait 30
+expect p52 82
+spin K4 -2
+wait 30
+expect p52 80
+spin K4 40
+wait 30
+expect p52 82
+spin SELECT 2
+wait 30
+spin K4 79
+wait 30
+expect p60 82
+# a kit: up to ALL LEV (79), then (0.12) the insert's I AMT, I TONE, I MIX (80-82)
+press SEL
+wait 30
+tapkey w2
+wait 30
+release SEL
+wait 30
+sound 64
+wait 50
+expect engine 2
+spin SELECT 4
+wait 30
+expect row 0
+spin K4 80
+wait 30
+expect p52 82
+spin K4 -3
+wait 30
+expect p52 79
+shot lfo_dest.png

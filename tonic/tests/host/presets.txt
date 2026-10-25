@@ -1,0 +1,93 @@
+# PRESETS: a list window opens at the track's sound (T1 BD ROUND = 24, T2 HH CLOSED = 28); every detent moves its
+# cursor (nothing loads), SCL+PRESETS a group (TEXTURES 35, VA 39); OCT+ loads the cursor's sound, OCT- closes; the
+# window also closes after 6 s or with another button; the engine follows the loaded sound
+wait 1500
+tap EDIT
+wait 30
+spin PRESET 1
+wait 50
+expect plist 1
+expect plisti 24
+spin PRESET 1
+wait 50
+expect plisti 25
+expect soundi 0
+shot presets_list.png
+tap OCT+
+wait 50
+expect plist 0
+expect soundi 25
+expect oct 0
+spin PRESET 1
+wait 30
+spin PRESET 3
+wait 50
+expect plisti 28
+press SEL
+wait 20
+spin PRESET 1
+wait 50
+expect plisti 35
+spin PRESET 1
+wait 50
+expect plisti 39
+spin PRESET -1
+wait 50
+expect plisti 35
+release SEL
+wait 30
+spin PRESET 4
+wait 50
+expect plisti 39
+shot presets_va.png
+tap OCT+
+wait 50
+expect engine 1
+expect soundi 39
+# OCT- closes without loading
+spin PRESET 1
+wait 30
+spin PRESET 2
+wait 30
+tap OCT-
+wait 50
+expect plist 0
+expect soundi 39
+expect oct 0
+# another button closes it; 6 s untouched close it
+spin PRESET 1
+wait 30
+tap ENV
+wait 50
+expect plist 0
+spin PRESET 1
+wait 6200
+expect plist 0
+spin ALGO 1
+wait 50
+expect track 1
+spin PRESET 1
+wait 30
+spin PRESET 1
+wait 30
+tap OCT+
+wait 50
+expect soundi 29
+# a note sounding while the sound changes engine: the voice follows (no hang, it still sounds)
+tap PLAY
+wait 300
+key w0 down
+wait 200
+press SEL
+wait 20
+spin PRESET 1
+wait 20
+spin PRESET 1
+wait 20
+release SEL
+tap OCT+
+wait 200
+expect voices >0
+key w0 up
+wait 100
+tap PLAY

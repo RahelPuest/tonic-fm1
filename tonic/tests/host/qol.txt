@@ -1,0 +1,108 @@
+# quality of life: undo / redo (SCL + HOME), shifting a track (black 6/7, no step held), fine knob (SCL held),
+# row defaults (page button + OCT-), tap tempo (HOME held + black key 8), the help (a button held alone)
+wait 1500
+spin PRESET 16
+wait 50
+expect pattern 16
+tap REC
+wait 30
+expect grid 1
+tapkey w0
+wait 900
+expect trig0 1
+tapkey w1
+wait 900
+expect trig1 1
+# undo: the second trig goes; again (redo): it is back
+press SEL
+wait 20
+tap HOME
+wait 30
+release SEL
+wait 30
+expect trig1 0
+expect trig0 1
+press SEL
+wait 20
+tap HOME
+wait 30
+release SEL
+wait 30
+expect trig1 1
+# undo right after an edit (not settled yet) takes it back too
+tapkey w2
+wait 30
+press SEL
+wait 20
+tap HOME
+wait 30
+release SEL
+wait 30
+expect trig2 0
+# shift: no step held, black key 7: every trig one step later
+tapkey b6
+wait 30
+expect trig0 0
+expect trig1 1
+expect trig2 1
+tapkey b5
+wait 30
+expect trig0 1
+expect trig2 0
+tap REC
+wait 30
+# row defaults: FLTR row 2 (FREQ ...), FREQ down, then ENV held + OCT-: back to 508; SCL: back again
+tap ENV
+wait 30
+expect row 1
+spin K1 -20
+wait 30
+expect p31 488
+press ENV
+wait 30
+tap OCT-
+wait 30
+expect p31 508
+press SEL
+wait 30
+release SEL
+release ENV
+wait 30
+expect p31 488
+expect row 1
+# fine: SCL held, a turn is one unit
+press SEL
+wait 20
+spin K1 1
+wait 30
+release SEL
+wait 30
+expect p31 489
+# tap tempo: HOME held, black key 8 four times 500 ms apart (a tapkey takes ~90 ms here): 120 BPM
+spin SELECT 0
+press HOME
+wait 400
+tapkey b7
+wait 410
+tapkey b7
+wait 410
+tapkey b7
+wait 410
+tapkey b7
+wait 30
+release HOME
+wait 30
+expect bpm10 >1180
+expect bpm10 <1220
+# the help: SCL held alone for a second
+press SEL
+wait 1200
+expect help 1
+shot help_scl.png
+release SEL
+wait 200
+expect help 0
+# the value pop-up after a turn
+spin K2 3
+wait 50
+shot popup.png

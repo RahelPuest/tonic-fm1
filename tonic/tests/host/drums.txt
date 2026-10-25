@@ -1,0 +1,183 @@
+# the DRUM engine: EDIT, SYN2 2 (second row) K4 ENGINE > DRUM: the SYN pages become the kit (a row a pad: MODEL
+# TUNE DEC TONE; LEVEL; KIT); the keys play the pads and pick the pad's row; the grid places the picked pad, more pads
+# join a step; the piano roll's lanes are the pads; a factory kit; saved and back after a reboot
+wait 1500
+# ---- a fresh pattern: B01 (empty)
+press HOME
+wait 30
+wait 400
+tapkey w0
+wait 30
+release HOME
+wait 30
+wait 100
+spin PRESET 16
+wait 100
+expect pattern 16
+expect ntrig 0
+tap EDIT
+wait 30
+expect group 1
+spin SELECT 6
+wait 30
+expect row 6
+spin K4 2
+wait 50
+expect engine 2
+expect row 18
+# a kit's defaults: amp envelope open, the pads' models
+expect p41 127
+expect p40 127
+shot drum_engine.png
+spin SELECT 1
+wait 30
+expect row 0
+tapkey w0
+wait 60
+expect voices 1
+expect tpar118 60
+shot drum_pads.png
+tapkey w3
+wait 40
+expect row 3
+expect tpar118 65
+spin K3 -20
+wait 30
+expect p24 44
+tapkey w4
+wait 40
+expect row 4
+# the level page
+spin SELECT 4
+wait 30
+expect row 8
+shot drum_levels.png
+# ---- the grid: the picked pad (CH, from the key above: w3) on step 1, BD joins it, BD alone on 5
+tapkey w3
+wait 300
+tap REC
+wait 30
+expect grid 1
+tapkey w0
+wait 30
+expect nnote0 1
+expect note0 65
+tap SEQ
+wait 30
+expect group 0
+spin K1 -3
+wait 30
+expect tpar118 60
+tapkey w0
+wait 30
+expect nnote0 2
+tapkey w4
+wait 30
+expect note4 60
+tapkey w8
+wait 30
+tapkey w12
+wait 30
+# a short tap on a step with the pad takes only that pad out
+wait 400
+tapkey w0
+wait 400
+expect nnote0 1
+expect note0 65
+tapkey w0
+wait 30
+expect nnote0 2
+shot drum_grid.png
+# ---- picking the pad (0.6.1): black 8 + a white key in the grid; SCL + OCT; OCT alone while playing the keys
+key b7 down
+wait 30
+tapkey w2
+wait 30
+key b7 up
+wait 30
+expect tpar118 64
+expect trig2 0
+press SEL
+wait 30
+tap OCT+
+wait 30
+release SEL
+wait 30
+expect tpar118 65
+shot drum_pickpad.png
+tap REC
+wait 30
+expect grid 0
+tap OCT-
+wait 30
+expect tpar118 64
+tap OCT-
+wait 30
+tap OCT-
+wait 30
+tap OCT-
+wait 30
+expect tpar118 72
+tap OCT+
+wait 30
+expect tpar118 60
+# ---- playing: the roll's lanes
+tap SEQ
+wait 30
+tap SEQ
+wait 30
+expect row 2
+tap PLAY
+wait 600
+expect playing 1
+shot drum_roll.png
+tap EDIT
+wait 30
+shot drum_kit_play.png
+tap PLAY
+wait 30
+expect playing 0
+# ---- a factory kit on track 2
+press SEL
+wait 30
+tapkey w1
+wait 30
+release SEL
+wait 30
+expect track 1
+sound 64
+wait 50
+expect engine 2
+tapkey w1
+wait 50
+tap EDIT
+wait 30
+shot drum_808kit.png
+# ---- saved, and back after a reboot
+wait 4000
+expect dirty 0
+reboot
+wait 1500
+expect pattern 16
+expect track 0
+expect engine 2
+expect nnote0 2
+expect note4 60
+# ---- ENGINE stays on K4: DRUM back to VA and FM with the same knob, the ENGINE row each time
+tap EDIT
+wait 30
+spin SELECT -1
+wait 30
+expect row 18
+spin K4 -1
+wait 50
+expect engine 1
+expect row 6
+spin K4 1
+wait 50
+expect engine 2
+expect row 18
+spin K4 -2
+wait 50
+expect engine 0
+expect row 6

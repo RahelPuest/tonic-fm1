@@ -1,0 +1,15 @@
+# TONIC: build settings (base/tools/build.py)
+name = "TONIC"
+id_prefix = "FM-1_47"          # package identity: dev builds FM-1_4700, releases FM-1_47XXYYZZ
+usb_manufacturer = "TONIC"
+usb_product = "TONIC FM-1"
+include = ["core", "engine", "app"]
+o2 = ["engine/synth.c", "engine/fx.c", "engine/seq.c", "engine/engine.c", "core/tables.c", "core/params.c"]
+o2_cflags = ["-O3"]
+words = "words.tsv"
+backup = true                  # backup and restore of the project over USB (base/tools/fm1_backup.py)
+# the site
+tagline = "a Digitone-style FM groovebox"
+repo = ""
+licence = "MPL-2.0"
+credits = "Built on fm1-base and felucca-bsp (MPL-2.0)."

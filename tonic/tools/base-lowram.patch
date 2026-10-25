@@ -1,0 +1,50 @@
+diff --git a/device/app.ld b/device/app.ld
+index 26a98b4..658a459 100644
+--- a/device/app.ld
++++ b/device/app.ld
+@@ -35,6 +35,8 @@ SECTIONS
+                   . = ALIGN(4); _c1_start = .; KEEP(*(.c1_text*)) . = ALIGN(4); _c1_end = .;
+                   _rt_end = .; } > RAMTEXT AT > XIP
+     _rt_load = LOADADDR(.ram_text);
++    /* .lowram: zeroed data in what .ram_text leaves of RAMTEXT (plat.h PLAT_LOWRAM: buffers only the CPU touches) */
++    .lowram (NOLOAD) : { . = ALIGN(4); _lram_start = .; *(.lowram*) . = ALIGN(4); _lram_end = .; } > RAMTEXT
+     .data : { . = ALIGN(4); _data_start = .; *(.data*) *(.sdata*) *(.*_data) . = ALIGN(4); _data_end = .; } > RAM AT > XIP
+     _data_load = LOADADDR(.data);
+     .bss (NOLOAD) : { _bss_start = .; *(.bss*) *(.sbss*) *(COMMON) *(.*_bss) *(.bd_base) . = ALIGN(4); _bss_end = .; } > RAM
+diff --git a/device/main_fm1.c b/device/main_fm1.c
+index 4f5b88a..a079c54 100644
+--- a/device/main_fm1.c
++++ b/device/main_fm1.c
+@@ -5,7 +5,7 @@
+ /* The platform's boot and main loop (from X0X's, by way of FoMni-1): boot (WDT first, boot-loop guard, guards), LCD, input (TIMER5
+  * 10 kHz), audio (ALNK0), USB; then the main loop: UI at ~60 frames/s, input polled in between. */
+ extern uint32_t _data_start[], _data_end[], _data_load[], _bss_start[], _bss_end[];
+-extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];
++extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[], _lram_start[], _lram_end[];
+ 
+ /* --------------------------------------------------------------- audio --- */
+ /* HALF_FRAMES (unity.c, from APP_BLOCK): the I2S half buffer, 256 frames = 5.8 ms at 44.1 kHz by default */
+@@ -875,6 +875,8 @@ void fm1_cstart(void)
+         *d = 0;
+     for (d = _pool_start; d < _pool_end; d++)
+         *d = 0;
++    for (d = _lram_start; d < _lram_end; d++)
++        *d = 0;
+     for (s = _data_load, d = _data_start; d < _data_end; s++, d++)
+         *d = *s;
+     for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++)
+diff --git a/include/plat.h b/include/plat.h
+index a91b3ec..e3c051e 100644
+--- a/include/plat.h
++++ b/include/plat.h
+@@ -13,8 +13,10 @@
+ /* big zero-initialised buffers go in the .pool RAM region on the device */
+ #ifdef PLAT_HOST
+ #define PLAT_POOL
++#define PLAT_LOWRAM
+ #else
+ #define PLAT_POOL __attribute__((section(".pool")))
++#define PLAT_LOWRAM __attribute__((section(".lowram")))   /* zeroed RAM after .ram_text (buffers only the CPU touches) */
+ #endif
+ 
+ /* panel controls, by printed label (Felucca's panel.c map turns these into matrix ids; Felucca

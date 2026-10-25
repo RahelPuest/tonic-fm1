@@ -1,0 +1,28 @@
+# boot, the home screen, a few pages, play the demo
+wait 1500
+shot home.png
+expect pattern 0
+tap EDIT
+wait 100
+shot syn1.png
+tap EDIT
+wait 100
+shot syn1b.png
+tap ENV
+wait 100
+shot fltr.png
+tap LFO
+wait 100
+shot lfo.png
+wav demo.wav
+tap PLAY
+wait 4000
+shot playing.png
+expect playing 1
+tap HOME
+wait 200
+shot home_play.png
+tap PLAY
+wait 2000
+wavstop
+expect playing 0

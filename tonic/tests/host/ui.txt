@@ -1,0 +1,42 @@
+# the screen: GLO > DISPLAY (the last row) THEME through its five (OLED AMBER PHOSPHOR BLUE PAPER) and back; the
+# theme is kept over a reboot; the pages draw with their tabs (screens for a look)
+wait 1500
+tap PLAY
+wait 600
+tap EDIT
+wait 200
+shot ui_syn.png
+tap ENV
+wait 200
+shot ui_env.png
+tap GLO
+wait 30
+spin SELECT -1
+wait 30
+expect theme 0
+spin K1 1
+wait 30
+expect theme 1
+spin K1 3
+wait 30
+expect theme 4
+shot ui_paper.png
+spin K1 4
+wait 30
+expect theme 4
+spin K1 -3
+wait 30
+expect theme 1
+tap PLAY
+wait 3000
+tap SAVE
+wait 20
+press SEL
+wait 20
+tap SAVE
+wait 50
+release SEL
+wait 200
+reboot
+wait 1500
+expect theme 1

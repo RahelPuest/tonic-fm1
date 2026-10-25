@@ -1,0 +1,25 @@
+wait 1500
+spin PRESET 17
+wait 30
+spin ALGO 1
+wait 30
+expect track 1
+press REC
+wait 30
+tap PLAY
+wait 30
+release REC
+wait 300
+tapkey w10
+wait 400
+tapkey w11
+wait 300
+expect ntrig >1
+tap PLAY
+wait 30
+tap PLAY
+wait 30
+expect ntrig >1
+spin ALGO -1
+wait 30
+expect ntrig 0

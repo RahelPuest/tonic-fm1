@@ -1,0 +1,15 @@
+wait 1500
+spin PRESET 16
+tap REC
+press SEL
+wait 30
+tapkey w8
+wait 30
+release SEL
+expect trig8 2
+key b1 down
+wait 30
+tapkey w15
+wait 30
+key b1 up
+expect len 32

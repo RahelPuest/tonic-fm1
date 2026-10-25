@@ -1,0 +1,202 @@
+# 0.9.2 sequencer fixes: song REPT 1; keys held across layers / setting changes never hang; MIDI note-off goes
+# where its note-on went; live recording per track passes; KCHRD in step recording
+wait 1500
+spin PRESET 16
+wait 100
+expect pattern 16
+expect engine 0
+# a key held while the PERFORM layer comes up, released there
+key w3 down
+wait 100
+expect voices 1
+press HOME
+wait 400
+expect perf 1
+key w3 up
+wait 50
+release HOME
+wait 2500
+expect voices 0
+# a key held while GRID comes up
+key w3 down
+wait 100
+tap REC
+wait 50
+expect grid 1
+key w3 up
+wait 50
+tap REC
+wait 2500
+expect voices 0
+# the arp switched on while a key is held
+tap ARP
+wait 30
+expect row 0
+key w3 down
+wait 100
+spin K1 1
+wait 300
+key w3 up
+wait 2500
+expect voices 0
+spin K1 -1
+wait 30
+# a chord switched on, then off, while a key is held
+spin SELECT 2
+wait 30
+key w3 down
+wait 100
+spin K1 1
+wait 100
+key w3 up
+wait 2500
+expect voices 0
+key w3 down
+wait 100
+spin K1 -1
+wait 100
+key w3 up
+wait 2500
+expect voices 0
+# MIDI: note on, the active track changes, note off: nothing left on
+midi 95 3C 64
+wait 200
+expect voices 1
+press SEL
+wait 30
+tapkey w1
+wait 30
+release SEL
+wait 30
+expect track 1
+midi 85 3C 00
+wait 2500
+expect voices 0
+# a MONO sound over MIDI: overlapping notes released in either order
+tap GLO
+wait 30
+spin SELECT 7
+wait 30
+expect row 7
+spin K1 2
+wait 30
+midi 95 3C 64
+wait 50
+midi 95 40 64
+wait 50
+expect voices 1
+midi 85 40 00
+wait 50
+midi 85 3C 00
+wait 2500
+expect voices 0
+spin K1 -2
+wait 30
+# live recording, the track's own LEN 4 (TRACK length mode): a chord within a pass stacks, the next pass replaces
+spin SELECT -5
+wait 30
+expect row 2
+spin K1 1
+wait 30
+spin K2 -12
+wait 30
+expect len 4
+press REC
+wait 30
+tap PLAY
+release REC
+wait 20
+key w0 down
+key w2 down
+wait 60
+key w0 up
+key w2 up
+wait 400
+tapkey w0
+wait 700
+tap PLAY
+wait 30
+tap PLAY
+wait 200
+expect ntrig 1
+expect nnote1 1
+expect note1 53
+press REC
+wait 30
+tap PLAY
+release REC
+wait 20
+key w0 down
+key w2 down
+wait 60
+key w0 up
+key w2 up
+wait 300
+tap PLAY
+wait 30
+tap PLAY
+wait 200
+expect ntrig 1
+expect nnote1 2
+# KEYBOARD KCHRD: step recording writes the chord; KCHRD changed while a key is held leaves nothing on
+spin SELECT 20
+wait 30
+expect row 22
+spin K4 2
+wait 100
+press SEL
+wait 30
+tap REC
+wait 30
+release SEL
+wait 30
+expect steprec 1
+tapkey w0
+wait 100
+expect trig0 1
+expect nnote0 3
+press SEL
+tap REC
+release SEL
+wait 30
+expect steprec 0
+wait 2500
+expect voices 0
+key w3 down
+wait 100
+expect voices 3
+spin K4 -2
+wait 50
+key w3 up
+wait 2500
+expect voices 0
+# SONG: 3 rows of REPT 1 (A01 A02 A03), END LOOP: each pattern plays once, then again from the top
+spin SELECT -2
+wait 30
+expect row 20
+spin K1 1
+wait 30
+spin K2 1
+wait 30
+spin K1 1
+wait 30
+spin K2 2
+wait 30
+spin SELECT 1
+wait 30
+spin K1 1
+wait 30
+tap PLAY
+wait 1000
+expect pattern 0
+wait 2000
+expect pattern 1
+wait 2000
+expect pattern 2
+wait 2000
+expect pattern 0
+wait 2000
+expect pattern 1
+tap PLAY
+wait 3000
+expect voices 0
