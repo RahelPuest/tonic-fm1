@@ -1,0 +1,116 @@
+# the manual's theme grid (docs/img/themes.png, tools/doc_images.sh): the ENV page in each of the ten themes
+wait 1500
+tap PLAY
+wait 600
+press HOME
+wait 800
+release HOME
+wait 30
+spin SELECT -12
+wait 30
+spin K1 -20
+wait 30
+tap OCT-
+wait 30
+tap ENV
+wait 300
+shot th0.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th1.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th2.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th3.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th4.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th5.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th6.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th7.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th8.png
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 1
+wait 60
+tap OCT-
+wait 30
+wait 1
+wait 300
+shot th9.png

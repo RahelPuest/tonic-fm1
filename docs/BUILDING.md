@@ -58,18 +58,21 @@ The device build checks the memory budget and prints it, e.g.
 The installer site (installer page, emulator, manual, backup page):
 `python3 ../base/tools/make_site.py . build/tonic-0.23.fwsc 0.23 OUT_DIR` (needs a release build). Copy the
 earlier packages into `OUT_DIR/firmware/` to keep them downloadable (the landing page links `tonic-0.1.fwsc`,
-`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc`, `tonic-0.12.fwsc`, `tonic-0.12.1.fwsc`, `tonic-0.13.fwsc`, `tonic-0.14.fwsc`, `tonic-0.15.fwsc`, `tonic-0.16.fwsc`, `tonic-0.17.fwsc`, `tonic-0.18.fwsc`, `tonic-0.19.fwsc`, `tonic-0.20.fwsc`, `tonic-0.21.fwsc` and `tonic-0.22.fwsc`).
+`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc`, `tonic-0.12.fwsc`, `tonic-0.12.1.fwsc`, `tonic-0.13.fwsc`, `tonic-0.14.fwsc`, `tonic-0.15.fwsc`, `tonic-0.16.fwsc`, `tonic-0.17.fwsc`, `tonic-0.18.fwsc`, `tonic-0.19.fwsc`, `tonic-0.20.fwsc`, `tonic-0.21.fwsc`, `tonic-0.22.fwsc` and `tonic-0.23.fwsc`).
 
 ## Tests
 
 ```sh
-cc -std=gnu99 -O2 -ffp-contract=off -Icore -Iengine -I../base/include tests/eng_test.c core/*.c engine/*.c \
-   -o build/test/eng_test && build/test/eng_test build/test
-for t in workflow smoke midi song control roll qol audio va presets perflock ui drums new06 pfx euc08 mod09; do build/host/tonic_host tests/host/$t.txt build/out; done
+tools/eng_tests.sh                             # the engine tests (with the Braids units) and the golden renders
+tools/host_tests.sh                            # every host script (tests/host/*.txt), their expectations
 node tests/web_emu_test.mjs
 tools/emu_tests.sh                             # the device binary in fm1-emu (see TEST_ENVIRONMENT.md)
 build/host/tonic_host tests/host/sounds.txt build/out && python3 tools/sound_report.py build/out/sounds.wav
 ```
+
+**The documentation's pictures.** `tools/doc_images.sh` makes all of them from the host simulator: the manual's
+(`docs/img`, from `tests/host/manual_shots.txt` and the feature tests' set-ups), the ten themes in one picture
+(`tests/host/doc_themes.txt`) and the README's `docs/screens.png`. It needs Pillow and fails on any unmet expectation.
 
 **Optimizing without changing the sound.** Two checks that the output stays sample for sample the same:
 

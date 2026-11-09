@@ -45,7 +45,7 @@ felucca-bsp `0f08fca`.
 | A library saved by 0.5 (bank version 3) after a reboot | host simulator | host simulator | U01 … U07 as saved |
 | PRESETS list: the cursor moves, nothing loads; OCT+ loads (the octave stays), OCT− closes; another button and 6 s close it | `presets.txt` | host simulator | pass |
 | The piano roll at full resolution: keyboard, lanes, notes, velocity lane, held step, zoom (screens) | `roll.txt` (8 checks), screens | host simulator | pass; looked at |
-| The screen at full resolution: every page drawn (manual screens, 19), the five themes, THEME kept over SAVE and a reboot | 6 checks (`ui.txt`), `manual_shots.txt` | host simulator | pass; looked at, not measured |
+| The screen at full resolution: every page drawn (the manual's 45 pictures and the README's, `tools/doc_images.sh`), the ten themes, THEME kept over SAVE and a reboot | 6 checks (`ui.txt`), `manual_shots.txt`, `doc_themes.txt` | host simulator | pass; looked at, not measured |
 | The screen on the device binary: colours, tabs, meters; the audio unchanged (−21.3 dBFS, the same share of idle cycles as before) | fm1-live, 7 s | fm1-emu | pass |
 | HOME tapped twice locks the performance layer (mutes, patterns without HOME), a tap unlocks; held and single taps as before | 13 checks (`perflock.txt`) | host simulator | all pass |
 | PRESETS: from the track's own sound, a detent a sound, SCL+PRESETS by group (to VA and back), the engine follows; a sounding note through an engine change | 22 checks (`presets.txt`) | host simulator | all pass |

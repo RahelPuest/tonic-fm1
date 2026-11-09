@@ -19,7 +19,7 @@
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
-<p align="center"><img src="docs/screens.png" width="784" alt="TONIC's screens: the home page, a drum kit, the piano roll, the euclidean generator on a kit, chords by the scale's degrees, ducking at 1/4"></p>
+<p align="center"><img src="docs/screens.png" width="784" alt="TONIC's screens: the home page, the engine screen (EDIT held), a drum kit's pad page, the piano roll, PERFORM's second bank (FX held), the LFOs drawn"></p>
 
 > [!NOTE]
 > TONIC runs on the M-VAVE FM-1. Each release is also tested in software: engine tests, a host simulator, the browser

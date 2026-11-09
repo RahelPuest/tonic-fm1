@@ -1,6 +1,6 @@
 # TONIC
 
-TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the original Elektron Digitone (2018). It has four synth tracks sharing twelve voices (the Digitone has eight), a four-operator FM engine with the Digitone's eight algorithms, and three more engines to choose per sound: virtual analog (VA), DRUM, a kit of eight synthesized drums on one track, and BRAIDS, Mutable Instruments' macro oscillator with its 47 models. The sequencer has parameter locks, sound locks, trig conditions, micro timing and retrig. There is an arpeggiator, a piano roll, chorus, delay and reverb, a DJ filter and sidechain ducking. This manual covers every page, parameter and key combination.
+TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the original Elektron Digitone (2018). It has four synth tracks sharing twelve voices (the Digitone has eight), a four-operator FM engine with the Digitone's eight algorithms, and five more engines to choose per sound: virtual analog (VA), DRUM (a kit of eight synthesized drums on one track), BRAIDS (Mutable Instruments' macro oscillator with its 47 models), SSAW (a JP-8000-style supersaw) and ENS (four tuned oscillators with one morphing wave and a chorus). The sequencer has parameter locks, sound locks, trig conditions, micro timing, retrig and a euclidean generator. There is an arpeggiator with chords, a piano roll, chorus, delay and reverb, a master compressor, a DJ filter, sidechain ducking and two banks of live effects. Most buttons open a screen of their own when held, as on Hortator. This manual covers every page, parameter and key combination.
 
 **Status.** TONIC runs on the M-VAVE FM-1. Each release is also tested in software: engine tests, a host simulator, the browser emulator and fm1-emu, an instruction-level emulator that runs the real firmware file. It is a custom firmware: install it at your own risk, and read section 2 first.
 
@@ -62,16 +62,43 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.16.fwsc
+python3 base/tools/fm1_install.py tonic-0.23.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
 
-- **Updating TONIC:** install the new package the same way. Your project is kept, because an update writes only the app area. The earlier versions stay available on this site (`tonic-0.1.fwsc`: FM only; `tonic-0.2.fwsc`: the first VA engine; `tonic-0.3.fwsc`: 22 VA sounds; `tonic-0.3.1.fwsc`: the list window, loading as you turn; `tonic-0.3.2.fwsc`: the screen before 0.4; `tonic-0.4.fwsc`: the first colour screen; `tonic-0.4.1.fwsc`: before the DRUM engine; `tonic-0.5.fwsc`: the kit's ENGINE on K1; `tonic-0.5.1.fwsc`: the same sound as 0.5.2, a little more CPU and RAM; `tonic-0.5.2.fwsc`: before euclid, arp chords, the compressor, FOLD / RING and the four new drum models; `tonic-0.6.fwsc`: picking a kit's pad only through NOTE or by playing it; `tonic-0.6.1.fwsc`: before the momentary effects; `tonic-0.7.fwsc`: chords only with the arpeggiator, EUCLID with LEN, HITS and ROT alone; `tonic-0.8.fwsc`: 21 drum models, LFOs not reaching LO-FI or pads 5-8; `tonic-0.9.fwsc`: the labels and help before the UI audit) and go back on the same way.
+- **Updating TONIC:** install the new package the same way. Your project is kept, because an update writes only the app area. Every earlier version stays available on this site (the list at the end of this section) and goes on the same way.
 - **Going back to an older TONIC:** 0.5 saves patterns and sound banks in a newer form, which older versions cannot read. Under 0.4.1 or earlier, a project saved by 0.5 shows empty patterns and an empty library. The data stays in the flash until the older version saves over it. Make a backup (below) before going back, and restore it after updating again. Going back from a newer version to 0.5.x or later is gentler: the older version reads the project and leaves out what it does not know (e.g. under 0.5.x the compressor, FOLD / RING and the chords; a pad with a new drum model plays BD 808). A library sound that uses something it does not know (a new drum model, the arp's RAND / CHRD, a chord voicing) shows as an empty slot there.
 - **Back to the stock firmware:** install M-VAVE's `FM-1_015.fwsc` (V15) from TONIC. Then run System > Reset Patches on the stock firmware.
 - **If something goes wrong:** two failed starts in a row bring up **SAFE MODE**, where USB is on and you can install again. Four bring up the chip's own update mode.
 - **Backup of your project:** `python3 base/tools/fm1_backup.py backup FILE` and `restore FILE`. Stop the sequencer first.
+
+**Earlier versions.** Each one is on this site as `tonic-VERSION.fwsc`. Going back to one gives TONIC as it was before the next.
+
+| Version | What it brought |
+| --- | --- |
+| 0.1 | FM only: the engine, the sequencer, the pages |
+| 0.2 | The VA engine (ENGINE FM / VA per sound) |
+| 0.3, 0.3.1, 0.3.2 | 22 VA sounds; PRESETS from the track's own sound, the list window, OCT+ loads |
+| 0.4, 0.4.1 | The screen at full resolution and in colour; the piano roll |
+| 0.5, 0.5.1, 0.5.2 | The DRUM engine: a kit of eight pads, 17 models, eight factory kits; then the same sound with less CPU |
+| 0.6, 0.6.1 | Euclid, arp chords, the master compressor, VA FOLD / RING, four drum models; picking the pad |
+| 0.7 | The momentary effects |
+| 0.8 | Chords on every note, with or without the arp; EUCLID with accents, ghosts, chance, rhythms and kit pages |
+| 0.9, 0.9.1, 0.9.2 | Ten more drum models, 22 more modulation destinations; the UI and functional audits |
+| 0.10, 0.10.1 | Ducking from the tempo and the PUMP page; 30 KB less RAM, 16 points less CPU |
+| 0.11 | Twelve voices (eight before) |
+| 0.12, 0.12.1 | Per pad controls, the insert effect, MENV, the sound's scale, a length per track; a page a pad |
+| 0.13 | The audio loops run from RAM |
+| 0.14, 0.15 | The BRAIDS engine; its SYNC, SIGN and SUB |
+| 0.16 | The second CPU core renders part of the voices |
+| 0.17 | The full audit's fixes; the effects on the second core |
+| 0.18 | Held buttons with screens of their own (after Hortator) |
+| 0.19 | Ten colour themes, MIDI clock for sync with Hortator |
+| 0.20 | The pages sorted after Hortator, the MENU, full names in the pop-up |
+| 0.21 | The SSAW and ENS engines, the LFO pictures |
+| 0.22 | The engine screen on EDIT held, Hortator's LFO and GLO pages |
+| 0.23 | PERFORM's second bank, MIDI out in time with the sound, the CPU guard (after mono2k) |
 
 ## 3. The concepts
 
@@ -114,7 +141,7 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 | **OCT− / OCT+** | The keyboard's octave; with a step held, its note; in grid recording, the step page. |
 | **SCL** | FUNC: the second function of the other controls. |
 
-**Rows and pages.** A Digitone page has eight parameters; TONIC shows them as two rows of four, and K1–K4 turn the lit row. Press the page button again for the next row (on its release: held, most buttons do something else, see below). SCL + page button goes back one row; SELECT also steps through the rows. The top right of the tab line shows which of the button's rows you are on, for example 2/5. Each engine keeps its own place on EDIT and SEQ: switching to a track with another engine shows the page you last used with that engine (TONIC 0.17).
+**Rows and pages.** A Digitone page has eight parameters; TONIC shows them as two rows of four, and K1–K4 turn the lit row. Press the page button again for the next row (on its release: held, most buttons do something else, see below). SCL + page button goes back one row; SELECT also steps through the rows. The tabs show which page you are on. Each engine keeps its own place on EDIT and SEQ: switching to a track with another engine shows the page you last used with that engine (TONIC 0.17).
 
 **Holding ENV, LFO or ARP**: turning a knob changes that parameter on all four tracks (the pop-up says **ALL TRACKS**); REC randomizes the row, OCT− sets it to its defaults, SCL undoes that. The other buttons have screens of their own when held (section 20).
 
@@ -124,7 +151,7 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 
 TONIC draws the Digitone's screen layout at the LCD's full resolution and in colour.
 
-- **Header:** the pattern, then a bar in the active track's colour with its sound and the row number.
+- **Header:** the pattern, then a bar in the active track's colour with the track and its sound (on FX the effect's name; on a held button's screen its name, and on the right its state, e.g. BANK B).
 - **Tabs:** under the header, the pages of the button you pressed (for example SYN1 · SYN1 2 · SYN2 · SYN2 2); the page shown is highlighted. When there are too many for one line, < and > show that more are there.
 - **Left column:** meters for T1–T4 in their colours and the master (M: green, yellow, red near full scale). The active track's number is highlighted.
 - **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **value boxes framed in the accent colour** (0.22: one thick frame, not filled; the other row's frames thin and dim). A locked value is written in the accent colour. (0.23) A value sits a pixel clear of its frame, centred to the pixel: a number too wide drops its trailing zeros, then rounds its last decimal (100.25 shows 100.3 in the box, the pop-up says 100.25); B1/B2 that do not fit stand one over the other in a box a little taller.
@@ -135,7 +162,7 @@ TONIC draws the Digitone's screen layout at the LCD's full resolution and in col
   - On SYN1 the algorithm's lines grow thicker with the modulation (LEV × envelope).
 - **Bottom band:** the 16 steps in the track's colour (the playhead moves along them) and the step pages; under them a held step's notes, the LFO's value or the arpeggiator's steps; at the very bottom (0.21) only the active track (its colour, struck through when muted), the transport and the tempo.
 - **Mode line:** what the keys do now (KEYS, GRID, PERFORM …). Since 0.20 without hint lines; the step page dots show only when the track is longer than 16 steps.
-- **CPU figure** (HOME, top right): how much of its time the sound takes. **CPU2** (TONIC 0.16): the FM-1's second core renders part of the voices, the same sound with about a third less load. If the second core ever fails to answer, TONIC goes on with one core (the figure then reads CPU); after a crash on it, it stays on one core until the FM-1 is switched off and on. **XR** counts the audio blocks that came too late. Under too much load (0.21, after Hortator's plans) TONIC first runs the insert effects at the base rate for three seconds (as INSHQ OFF), and only drops the oldest voice if that is not enough. With nothing sent to chorus, delay or reverb and their tails died away, they rest and cost nothing (about 4 points less CPU when stopped).
+- **CPU figure** (HOME, top right): how much of its time the sound takes. **CPU2** (TONIC 0.16): the FM-1's second core renders part of the voices, the same sound with about a third less load. If the second core ever fails to answer, TONIC goes on with one core (the figure then reads CPU); after a crash on it, it stays on one core until the FM-1 is switched off and on. **XR** counts the audio blocks that came too late. Under too much load (0.21, after Hortator's plans) TONIC first runs the insert effects at the base rate for three seconds (as INSHQ OFF), and only then fades out a voice: since 0.23 the one heard least, and the screen says **CPU FULL** with the heaviest track (section 27). With nothing sent to chorus, delay or reverb and their tails died away, they rest and cost nothing (about 4 points less CPU when stopped).
 - **Colours:** the MENU (HOME held) > THEME. Since 0.19 after Hortator's (and the Machinedrum's) two-colour screens: each colour as the ground, then its inverse (**INV**: the colour on black or white): **RED**, **R INV**, **BLUE**, **B INV**, **GREEN**, **G INV**, **AMBER**, **A INV**; and TONIC's own **OLED** (white on black, the tracks in four colours, the default) and **PAPER** (dark on light, the tracks in colours). The two-colour themes draw the tracks in the ink, as the Machinedrum does. A theme chosen before 0.19 keeps its look (AMBER is now A INV, PHOSPHOR G INV). The theme is kept with the device's settings.
 
 ![A page in the PAPER theme](img/theme_paper.png "MENU > THEME: PAPER")
@@ -364,7 +391,7 @@ Live and step recording record the pads you play.
 
 ENGINE **BRDS** turns the sound into **Braids**, the macro oscillator Emilie Gillet designed for Mutable Instruments (its code, under the MIT licence, runs in TONIC). Each of its 47 models is a whole synthesis technique; two knobs shape it, as on the module.
 
-![The BRAIDS page](img/braids.png "EDIT under BRAIDS: MODL TIMB COLR TUNE; the model, TIMBRE and COLOR on the left")
+![The BRAIDS page](img/braids.png "EDIT under BRAIDS (BR SWARM): MODL TIMB COLR TUNE across the page")
 
 | Param | Range | What it does |
 | --- | --- | --- |
@@ -395,7 +422,7 @@ ENGINE **BRDS** turns the sound into **Braids**, the macro oscillator Emilie Gil
 
 ENGINE **SSAW** is a supersaw after the Roland JP-8000's: up to seven saws (or pulses, or both) around the note, the middle one at the note, the others detuned by the JP-8000's own spread (as measured by Adam Szabo). It is the trance lead and the big pad in one engine, and with PULS a "superpulse".
 
-![The SSAW page](img/ssaw_page.png "EDIT under SSAW: WAVE OSCS DETN MIX / PW PWM SUB; the oscillators fanned out on the left")
+![The SSAW page](img/ssaw_page.png "EDIT under SSAW (SS TRANCE): WAVE OSCS DETN MIX / PW PWM SUB")
 
 | Param | Range | What it does |
 | --- | --- | --- |
@@ -415,7 +442,7 @@ ENGINE **SSAW** is a supersaw after the Roland JP-8000's: up to seven saws (or p
 
 ENGINE **ENS** is four oscillators, each tuned in semitones, all with one wave that morphs from sine through triangle and saw to square, and a chorus that spreads and moves them: unison, octaves, fifths and whole chords from one key.
 
-![The ENS page](img/ens_page.png "EDIT under ENS: TUN1..TUN4 / MRPH CHOR RATE; the tunings as dots, the morphed wave under them")
+![The ENS page](img/ens_page.png "EDIT under ENS (EN MAJ7 PAD): TUN1..TUN4 / MRPH CHOR RATE; the tunings as dots, the morphed wave under them")
 
 | Param | Range | What it does |
 | --- | --- | --- |
@@ -533,7 +560,7 @@ A third modulator: an envelope, started by every note, that goes to any destinat
 
 Ideas: a pitch blip at the start (DEST PITCH, short DEC), FM index that falls (HARM or A LEV), the insert's drive that swells (I AMT), the reverb send that opens with the release.
 
-**Destinations:** ALGO, RAT C, RAT A, RAT B, HARM, DTUN, FDBK, MIX, A/B envelope parameters, PITCH, P.AB2 (pitch of A and B2), R.ALL, ABLEV, ABATK/ABDEC/ABEND/ABDEL (0.22: the names as short as a box), ratio offsets, FREQ, RESO, F ENV, filter envelope, BASE, WIDTH, amp envelope, DRIVE, PAN, VOL, REV, DEL, CHR. LFO2 also reaches LFO1's SPD, MULT, FADE, WAVE, SPH, MODE and DEP. From 0.9 also: **SRR** and **BRR** (LO-FI), and on a DRUM kit every pad (1 TUNE … 8 LEV) and the whole kit (**ALL TUNE, ALL DEC, ALL TONE, ALL LEV**). From 0.12 the insert effect: **I AMT, I TONE, I MIX**. LFO1's DEST skips LFO1's own parameters. The modulation pages (VELOCITY, MOD WHEEL, AFTERTOUCH, BREATH, PITCH BEND) reach every destination, LFO1's parameters too: the mod wheel on LFO1's DEP is the classic vibrato.
+**Destinations:** ALGO, RAT C, RAT A, RAT B, HARM, DTUN, FDBK, MIX, A/B envelope parameters, PITCH, P.AB2 (pitch of A and B2), R.ALL, ABLEV, ABATK/ABDEC/ABEND/ABDEL (0.22: the names as short as a box), ratio offsets, FREQ, RESO, F ENV, filter envelope, BASE, WIDTH, amp envelope, DRIVE, PAN, VOL, REV, DEL, CHR. LFO2 also reaches LFO1's SPD, MULT, FADE, WAVE, SPH, MODE and DEP. From 0.9 also: **SRR** and **BRR** (LO-FI), and on a DRUM kit every pad (1 TUNE … 8 LEV) and the whole kit (**\* TUN, \* DEC, \* TON, \* LEV**; ALL TUNE … before 0.22). From 0.12 the insert effect: **I AMT, I TONE, I MIX**. LFO1's DEST skips LFO1's own parameters. The modulation pages (VELOCITY, MOD WHEEL, AFTERTOUCH, BREATH, PITCH BEND) reach every destination, LFO1's parameters too: the mod wheel on LFO1's DEP is the classic vibrato.
 
 ## 11. Sequencing: grid recording
 
@@ -542,7 +569,7 @@ Press **REC** (lit) for grid recording. The white keys are steps 1–16 of the s
 ![Grid recording on the TRIG page](img/grid.png "REC: the keys are the steps; hold a step to lock its parameters")
 
 - **Add or remove:** press an empty step to place a note trig at the track's NOTE. Press a trig briefly to remove it. Hold it longer to edit it without removing it.
-- **Parameter locks:** hold a step and turn K1–K4 on any page. Locked values show inverted. Hold several steps to lock them together.
+- **Parameter locks:** hold a step and turn K1–K4 on any page. Locked values are written in the accent colour. Hold several steps to lock them together.
 - **Sound lock:** hold a step and turn PRESETS to pick a pool sound for it.
 - **Lock trig:** SCL + white key (or black key 5 + white key) places a trig with locks and no note.
 - **Note of a step:** hold it and press OCT−/OCT+ (SCL: by octaves), or turn NOTE on the TRIG page.
@@ -743,7 +770,7 @@ ARP turns held notes, from the keys or from trigs, into a pattern. It belongs to
 
 **The sound's scale (ARP > SCALE: SCALE, ROOT; TONIC 0.12).**
 
-![The SCALE page](img/scale.png "ARP > SCALE: MAJOR, root C")
+![The SCALE page](img/scale.png "ARP > SCALE on EP TINE: MAJOR, root C")
 
  With a SCALE (MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENTA, PENTm, HARMm, WHOLE) and its ROOT, every note the sound plays snaps to the scale: keys, trigs, MIDI, the arpeggiator and its offsets (the nearest scale note, the lower one on a tie). A kit is never affected.
 
@@ -891,7 +918,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 
 ### Momentary effects (TONIC 0.7)
 
-On PERFORM (**FX held**), **press a black key 1–9**: its effect lasts as long as you hold the key. You can let go of FX first; the key's release ends the effect. Several effects can be held at once, for instance a ROLL with a filter sweep. While SCL is held, the screen and the keys show the effects instead of the patterns; the effects held now are lit.
+On PERFORM (**FX held**), **press a black key 1–9**: its effect lasts as long as you hold the key. You can let go of FX first; the key's release ends the effect. Several effects can be held at once, for instance a ROLL with a filter sweep. The effects held now are lit, on the screen and on the keys.
 
 ![The momentary effects](img/pfx.png "FX held: the effects on the black keys; ROLL 1/8 and LP SWEEP held")
 
@@ -910,7 +937,7 @@ The effects act on the sequencer and the master; MIDI notes going out follow the
 
 On PERFORM, **OCT+** puts the second bank on black keys 1–9 and **OCT−** the first again (with PERF PAGE, OCT− in the first bank closes the screen). The header says BANK A or BANK B, and the bank stays for the next time. The ideas come from mono2k's PERFORM (Sequencist's Monomachine-style firmware for the FM-1); the code is TONIC's own. These effects work on the whole sound as you hear it, the effects' returns included, and each fades in and out in 5 ms.
 
-![The second bank](img/pfxb.png "FX held, OCT+: REV STUT SCAT OCT- OCT+ WOW GATE DUB SHIM")
+![The second bank](img/pfxb.png "FX held, OCT+: REV STUT SCAT OCT- OCT+ WOW GATE DUB SHIM; STUT and GATE held")
 
 | Key | Effect | What it does |
 | --- | --- | --- |
@@ -940,10 +967,10 @@ Since 0.20 GLO holds only what is the whole project's or the device's, as on Hor
 | --- | --- |
 | **SEQ > TRACK** | LEN, SCALE (speed), MLEN, CHLEN; TRNSP, MICRO (the track's micro timing, turned down to quantize). |
 | **SEQ > VOICE** | STEAL (CYCLE, TRACK, LO, HI: which voice goes when all are busy), REUSE (a repeated note takes its own voice again), VOICE (voices reserved for the track, up to 12; DYN shares), UNISN (unison: 1–4 voices a note); SPRD (unison detune and width), LAYER (the track's notes also play other tracks' sounds). |
-| **SEQ > KEYS** | SCALE (CHROM, MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENT+, PENT−, HMIN, WHOLE), ROOT, FOLD, KCHRD (the keys play chords, recorded as notes; section 6; not the sound's CHORD, section 17). |
+| **SEQ > KEYS** | SCALE (CHROM, MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENTA, PENTm, HARMm, WHOLE), ROOT, FOLD, KCHRD (the keys play chords, recorded as notes; section 6; not the sound's CHORD, section 17). |
 | **SEQ > SONG** | ROW, PTN, REPT, MUTE; SONG, ROWS, END, CHNG (the pattern change). See section 16. |
 | **EDIT > SETUP** | PLAY (POLY, POLYM (one LFO for all voices), MONO, LEGAT (legato)), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
-| **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages (FM, VA, BRAIDS). |
+| **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages, every engine but the kit. |
 | **LFO > VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND** | Four destinations each, with a depth of ±128. Velocity, mod wheel, aftertouch, breath and pitch bend (from MIDI) move any listed parameter. |
 | **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ (section 20). |
 
@@ -1028,10 +1055,12 @@ Both send Start, 24 clocks a quarter note with the first on step 1, and Stop; a 
 | PRESETS, then OCT+ / OCT− | Load the sound under the list's cursor / close the list. |
 | SAVE held + OCT | Transpose the pattern. |
 | FX held + black 1–9 (held) | A momentary effect: ROLL 1/4 … 1/32, HALFTIME, TAPE STOP, LP / HP SWEEP, FREEZE. |
+| FX held + OCT+ / OCT− | PERFORM's second bank (REV, STUT, SCAT, OCT−, OCT+, WOW, GATE, DUB, SHIM) / the first. |
+| EDIT held + white 1–6 | The sound's engine: FM, VA, DRUM, BRAIDS, SSAW, ENS. |
 
 ## 25. Factory sounds and the demo
 
-TONIC's factory sounds are its own (not Elektron's). PRESETS steps through them, then the user library. Turning PRESETS opens a **list window** at the track's own sound (marked >). Each detent moves the cursor one sound; nothing changes yet. **OCT+ loads** the sound under the cursor, **OCT− closes** the list without loading. **SCL + PRESETS** jumps the cursor to the next or previous group (KEYS, BELLS, BASS, LEADS, PADS, DRUMS, TEXTURES, VA, KITS, INIT, then the user library as U01…). The groups are marked, and the cursor's group and place are on top. The list also closes after 6 s untouched, or when you press another button.
+TONIC's factory sounds are its own (not Elektron's). PRESETS steps through them, then the user library. Turning PRESETS opens a **list window** at the track's own sound (marked >). Each detent moves the cursor one sound; nothing changes yet. **OCT+ loads** the sound under the cursor, **OCT− closes** the list without loading. **SCL + PRESETS** jumps the cursor to the next or previous group (KEYS, BELLS, BASS, LEADS, PADS, DRUMS, TEXTURES, VA, KITS, BRAIDS, SSAW, ENS, INIT, then the user library as U01…). The groups are marked, and the cursor's group and place are on top. The list also closes after 6 s untouched, or when you press another button.
 
 ![The preset list window](img/presets.png "PRESETS turned: the cursor in the list; OCT+ loads, OCT- goes back") A sound sounding while you change it follows at once, its engine too.
 
@@ -1063,7 +1092,7 @@ TONIC follows the Digitone (OS 1.44) closely. Its operator, filter, envelope, LF
 - **One song** of up to 32 rows.
 - **No audio input** and no DIN MIDI out. USB audio out carries the master.
 - **The effects' algorithms are TONIC's own.** The parameters are the Digitone's.
-- **TONIC's additions:** the VA and DRUM engines, the momentary effects, the euclidean generator, chords in the arpeggiator, the master compressor, retrig, LO-FI, the DJ filter, ducking, the piano roll, undo/redo, the help, tap tempo, track shift, row defaults and the value pop-up.
+- **TONIC's additions:** the VA, DRUM, BRAIDS, SSAW and ENS engines, twelve voices, the insert effect, MENV, the momentary effects in two banks, the held buttons' screens, the euclidean generator, chords on every note, the sound's scale, the master compressor, retrig, LO-FI, the DJ filter, ducking and volume shaping, the piano roll, undo/redo, tap tempo, track shift, row defaults, the value pop-up and ten colour themes.
 - **No compatibility:** TONIC does not read Digitone projects, sounds or SysEx.
 
 The full comparison is in `docs/FEATURES.md`; the research behind the curves is in `docs/RESEARCH.md`.

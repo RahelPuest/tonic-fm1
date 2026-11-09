@@ -119,13 +119,12 @@ sound 65
 wait 30
 expect engine 2
 wait 30
-tap REC
-wait 30
+expect grid 1
 tap SEQ
 wait 30
-spin SELECT 1
+spin SELECT -3
 wait 30
-expect row 4
+expect row 0
 tapkey w0
 tapkey w4
 tapkey w8
@@ -146,6 +145,7 @@ tapkey w4
 tapkey w12
 tap REC
 wait 30
+expect grid 0
 tap PLAY
 wait 500
 expect playing 1
@@ -156,17 +156,95 @@ wait 30
 expect row 0
 wait 1640
 shot drum_kit.png
-spin SELECT 8
+spin SELECT 16
 wait 30
-expect row 8
+expect row 16
 wait 1800
 shot drum_levels.png
+# a hat's page: pad 4 (CH), its second row (NOIS RESO PAN LEV)
+spin SELECT -9
+wait 30
+expect row 7
+wait 1800
+shot kit_ctl.png
 tap SEQ
 wait 30
 spin SELECT 2
 wait 30
-expect row 6
+expect row 2
 wait 1800
 shot drum_roll.png
+# volume shaping: DUCK at 1/4 from the tempo, playing
+tap FX
+wait 30
+expect row 8
+spin K1 5
+wait 30
+expect fx155 5
+spin K3 40
+wait 1800
+shot pump.png
+spin K1 -5
+wait 30
+expect fx155 0
 tap PLAY
 wait 30
+expect playing 0
+# the factory sounds on their engines' pages: BR SWARM (75), SS TRANCE (85), EN MAJ7 PAD (94)
+sound 75
+wait 30
+expect engine 3
+tap HOME
+wait 30
+tap EDIT
+wait 30
+spin SELECT -2
+wait 30
+expect row 0
+wait 1800
+shot braids.png
+sound 85
+wait 30
+expect engine 4
+tap HOME
+wait 30
+tap EDIT
+wait 30
+expect row 0
+wait 1800
+shot ssaw_page.png
+sound 94
+wait 30
+expect engine 5
+tap HOME
+wait 30
+tap EDIT
+wait 30
+expect row 0
+wait 1800
+shot ens_page.png
+# the sound's scale on EP TINE (0): MAJOR, root C; then CHORD by degrees: TRIAD
+sound 0
+wait 30
+expect engine 0
+tap HOME
+wait 30
+tap ARP
+wait 30
+expect row 0
+spin SELECT 4
+wait 30
+expect row 4
+spin K1 1
+wait 30
+expect set34 1
+wait 1800
+shot scale.png
+spin SELECT -2
+wait 30
+expect row 2
+spin K1 8
+wait 30
+expect set36 8
+wait 1800
+shot chord_scale.png
