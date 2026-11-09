@@ -1,61 +1,54 @@
-# 0.7: the momentary effects on the performance layer: SCL + white key 1-9 while the key is held (ROLL 1/4 1/8 1/16
-# 1/32, HALF, TAPE, LP, HP, FREEZE); the pattern does not change; a key let go after HOME and SCL still ends its effect
+# 0.7 / 0.18: the momentary effects: FX held, black key 1-9 while the key is held (ROLL 1/4 1/8 1/16 1/32, HALF, TAPE,
+# LP, HP, FREEZE); the pattern does not change; a key let go after FX still ends its effect; black 10 FILL while held
 wait 1500
 tap PLAY
 wait 300
 expect playing 1
 expect pattern 0
-press HOME
+press FX
 wait 400
 expect perf 1
-press SEL
-wait 30
-key w1 down
+key b1 down
 wait 30
 expect pfx 2
 expect pattern 0
-release SEL
-wait 30
-expect pfx 2
-press SEL
-wait 30
-key w6 down
+key b6 down
 wait 30
 expect pfx 66
 wait 1300
 shot pfx.png
-release SEL
-key w6 up
+key b6 up
 wait 30
 expect pfx 2
-release HOME
+release FX
 wait 100
 expect perf 0
 expect pfx 2
-key w1 up
+key b1 up
 wait 30
 expect pfx 0
-# locked: HOME twice, then SCL + key 6 (TAPE)
-tap HOME
-wait 60
-tap HOME
-wait 100
-expect perflock 1
-press SEL
-wait 30
-key w5 down
+# FX + black 6 (TAPE) at once (the screen comes with the key)
+press FX
+key b5 down
 wait 300
 expect pfx 32
-release SEL
-key w5 up
+key b5 up
+release FX
 wait 300
 expect pfx 0
 expect pattern 0
-# without SCL a white key still picks a pattern
+# black 10: FILL while held; a white key with FX plays the keyboard, the pattern stays
+press FX
+key b9 down
+wait 30
+expect fill 1
+key b9 up
+wait 30
+expect fill 0
 tapkey w1
-wait 4200
-expect pattern 1
-tap HOME
 wait 100
+release FX
+wait 30
+expect pattern 0
 tap PLAY
 wait 30

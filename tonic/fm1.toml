@@ -3,9 +3,12 @@ name = "TONIC"
 id_prefix = "FM-1_47"          # package identity: dev builds FM-1_4700, releases FM-1_47XXYYZZ
 usb_manufacturer = "TONIC"
 usb_product = "TONIC FM-1"
-include = ["core", "engine", "app"]
-o2 = ["engine/synth.c", "engine/fx.c", "engine/seq.c", "engine/engine.c", "core/tables.c", "core/params.c"]
-o2_cflags = ["-O3"]
+include = ["core", "engine", "app", "engine/mi", "engine/mi/shim"]
+o2 = ["engine/synth.c", "engine/fx.c", "engine/seq.c", "engine/engine.c", "core/tables.c", "core/params.c",
+      "engine/mi/braids_voice.cc", "engine/mi/braids/macro_oscillator.cc", "engine/mi/braids/analog_oscillator.cc",
+      "engine/mi/braids/digital_oscillator.cc", "engine/mi/braids/resources.cc", "engine/mi/stmlib/utils/random.cc"]   # (0.14: Braids, MIT)
+# o2_cflags = ["-O3"]   (0.13: -O2 again: smaller code for the XIP cache on the device; the same samples)
+asm = ["app/cpu1_entry.S"]   # (the CPU1 test firmware's core 1 entry; left out of other builds)
 words = "words.tsv"
 backup = true                  # backup and restore of the project over USB (base/tools/fm1_backup.py)
 # the site

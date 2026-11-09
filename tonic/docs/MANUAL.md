@@ -1,6 +1,6 @@
 # TONIC
 
-TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the original Elektron Digitone (2018). It has four synth tracks sharing twelve voices (the Digitone has eight), a four-operator FM engine with the Digitone's eight algorithms, and two more engines to choose per sound: virtual analog (VA) and DRUM, a kit of eight synthesized drums on one track. The sequencer has parameter locks, sound locks, trig conditions, micro timing and retrig. There is an arpeggiator, a piano roll, chorus, delay and reverb, a DJ filter and sidechain ducking. This manual covers every page, parameter and key combination.
+TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the original Elektron Digitone (2018). It has four synth tracks sharing twelve voices (the Digitone has eight), a four-operator FM engine with the Digitone's eight algorithms, and three more engines to choose per sound: virtual analog (VA), DRUM, a kit of eight synthesized drums on one track, and BRAIDS, Mutable Instruments' macro oscillator with its 47 models. The sequencer has parameter locks, sound locks, trig conditions, micro timing and retrig. There is an arpeggiator, a piano roll, chorus, delay and reverb, a DJ filter and sidechain ducking. This manual covers every page, parameter and key combination.
 
 **Status.** TONIC runs on the M-VAVE FM-1. Each release is also tested in software: engine tests, a host simulator, the browser emulator and fm1-emu, an instruction-level emulator that runs the real firmware file. It is a custom firmware: install it at your own risk, and read section 2 first.
 
@@ -27,7 +27,7 @@ TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the origi
 17. The arpeggiator
 18. Effects and the mixer
 19. Ducking and the DJ filter
-20. The performance layer
+20. Held buttons: PERFORM, patterns, MUTE, TOOLS, MENU
 21. GLO: tempo, scale, voices, setup, modulation, MIDI
 22. Saving and the SAVE page
 23. MIDI
@@ -53,7 +53,7 @@ A first ten minutes:
 4. Press **ENV** and turn K1 (FREQ) to open and close the filter.
 5. Press **REC**: the white keys now show the track's 16 steps. Tap a key to add or remove a trig.
 6. Hold a lit step and turn a knob. That step alone gets the value, a *parameter lock*.
-7. Hold **HOME**: the white keys pick patterns, black keys 1–4 mute tracks, and K1 sweeps the DJ filter.
+7. Hold **SAVE**: the white keys pick patterns. Hold **GLO**: white keys 1–4 mute tracks. Hold **FX**: the black keys are live effects and K1 sweeps the DJ filter (section 20).
 8. Stop. TONIC saves by itself once the sound has died away.
 
 ## 2. Installing and going back
@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.12.1.fwsc
+python3 base/tools/fm1_install.py tonic-0.16.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -87,34 +87,36 @@ python3 base/tools/fm1_install.py tonic-0.12.1.fwsc
 | **Pool** | 16 sounds kept with the project, for sound locks. |
 | **Library** | 32 user sound slots, browsed with PRESETS after the factory sounds. |
 
-The **twelve voices** are shared (eight before 0.11). A track takes a free voice for each note and steals the oldest when all are busy (GLO > VOICE sets how). You can also reserve voices for a track.
+The **twelve voices** are shared (eight before 0.11). A track takes a free voice for each note and steals the oldest when all are busy (GLO > VOICE sets how). A stolen note fades out in a few milliseconds; since 0.17 up to three fade at once, so a chord or a kit hitting several pads no longer cuts the older notes dead. You can also reserve voices for a track; if the reserved voices add up to all twelve, the other tracks get none.
 
 ## 4. The panel
 
 | Control | Function |
 | --- | --- |
-| **White keys (16)** | Keyboard mode: play the active track. Grid recording: steps 1–16 of the step page. HOME held: patterns. |
-| **Black keys (11)** | Grid recording: step pages and step functions (section 11). HOME held: mutes, FILL, bank, tap tempo, temporary save, reload, restart (section 20). |
+| **White keys (16)** | Keyboard mode: play the active track. Grid recording: steps 1–16 of the step page. SAVE held: patterns; GLO held: mutes; SEQ held: steps. |
+| **Black keys (11)** | Grid recording: step pages and step functions (section 11). FX held: live effects and FILL; SAVE held: bank, temporary save, reload, restart, tap tempo; GLO held: solo; SEQ held: the step tools (section 20). |
 | **K1–K4** | The four parameters of the active row. With a step held: that step's locks. |
 | **SELECT** knob | The next or previous row of the page. On HOME: tempo. On SAVE: the list. |
 | **ALGORITHM** knob | The active track, T1–T4. |
 | **PRESETS** knob | The track's sound: a list (factory sounds, then the user library; SCL: by group), OCT+ loads. On HOME: the pattern. With a step held: a sound lock. In step recording: the active step. On SAVE: the slot. |
 | **MASTER** | The output volume. |
-| **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID, TRACK (length and speed). |
-| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2; a kit: a page a pad, LEVEL, KIT). |
-| **ENV** | FLTR, FLTR 2, AMP, AMP 2, LOFI, INSRT. |
-| **LFO** | LFO1, LFO2, MENV. |
-| **FX** | CHORUS, DELAY, REVERB, MIXER, DUCK, PUMP, COMP. |
-| **ARP** | The arpeggiator, CHORD, SCALE (the sound's scale). |
-| **GLO** | Tempo, scale and length, voices, sound setup, portamento, modulation, song, keyboard, MIDI. |
-| **HOME** | Tap: the home screen. Hold: the performance layer. Tap twice: lock it. |
-| **SAVE** | The SAVE page. SCL+SAVE saves now. |
+| **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID (with EUC ACC and EUC NOTE), TRACK (length and speed). Held: TOOLS. |
+| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2; a kit: a page a pad, LEVEL, KIT; BRAIDS: its page). Held: the preset list, playing each sound as you move. |
+| **ENV** | FLTR, FLTR 2, AMP, AMP 2, LOFI, INSRT. Held + a knob: all four tracks. |
+| **LFO** | LFO1, LFO2, MENV. Held + a knob: all four tracks. |
+| **FX** | CHORUS, DELAY, REVERB, MIXER, DUCK, PUMP, COMP. Held: PERFORM. |
+| **ARP** | The arpeggiator, CHORD, SCALE (the sound's scale). Held + a knob: all four tracks. |
+| **GLO** | Tempo, length, voices, sound setup, portamento, modulation, song (and the pattern change, CHNG), keyboard, MIDI, system. Held: MUTE. |
+| **HOME** | Tap: the home screen. Held: the MENU (it stays until OCT− or HOME). SCL+HOME: undo. |
+| **SAVE** | The SAVE page. Held: the patterns. SCL+SAVE saves now. |
 | **PLAY** | Start / stop. |
-| **REC** | Grid recording on / off. |
-| **OCT− / OCT+** | The keyboard's octave; with a step held, its note. |
+| **REC** | Grid recording on / off. Held: a FILL while held. |
+| **OCT− / OCT+** | The keyboard's octave; with a step held, its note; in grid recording, the step page. |
 | **SCL** | FUNC: the second function of the other controls. |
 
-**Rows and pages.** A Digitone page has eight parameters; TONIC shows them as two rows of four, and K1–K4 turn the lit row. Press the page button again for the next row (it steps when you let go). SCL + page button goes back one row; SELECT also steps through the rows. The top right of the screen shows the row's number, for example 2/5.
+**Rows and pages.** A Digitone page has eight parameters; TONIC shows them as two rows of four, and K1–K4 turn the lit row. Press the page button again for the next row (on its release: held, most buttons do something else, see below). SCL + page button goes back one row; SELECT also steps through the rows. The top right of the screen shows which page of the button's pages you are on, for example 2/5. Each engine keeps its own place on EDIT and SEQ: switching to a track with another engine shows the page you last used with that engine (TONIC 0.17).
+
+**Holding ENV, LFO or ARP**: turning a knob changes that parameter on all four tracks (the pop-up says **ALL TRACKS**); REC randomizes the row, OCT− sets it to its defaults, SCL undoes that. The other buttons have screens of their own when held (section 20).
 
 **Knob speed.** A slow turn moves the finest step: a quarter step on the parameters the Digitone shows with two decimals. A fast turn moves further. Hold **SCL while turning** for the finest step at any speed.
 
@@ -133,25 +135,23 @@ TONIC draws the Digitone's screen layout at the LCD's full resolution and in col
   - On SYN1 the algorithm's lines grow thicker with the modulation (LEV × envelope).
 - **Bottom band:** the 16 steps in the track's colour (the playhead moves along them), the step pages, the tracks in their colours and the tempo.
 - **Mode line:** what the keys do now (KEYS, GRID, PERFORM …).
+- **CPU figure** (HOME, top right): how much of its time the sound takes. **CPU2** (TONIC 0.16): the FM-1's second core renders part of the voices, the same sound with about a third less load. If the second core ever fails to answer, TONIC goes on with one core (the figure then reads CPU); after a crash on it, it stays on one core until the FM-1 is switched off and on. **XR** counts the audio blocks that came too late.
 - **Colours:** GLO > DISPLAY > THEME: OLED (white on black), AMBER, PHOSPHOR (green), BLUE, PAPER (dark on light). The theme is kept with the project's settings.
 
 ![A page in the PAPER theme](img/theme_paper.png "GLO > DISPLAY > THEME: PAPER")
 
 When you turn a knob, a **pop-up** shows the parameter's name and value large for a moment.
 
-**Help:** hold a button on its own for a second (SCL, a page button, REC, PLAY, OCT, SAVE, FX, GLO, ARP), and the screen lists what it does alone and in combinations. Let go to return.
-
 ![The value pop-up after turning the tempo](img/popup.png "The value pop-up")
-![The help for REC, shown while REC is held](img/help.png "Holding a button shows its help")
 
 ## 6. Playing the keys
 
 - In **keyboard mode** (REC dark), the 27 keys play the active track chromatically from the keyboard's octave. OCT− and OCT+ move it. SCL + white key 1–4 picks the track.
-- **Velocity and pressure:** the keys are velocity-sensitive. GLO > TEMPO > VEL picks KEYS (as played) or FIXED (GLO > SCALE > FIX VEL).
+- **Velocity and pressure:** the keys are velocity-sensitive. GLO > TEMPO > VEL picks KEYS (as played) or FIXED (GLO > LENGTH > FIXVL).
 - **Keyboard scale and chords:** GLO > KEYBOARD maps the keys to a scale with a root. FOLD leaves out the notes outside the scale, and CHORD plays a chord per key (ON, MAJ, MIN, 7TH, MIN7, MAJ7, DIM, DIM7).
-- **Transpose:** SCL+OCT transposes the track by a semitone. HOME held + OCT transposes the whole pattern.
+- **Transpose:** SCL+OCT transposes the track by a semitone. SAVE held + OCT transposes the whole pattern.
 
-Scales: CHROM, MAJOR, MINOR, DORIAN, PHRYG, LYDIAN, MIXO, LOCRIAN, PENT MA, PENT MI, HARM MI, WHOLE.
+Scales: CHROM, MAJOR, MINOR, DORIA (Dorian), PHRYG, LYDIA, MIXO, LOCRI, PENTA (major pentatonic), PENTm (minor pentatonic), HARMm (harmonic minor), WHOLE. The sound's scale (ARP > SCALE) uses the same names, with OFF in place of CHROM.
 
 ## 7. Making a sound
 
@@ -278,7 +278,7 @@ Each pad has its own page (since 0.12.1). Playing a pad on the keys, or picking 
 
 | Param | Range | What it does |
 | --- | --- | --- |
-| MODEL | 31 models | The pad's instrument (the box shows its flavour, the name above it the instrument). |
+| MODEL | 31 models | The pad's instrument (the box shows its flavour, the name above it the instrument). On screen the knob is labelled with the pad, for example **1 BD**. |
 | TUNE | −64…+63 | Pitch in half semitones (±32 semitones); 0 is the model's own pitch. |
 | DEC | 0–127 | Decay, from a ninth of the model's length (0) through its own (64) to nine times it (127). |
 | TONE | 0–127 | The model's character, see below. |
@@ -360,6 +360,38 @@ Live and step recording record the pads you play.
 
 > A kit's pads 1–4 keep their settings in the SYN pages' FM places, pads 5–8 in their own. Switching ENGINE to or from DRUM sets the SYN pages and the amp envelope to the new engine's defaults (undo takes it back).
 
+### The BRAIDS engine (TONIC 0.14)
+
+ENGINE **BRDS** turns the sound into **Braids**, the macro oscillator Emilie Gillet designed for Mutable Instruments (its code, under the MIT licence, runs in TONIC). Each of its 47 models is a whole synthesis technique; two knobs shape it, as on the module.
+
+![The BRAIDS page](img/braids.png "EDIT under BRAIDS: MODL TIMB COLR TUNE / SYNC SIGN SUB; the model, TIMBRE and COLOR on the left")
+
+| Param | Range | What it does |
+| --- | --- | --- |
+| MODL | the 47 models (below) | The synthesis model. |
+| TIMB | 0–127 | TIMBRE: the model's first control. |
+| COLR | 0–127 | COLOR: its second. |
+| TUNE | ±24 semitones, quarter steps | The sound's tuning. |
+| SYNC | OFF, up to 48 semitones (0.15) | Hard sync: Braids plays this much higher and a master at the note resets it, so the pitch stays and the overtones climb. Sweep it with an LFO or MENV for the classic sync scream. It works on the models that take Braids' sync input (the analog-style ones: CSAW, MRPH, SAWSQ, SYNSQ, SAWx3 …). |
+| SIGN | 0–127 (0.15) | Braids' signature waveshaper: a fixed curve of soft saturation, skew and small bumps, mixed in. Low: a little warmer, more analog; high: driven, asymmetric. |
+| SUB | 0–127 (0.15) | A sine an octave below the note, mixed in: weight under thin models (VOSIM, ZLPF, BELL …). |
+
+| Family | Models |
+| --- | --- |
+| Analog-style | **CSAW** (a buzzy saw), **MRPH** (saw, triangle, square, pulse in a row), **SAWSQ**, **FOLD** (a wavefolded sine or triangle), **BUZZ**, **SUBSQ** / **SUBSW** (with a sub oscillator), **SYNSQ** / **SYNSW** (hard sync), **SAWx3** **SQRx3** **TRIx3** **SINx3** (three oscillators: chords and detune), **RING**, **SWARM** (detuned saws), **COMB** (a saw through a comb filter), **TOY** (circuit-bent) |
+| Digital | **ZLPF** **ZPKF** **ZBPF** **ZHPF** (resonant filter sweeps without a filter), **VOSIM**, **VOWEL**, **VFOF** (vowels, formants), **HARM** (additive), **FM**, **FBFM**, **WTFM** (two-operator and feedback FM) |
+| Physical models | **PLUCK** (strings), **BOWED**, **BLOWN** (a reed), **FLUTE**, **BELL**, **DRUM**, **KICK**, **CYMB**, **SNARE** |
+| Wavetables | **WTBL**, **WMAP** (a 2-D map of waves), **WLIN**, **WTx4** (four voices from one) |
+| Noise | **NOISE** (filtered), **TWNQ** (twin resonant peaks), **CLKN** (clocked noise), **CLOUD** (granular), **PRTC** (particles), **QPSK** (digital modulation) |
+
+- Every note strikes the model anew (PLUCK, BELL, DRUM … are excited by each note).
+- Everything after the oscillator is TONIC's as for the other engines: overdrive, LO-FI, the filters and their envelope, the insert effect, the amp, the LFOs, MENV, the sends.
+- All seven can be locked per step and are LFO and modulation destinations (**MODEL**, **TIMB**, **COLOR**, **TUNE**, **SYNC**, **SIGN**, **SUB**): an LFO on MODEL walks through the models.
+- **COMB, PLUCK, BOWED, BLOWN and FLUTE** need a delay buffer. There are two for all voices: a third such note takes the oldest one's, and that note stays quiet until it is played again (0.17: before, the notes took the buffers from each other every few milliseconds and could all go silent).
+- Braids runs at 96 kHz on the module, here at 44.1 kHz with its pitch corrected: in tune, and since 0.17 its formants too (VOWL, VFOF, VOSIM and the random period of the noise models sat about 13 semitones low before). The models' own decays (KICK, BELL, PLUCK …) are still about twice as long; turn TIMB or COLR, or shorten with the AMP envelope.
+- Since 0.17 BRAIDS is 6 dB quieter than before, as loud as FM and VA: raise VOL on sounds made with 0.14–0.16 if they now sit too low. The factory group BRAIDS has ten sounds to start from.
+- Braids' code runs from the flash, not the RAM: many heavy BRAIDS voices at once cost more CPU than the other engines (since 0.16 both cores share them).
+
 ## 9. FLTR and AMP: filters, envelope, LO-FI
 
 The signal path of a voice is: operators → overdrive → LO-FI → base-width filter → multimode filter → amp → pan → sends.
@@ -422,6 +454,8 @@ Each voice has an insert effect after the filter (the overdrive DRV comes before
 | MIX | 0–127 | Dry against the effect (127: the effect only). |
 
 AMT, TONE and MIX are also LFO and modulation destinations (**I AMT, I TONE, I MIX**).
+
+Since 0.17 OVER, HARD, FUZZ, RECT and FOLD run at twice the rate (a halfband filter up and down), so hard settings alias far less (about 11 dB less on a high note); CRUSH stays at the base rate, its grit is the point. The effect comes 15 samples (0.3 ms) late, and the dry signal waits as long, so MIX blends without a comb; at MIX 0 the dry note passes undelayed. FOLD no longer inverts the signal, so low AMT with half MIX adds up instead of cancelling. DRV and the master overdrive fade in over their first steps (no jump in level when they come on).
 
 ## 10. LFO1 and LFO2
 
@@ -518,9 +552,9 @@ Press **REC** (lit) for grid recording. The white keys are steps 1–16 of the s
 
 **Live recording:** hold REC and press PLAY. Play the keys: the notes are written with their timing and length, and chords on one step become chords. Turning a knob records locks.
 
-- PLAY (while holding REC) toggles quantize.
+- PLAY (while holding REC) toggles quantize, at any time while live recording (TONIC 0.17: no time limit). The mode line shows **LIVE REC Q** while it quantizes.
 - PLAY alone leaves live recording; PLAY again stops.
-- **Quantize afterwards:** GLO > SCALE (second row), K4 **MICRO** shows the track's largest micro timing. Turning it down shrinks every offset in proportion, and 0 puts all trigs on the grid.
+- **Quantize afterwards:** GLO > LENGTH (second row), K4 **MICRO** shows the track's largest micro timing. Turning it down shrinks every offset in proportion, and 0 puts all trigs on the grid.
 
 **Step recording:** SCL+REC. The keys are a keyboard again. Play a note or a chord and it is written to the active step, which then moves on. PRESETS moves the active step, and knob turns lock it.
 
@@ -600,7 +634,7 @@ Press SEQ until the third row: the active track's notes as a piano roll.
 
 ## 16. Pattern length, speed, chains and songs
 
-**SEQ > TRACK** (and GLO > SCALE): length and speed are always the track's own (TONIC 0.12).
+**SEQ > TRACK** (and GLO > LENGTH, called SCALE before 0.17): length and speed are always the track's own (TONIC 0.12). Shortening LEN while playing brings the track back inside its new length at once (0.17: no burst of steps).
 
 ![The TRACK page](img/seq_track.png "SEQ > TRACK: LEN, SCALE of the track; MLEN, CHLEN of the pattern")
 
@@ -612,21 +646,30 @@ Press SEQ until the third row: the active track's notes as a piano roll.
 | MLEN | Master length: every track restarts after it (INF: never). |
 | CHLEN | Change length: when a cued pattern takes over (OFF: at the master length; with MLEN INF too, at track 1's end). |
 
-Patterns from before 0.12 with one length for all tracks (the former MODE PTRN) play as they did; the first LEN or SCALE turned on one track makes them per track, with MLEN INF and CHLEN OFF, so they keep changing at track 1's end.
 | FIXVL | The velocity of the keys when VEL is FIXED. |
 | MICRO | Quantize after recording (section 12). |
 
-**Changing patterns:** turn PRESETS on HOME, or hold HOME and press a white key. The new pattern starts when the current one ends (or at its change length).
+Patterns from before 0.12 with one length for all tracks (the former MODE PTRN) play as they did; the first LEN or SCALE turned on one track makes them per track, with MLEN INF and CHLEN OFF, so they keep changing at track 1's end.
 
-**Chains:** hold HOME and press several pattern keys in turn. They play one after the other and loop.
+**Changing patterns:** turn PRESETS on HOME, or hold **SAVE** and press a white key (section 20). When the new pattern starts is set by GLO > SONG > **CHNG** (TONIC 0.17):
+
+| CHNG | The new pattern starts |
+| --- | --- |
+| SEQ | when the current one ends (or at its change length), as on the Digitone's sequential mode |
+| START | at once, from its step 1 |
+| JUMP | at once, at the place the current one was (each track keeps its position) |
+
+Chains and songs always change at the pattern's end. Step 1 of the new pattern plays once (before 0.17 the old pattern's step 1 sounded with it). With **PTN TEMPO** the new pattern's tempo comes with its first step.
+
+**Chains:** hold SAVE and press several pattern keys in turn. They play one after the other and loop.
 
 **Song mode** (GLO > SONG): up to 32 rows, each with a pattern, a repeat count and the tracks muted in it.
 
-- Row 1: ROW picks the row to edit (a higher row lengthens the song), PTN its pattern, REPEAT how often it plays, MUTE which tracks are silent.
+- Row 1: ROW picks the row to edit (a higher row lengthens the song), PTN its pattern, REPT how often it plays, MUTE which tracks are silent. A row's mutes (and END STOP) take effect exactly at the change, with the new row's first step (TONIC 0.17). Starting song mode keeps your chain; the chain simply does not play while SONG is on.
 - Row 2: SONG switches song mode on, ROWS sets the song's length, and END loops or stops at the end.
 - With song mode on, PLAY starts the song from its first row.
 
-**Tempo and swing:** GLO > TEMPO, or turn SELECT on HOME. Swing runs from 50 to 80 %. TEMPO sets whether the tempo is the project's or each pattern's own. Tap tempo is HOME held + black key 8.
+**Tempo and swing:** GLO > TEMPO, or turn SELECT on HOME. Swing runs from 50 to 80 %. TEMPO sets whether the tempo is the project's or each pattern's own. Tap tempo is SAVE held + black key 6: two taps set the tempo; up to four are averaged.
 
 ## 17. The arpeggiator
 
@@ -688,6 +731,8 @@ RNG, the step offsets and the modes work on the whole set of chord notes; MODE U
 ## 18. Effects and the mixer
 
 The effects are per pattern and can be locked per step from any track; a lock holds until the track's next trig. The sends are on each sound's AMP 2 row.
+
+**TONIC 0.17:** the filters in the effects (the chorus's and delay's HPF and LPF, the reverb's HPF, LPF and the damping FREQ) now sit where their knobs say; before, they were an octave low (the reverb's damping two). Existing projects with these filters set sound brighter. The reverb's tank is modulated slowly, as in Dattorro's plate, which smooths its metallic ring, and FREEZE holds its level instead of slowly rising. The delay line stores half floats, so long, high-feedback repeats fade without grit. Turning COMP AMT to 0 glides its gain back instead of jumping. With the second CPU core the effects run alongside the next block's sequencer and voice control.
 
 ![The DELAY page](img/delay.png "FX > DELAY: time, ping-pong, width, feedback / filters, reverb send, volume")
 
@@ -774,36 +819,40 @@ Both pages draw the curve the settings make, one division long (a quarter with a
 
 Every value can be locked per step. A trick: make the source a **MIDI track** (GLO > MIDI > EXT) with kick trigs and no instrument behind it. It ducks the pads without making a sound of its own.
 
-**DJ filter (FX > MIXER > FILT):** one knob on the whole mix, after the master overdrive. Below 0 it is a lowpass (down to 78 Hz at −64); above 0, a highpass (up to 7.7 kHz at +63); 0 is off. It glides, so sweeps are smooth. On the performance layer it is K1.
+**DJ filter (FX > MIXER > FILT):** one knob on the whole mix, after the master overdrive. Below 0 it is a lowpass (down to 78 Hz at −64); above 0, a highpass (up to 7.7 kHz at +63); 0 is off. It glides, so sweeps are smooth. On the PERFORM (FX held) it is K1.
 
-## 20. The performance layer
+## 20. Held buttons: PERFORM, patterns, MUTE, TOOLS, MENU (TONIC 0.18)
 
-**Hold HOME**, or **tap HOME twice** to lock it: then the layer stays without holding HOME (the header shows LOCKED), and a single tap on HOME leaves it. Locked, each pattern key picks its pattern; hold HOME while pressing several for a chain. The screen shows the performance page.
+Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the FM-1): a **tap** does what the button always did, on its release; **held** (0.4 s, or at once when you press a key, a knob or OCT with it) it opens its own screen, which stays while you hold it. The button's LED is lit meanwhile. The keys pressed on such a screen do what the screen shows and play nothing else (on PERFORM the white keys still play).
 
-![The performance layer](img/perform.png "HOME held: patterns, the DJ filter and ducking, the black keys' functions")
+| Held | Screen | White keys | Black keys | Knobs |
+| --- | --- | --- | --- | --- |
+| **FX** | PERFORM | play the active track | 1–9 momentary effects (below), 10 FILL while held, 11 FILL for the next pass | K1 DJ filter, K2 ducking depth, K3 THROW, K4 master overdrive; SELECT tempo |
+| **SAVE** | PATTERNS | the bank's 16 patterns (several in a row: a chain) | 1 bank A, 2 bank B, 3 temporary save, 4 reload, 5 restart, 6 tap tempo | K1 CHNG (how the change comes); PRESETS pattern; SELECT tempo; OCT transposes the pattern |
+| **GLO** | MUTE | 1–4 mute T1–T4 | 1–4 solo T1–T4, 10 mutes at once, 11 mutes at the next bar | SELECT tempo |
+| **SEQ** | TOOLS | the page's steps (as in grid recording) | 1 COPY PAGE, 2 PASTE PAGE, 3 CLEAR PAGE, 4 COPY TRACK, 5 PASTE TRACK, 6 CLEAR TRACK (press twice), 7 / 8 SHIFT left / right, 9 DUPLICATE, 10 REVERSE, 11 UNDO | OCT the step page |
+| **EDIT** | the preset list | | | PRESETS or K1 move; each sound plays as you move (audition); OCT+ keeps it, OCT− or EDIT puts the track's own sound back |
+| **HOME** | MENU (it stays) | | | SELECT the row, a knob its value; OCT− or HOME closes |
+| **REC** | a FILL while held | | | |
+| **ENV, LFO, ARP** | (no screen) CONTROL ALL | | | a knob: that parameter on all four tracks; REC randomizes the row, OCT− defaults, SCL reverts |
 
-| Control | Function |
-| --- | --- |
-| White keys | Patterns 1–16 of the bank (changes at the pattern's end). Several in turn: a chain. |
-| Black 1–4 | Mute T1–T4. |
-| Black 5 | FILL while held. |
-| Black 6 | FILL for the next pass. |
-| Black 7 | The other bank (A / B). |
-| Black 8 | Tap tempo: two taps set the tempo; up to four are averaged. |
-| Black 9 | Temporary save of the pattern. |
-| Black 10 | Reload (back to the temporary save, or to the saved pattern). |
-| Black 11 | Restart the pattern. |
-| K1 | The DJ filter. |
-| K2 | Ducking depth (with DUCK set to a track). |
-| OCT− / OCT+ | Transpose the pattern. |
+![PERFORM](img/perform.png "FX held: the effects on the black keys, the four macros")
+![The patterns](img/cue.png "SAVE held: the bank's patterns, the black keys' jobs, CHNG")
+![MUTE](img/mute.png "GLO held: the tracks heard or muted, solo")
+![TOOLS](img/tools.png "SEQ held: the step tools, the page's steps")
+![The MENU](img/menu.png "HOME held: the device's settings")
 
-On **HOME** itself (tapped), K1–K4 are the track levels and SELECT is the tempo.
+- **PERFORM's knobs** stay where you leave them on every page. **THROW** sends the dry mix into the delay and the reverb (a dub throw); it is not saved, turn it back to 0 to stop. K1, K2 and K4 are the pattern's own DJ filter, ducking depth and overdrive (FX > MIXER and DUCK), saved with it.
+- **PATTERNS:** a pattern key cues the pattern (as GLO > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
+- **MUTE:** the track boxes are filled when heard, open when muted, half filled when silent because another track is soloed (an **S** marks a soloed track). With **NEXT BAR** (black 11, or MENU > MUTE) a mute made while playing blinks and lands on the next bar's first step. Solo is not saved; mutes are.
+- **TOOLS:** DUPLICATE makes the track twice as long (up to 64 steps), the new half a copy with its locks; REVERSE plays the steps back to front (their micro timing mirrored); CLEAR TRACK asks for a second press within 2 s. The grid's own black-key functions (section 11) are still there.
+- **MENU:** the device's settings in one list: tempo mode, metronome, clock in and out, live quantize, velocity, fixed velocity, MIDI in, track channels, CHNG, MUTE (at once / next bar), INSHQ and the theme; it also says whether the second CPU core runs.
 
 ### Momentary effects (TONIC 0.7)
 
-On the performance layer, **hold SCL and press a white key 1–9**: its effect lasts as long as you hold the white key. You can let go of SCL (and even HOME) first; the key's release ends the effect. Several effects can be held at once, for instance a ROLL with a filter sweep. While SCL is held, the screen and the keys show the effects instead of the patterns; the effects held now are lit.
+On PERFORM (**FX held**), **press a black key 1–9**: its effect lasts as long as you hold the key. You can let go of FX first; the key's release ends the effect. Several effects can be held at once, for instance a ROLL with a filter sweep. While SCL is held, the screen and the keys show the effects instead of the patterns; the effects held now are lit.
 
-![The momentary effects](img/pfx.png "HOME held + SCL: the effects on the white keys; ROLL 1/8 and LP SWEEP held")
+![The momentary effects](img/pfx.png "FX held: the effects on the black keys; ROLL 1/8 and LP SWEEP held")
 
 | Key | Effect | What it does |
 | --- | --- | --- |
@@ -839,7 +888,7 @@ TONIC saves by itself: changes are written to the flash **once the sequencer has
 
 ![The SAVE page](img/save.png "SAVE: SELECT picks the row, PRESETS the slot, SAVE does it")
 
-On the SAVE page, SELECT picks a row, PRESETS a slot, and SAVE does it. The destructive rows ask for a second SAVE; OCT cancels.
+On the SAVE page, SELECT picks a row, PRESETS a slot, and SAVE does it. Each slot row (SOUND > LIBRARY, SOUND > POOL, POOL > TRACK) keeps its own slot. A second SAVE confirms (OCT cancels) everything that overwrites: a library or pool slot that is not empty (the screen names what it overwrites), POOL > TRACK, INIT SOUND, PASTE, RELOAD, CLEAR and LOAD DEMO. The library and the pool have no undo.
 
 | Row | What it does |
 | --- | --- |
@@ -860,13 +909,13 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
 
 - **USB MIDI in and out.** The FM-1's TRS jack is MIDI in only; there is no DIN out.
 - **In:**
-  - Notes on channels 1–4 play tracks 1–4 (with TRK CH on); the AUTO channel plays the active track.
+  - Notes on channels 1–4 play tracks 1–4 (with TRKCH on); the AUTO channel plays the active track. Program change 0–31 selects a pattern (32 and up are ignored).
   - CC numbers follow the Digitone's for the sound parameters (CC MSB): for example 90 ALGO, 23 FREQ, 24 RESO, 7 VOL, 74 filter TYPE, 29 LFO1 DEP.
   - 94 mutes a track, 95 sets its level, and program change picks a pattern.
   - Mod wheel, breath, aftertouch and pitch bend go to the modulation pages.
-- **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when CLK OUT is on.
+- **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when CKOUT is on (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
 - **MIDI tracks:** GLO > MIDI > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.
-- **Clock in:** with CLK IN on, TONIC follows the incoming tempo, start and stop.
+- **Clock in:** with CKIN on, TONIC follows the incoming clock, start and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average.
 
 ## 24. Shortcuts at a glance
 
@@ -895,12 +944,11 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
 | Step held + black 6/7 | Micro timing. |
 | Black 6/7, no step held (grid) | Shift the track. |
 | Black 1–4 + white key (grid) | Track length. |
-| HOME held | The performance layer (section 20). |
-| HOME tapped twice | The performance layer locked (a tap on HOME: unlock). |
+| FX / SAVE / GLO / SEQ / EDIT / HOME held | PERFORM / patterns / MUTE / TOOLS / preset list / MENU (section 20). |
+| REC held | FILL while held. |
 | PRESETS, then OCT+ / OCT− | Load the sound under the list's cursor / close the list. |
-| HOME held + OCT | Transpose the pattern. |
-| HOME held + SCL + white 1–9 (held) | A momentary effect: ROLL 1/4 … 1/32, HALFTIME, TAPE STOP, LP / HP SWEEP, FREEZE. |
-| A button held alone (1 s) | Its help (not HOME: that is the performance layer). |
+| SAVE held + OCT | Transpose the pattern. |
+| FX held + black 1–9 (held) | A momentary effect: ROLL 1/4 … 1/32, HALFTIME, TAPE STOP, LP / HP SWEEP, FREEZE. |
 
 ## 25. Factory sounds and the demo
 
@@ -919,6 +967,7 @@ TONIC's factory sounds are its own (not Elektron's). PRESETS steps through them,
 | Textures | NOISE SWEEP, VOX, FB GROWL, HARM SWEEP |
 | VA engine | VA BASS, VA ACID, VA SYNC LD, VA SUPERSAW, VA PAD, VA BRASS, VA PLUCK, VA ZAP, VA KICK, VA HAT, VA FAT BASS, VA SQR BASS, VA WOBBLE, VA STRINGS, VA PWM PAD, VA SQR LEAD, VA STAB, VA CHIP ARP, VA SNARE, VA TOM, VA BELL, VA HOOVER, VA FOLD BAS (wavefolder), VA RING BEL (ring modulation), VA CHORD AR (a chord arpeggio) |
 | DRUM kits | 808 KIT, 909 KIT, FM KIT, ELECTRO KIT, TECHNO KIT, LOFI KIT, PERC KIT, TRAP KIT, MODERN KIT, HARD KIT, DEEP KIT |
+| BRAIDS (0.17) | BR SWARM, BR SYNC LD, BR PLUCK, BR BELL, BR VOWEL, BR WTBL PAD, BR FM BASS, BR KICK, BR CLOUD, BR TOY |
 | Start | INIT |
 
 **The demo project** (SAVE > LOAD DEMO PROJECT) has four patterns, A01–A04, and a sound pool. Take them apart: hold a step to see its locks.
@@ -942,16 +991,17 @@ The full comparison is in `docs/FEATURES.md`; the research behind the curves is 
 
 | Problem | Try |
 | --- | --- |
-| No sound | MASTER up? Track muted (HOME held, black 1–4)? Track level (HOME, K1–K4)? Is the track a MIDI track (GLO > MIDI > EXT)? |
+| No sound | MASTER up? Track muted or another soloed (GLO held)? Track level (HOME, K1–K4)? Is the track a MIDI track (GLO > MIDI > EXT)? |
 | Garbled sound names in the library | Banks saved by older builds are read in their own layout; a slot that does not read as a sound shows as empty and is skipped. |
 | A sound is a plain sine | LEV A and LEV B (SYN2) are 0. FM needs them up. |
 | A kit's drums are cut short | The AMP envelope's REL is low: it gates the kit by the note length. REL INF (127) lets each pad ring. |
 | The grid places the wrong drum | The grid places the picked pad, shown at the bottom right (GRID 4 CH). Pick another: black 8 + white key 1–8 in the grid, or SCL + OCT. |
 | Notes cut off | All 12 voices are busy: shorter releases, fewer chord notes, or reserve voices (GLO > VOICE). |
 | Nothing is saved | Saving waits for the sequencer to stop and the sound to fade. Use SCL+SAVE to save at once. |
-| The pattern doesn't change | Changes happen at the pattern's end (or CHLEN). Check MLEN and CHLEN in GLO > SCALE. |
+| The pattern doesn't change | Changes happen at the pattern's end (or CHLEN). Check MLEN and CHLEN in GLO > LENGTH, and GLO > SONG > CHNG. |
 | A trig doesn't play | A condition or PROB (hold the step and look at COND), a mute, or the track's length. |
-| The FM-1 won't start TONIC | SAFE MODE comes up after two failed starts; install again from there (section 2). |
+| The FM-1 won't start TONIC | After a failed start (a crash or a hang in the first 30 s) TONIC starts once more on an empty pattern slot and says **LAST START FAILED / A01 LEFT** (the pattern it left out stays as it is: go back to it on purpose). After two failed starts SAFE MODE comes up; install again from there (section 2). |
+| CPU instead of CPU2 on HOME | The second core was given up (it did not answer in time, or crashed); TONIC runs on one core until the FM-1 is switched off and on. |
 | Back to stock | Section 2 and `docs/INSTALL.md`. |
 
 Try TONIC without an FM-1 in the **Emulator** on this site. It runs the same code, with sound and Web MIDI.

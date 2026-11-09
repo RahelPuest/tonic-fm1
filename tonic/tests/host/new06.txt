@@ -2,12 +2,12 @@
 # chords (ARP 2: CHORD INV); the master compressor (FX, COMP); a new drum model
 wait 1500
 # ---- a fresh pattern: B01 (empty)
-press HOME
+press SAVE
 wait 30
 wait 400
 tapkey w0
 wait 30
-release HOME
+release SAVE
 wait 30
 wait 100
 spin PRESET 16

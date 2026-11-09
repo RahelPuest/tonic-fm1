@@ -1,0 +1,128 @@
+# 0.18: held buttons open their screens (Hortator's way): FX PERFORM, SAVE the patterns, GLO MUTE, SEQ TOOLS,
+# HOME the MENU, EDIT the preset list with audition, REC a FILL; their taps (on release) as before
+wait 1500
+expect ov 0
+# ---- a tap: EDIT, SEQ, FX, GLO open their pages on release
+tap EDIT
+wait 30
+expect group 1
+tap SEQ
+wait 30
+expect group 0
+tap FX
+wait 30
+expect group 4
+tap GLO
+wait 30
+expect group 6
+tap HOME
+wait 30
+expect group 7
+# ---- FX held: PERFORM; black key 2 (ROLL 1/8) while held, its release ends it
+tap PLAY
+wait 300
+press FX
+wait 500
+expect ov 2
+shot perf.png
+key b1 down
+wait 50
+expect pfx 2
+release FX
+wait 30
+expect ov 0
+expect pfx 2
+key b1 up
+wait 30
+expect pfx 0
+# ---- SAVE held: patterns; a white key cues A02
+press SAVE
+wait 500
+expect ov 3
+tapkey w1
+wait 30
+shot cue.png
+release SAVE
+wait 30
+expect ov 0
+wait 2500
+expect pattern 1
+# ---- SAVE + two keys in a row (the screen at once, no wait): a chain
+press SAVE
+tapkey w0
+tapkey w1
+release SAVE
+wait 30
+expect chain 2
+# ---- GLO held: mute T2, solo T1
+press GLO
+wait 500
+expect ov 4
+tapkey w1
+wait 30
+expect mute 2
+tapkey b0
+wait 30
+expect solo 1
+shot mute.png
+tapkey b0
+tapkey w1
+wait 30
+expect mute 0
+expect solo 0
+release GLO
+wait 30
+expect ov 0
+# ---- SEQ held: tools; CLEAR TRACK needs a second press
+tap PLAY
+wait 100
+press SEQ
+wait 500
+expect ov 5
+shot tools.png
+tapkey b5
+wait 30
+expect ntrig 3
+tapkey b5
+wait 30
+expect ntrig 0
+release SEQ
+wait 30
+expect ov 0
+expect group 7
+# ---- HOME held: the MENU, it stays; SELECT row, K1 value; OCT- closes
+press HOME
+wait 800
+release HOME
+wait 30
+expect ov 1
+spin SELECT 12
+wait 30
+shot menu.png
+tap OCT-
+wait 30
+expect ov 0
+# ---- EDIT held: the preset list with audition; OCT- puts the sound back
+press EDIT
+wait 500
+release EDIT
+wait 30
+expect plist 1
+spin PRESET 3
+wait 50
+tap OCT-
+wait 30
+expect plist 0
+# ---- REC held: a FILL while held; a tap still the grid
+press REC
+wait 500
+expect fill 1
+release REC
+wait 30
+expect fill 0
+expect grid 0
+tap REC
+wait 30
+expect grid 1
+tap REC
+wait 30

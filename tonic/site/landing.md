@@ -1,7 +1,7 @@
 # TONIC
 
 TONIC is a Digitone-style FM groovebox for the M-VAVE FM-1: four synth tracks sharing twelve voices, a four-operator
-FM engine with eight algorithms, a virtual-analog engine and a DRUM engine (a kit of 8 synthesized drums on one track, 31 models with their own controls) as options per sound, an insert effect and a modulation envelope on every voice, a scale per sound with chords by its degrees, a euclidean rhythm generator (accents, ghost notes, named rhythms, melodies), chords on every note (voicings, strum, with or without the arpeggiator), a master compressor, sidechain ducking and tempo-synced volume shaping, momentary performance effects (loop rolls, tape stop, filter sweeps, freeze), a 64-step sequencer with parameter locks, sound locks, trig conditions, micro timing, retrig and a length and speed per track, an arpeggiator, chorus, delay, reverb and a DJ filter. The 16 white keys are its trig keys.
+FM engine with eight algorithms, a virtual-analog engine, a DRUM engine (a kit of 8 synthesized drums on one track, 31 models with their own controls) and Mutable Instruments' Braids (47 models) as options per sound, an insert effect and a modulation envelope on every voice, a scale per sound with chords by its degrees, a euclidean rhythm generator (accents, ghost notes, named rhythms, melodies), chords on every note (voicings, strum, with or without the arpeggiator), a master compressor, sidechain ducking and tempo-synced volume shaping, momentary performance effects (loop rolls, tape stop, filter sweeps, freeze), a 64-step sequencer with parameter locks, sound locks, trig conditions, micro timing, retrig and a length and speed per track, an arpeggiator, chorus, delay, reverb and a DJ filter. The 16 white keys are its trig keys.
 
 ![TONIC's home screen: pattern A01 GROUND, four tracks with their sounds and levels, the steps below](manual/img/home.png "TONIC on the FM-1's screen")
 
@@ -15,7 +15,13 @@ fm1-emu. It is a custom firmware: installing is at your own risk; the installer 
 - [Source code on GitHub](https://github.com/RahelPuest/tonic-fm1).
 - Since 0.12 projects are saved in a new format: versions before 0.12 cannot read what 0.12 or later saved. Take a USB backup first if you
   may want to go back.
-- Earlier versions stay available: [0.12](firmware/tonic-0.12.fwsc) (the drum controls on CTL pages, the scale on the CHORD page),
+- Earlier versions stay available: [0.17](firmware/tonic-0.17.fwsc) (HOME held: the performance layer; the help screens),
+  [0.16](firmware/tonic-0.16.fwsc) (before the full audit's fixes),
+  [0.15](firmware/tonic-0.15.fwsc) (on one CPU core),
+  [0.14](firmware/tonic-0.14.fwsc) (BRAIDS without SYNC, SIGN, SUB),
+  [0.13](firmware/tonic-0.13.fwsc) (before the BRAIDS engine),
+  [0.12.1](firmware/tonic-0.12.1.fwsc) (before the audio code moved to RAM),
+  [0.12](firmware/tonic-0.12.fwsc) (the drum controls on CTL pages, the scale on the CHORD page),
   [0.11](firmware/tonic-0.11.fwsc) (twelve voices, before the drum controls, the insert, the modulation envelope and the scales),
   [0.10.1](firmware/tonic-0.10.1.fwsc) (eight voices, the performance audit),
   [0.10](firmware/tonic-0.10.fwsc) (the PUMP page, before the performance audit),
@@ -36,6 +42,6 @@ fm1-emu. It is a custom firmware: installing is at your own risk; the installer 
   [0.3](firmware/tonic-0.3.fwsc) (22 VA sounds, no preset list),
   [0.2](firmware/tonic-0.2.fwsc) (the first VA engine, 10 VA sounds) and [0.1](firmware/tonic-0.1.fwsc) (FM only).
 
-Built on fm1-base and felucca-bsp (MPL-2.0). TONIC is an independent work inspired by the Elektron Digitone; it is not
+Built on fm1-base and felucca-bsp (MPL-2.0); the BRAIDS engine is Mutable Instruments' Braids by Emilie Gillet (MIT). TONIC is an independent work inspired by the Elektron Digitone; it is not
 affiliated with or endorsed by Elektron or M-VAVE. Digitone is a trademark of Elektron; M-VAVE and FM-1 are trademarks
 of their owners.

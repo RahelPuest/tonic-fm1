@@ -27,3 +27,4 @@ research/firmware/entropy/
 research/fm1/stock/
 __pycache__/
 research/firmware/tables/
+tonic/app/tonic_cpu1test.h

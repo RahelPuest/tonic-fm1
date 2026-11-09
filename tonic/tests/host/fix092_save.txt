@@ -6,11 +6,11 @@ expect ntrig 6
 # ---- pending change: CLEAR, RELOAD, PASTE wait (pattern 0 untouched, pattern 1 arrives intact)
 tap PLAY
 wait 200
-press HOME
+press SAVE
 wait 400
 tapkey w1
 wait 50
-release HOME
+release SAVE
 wait 50
 tap SAVE
 wait 50
@@ -62,24 +62,26 @@ spin PRESET 5
 wait 50
 expect pattern 5
 expect ntrig 0
-press HOME
+press SAVE
 wait 400
-tapkey b8
+tapkey b2
 wait 30
-release HOME
+release SAVE
 wait 30
 tap SAVE
 wait 30
 spin SELECT 1
 wait 30
 tap SAVE
+wait 30
+tap SAVE
 wait 50
 expect ntrig 6
-press HOME
+press SAVE
 wait 400
-tapkey b9
+tapkey b3
 wait 30
-release HOME
+release SAVE
 wait 30
 expect ntrig 0
 # ---- undo after a USB restore: nothing to undo
@@ -168,12 +170,12 @@ tap EDIT
 wait 30
 spin PRESET 1
 wait 50
-expect plisti 75
+expect plisti 85
 spin PRESET 8
 wait 50
 spin PRESET 1
 wait 50
-expect plisti 107
+expect plisti 117
 tap OCT+
 wait 50
 expect engine 1

@@ -65,7 +65,7 @@ the FM-1, not done yet. **Unavailable**: the FM-1 cannot do it.
 | Keyboard scales, fold, chords | 12 scales, fold, chords | Implemented (fewer scales) |
 | Metronome | a click, accented on the bar | Implemented; pre-roll deferred |
 | Mute (global / pattern) | track mutes | Implemented |
-| (Not on the Digitone) undo / redo, help overlay, value pop-up, fine turns, row defaults, track shift, tap tempo | SCL+HOME, a button held alone, SCL+knob, page button+OCT−, black 6/7 in grid, HOME+black 8 | Added |
+| (Not on the Digitone) undo / redo, value pop-up, fine turns, row defaults, track shift, tap tempo | SCL+HOME, SCL+knob, page button+OCT−, black 6/7 in grid, HOME+black 8 | Added |
 | (Not on the Digitone) retrig | SEQ › RTRG: RTRG, RTIM (1/1–1/80), RVEL (fade out / in), lockable per step; the repeats over the note's length | Added |
 | (Not on the Digitone) a VA engine per sound | ENGINE FM / VA (EDIT, SYN2 2): two band-limited oscillators (SAW, SQR with PW, TRI, SIN), sub, noise, OSC2 tune, detune, hard sync, cross modulation, drift, pitch envelopes, a wavefolder and ring modulation (SHAPE, 0.6); the same filters, amp, LFOs and effects; 22 factory sounds | Added (the Digitone II has other machines; TONIC's VA is its own) |
 | (Not on the Digitone) a DRUM engine per sound | ENGINE DRUM (EDIT, SYN2 2): a kit of 8 synthesized pads on one track, 31 models (BD 808 / 909 / FM / SUB / DIST / PUNCH, SD 808 / 909 / FAT / 606 / BRUSH, RIM, CLAP, CLAP 2, HH CL / OP, HH 909 CL / OP, HH FM, HH 606 with choke, CYMBAL, TOM, CONGA, COWBELL, CLAVE, SHAKER, MARACA, TAMBOURINE, ZAP, LASER, NOISE), TUNE DEC TONE LEV a pad (lockable per pad), the white keys as pads, the grid places the picked pad (up to 4 a step), a lane a pad in the piano roll; every pad and the whole kit as LFO / modulation destinations; the same filters, amp, LFOs and effects; 11 factory kits | Added (the Digitone II has drum machines of its own; TONIC's are its own) |
@@ -88,8 +88,13 @@ the FM-1, not done yet. **Unavailable**: the FM-1 cannot do it.
 | Track levels, pattern volume | (TL/127)², 1.6384·(PVOL/128)² (unity at 100) | Implemented (OS; the track-level word's identity INFERRED) |
 | Master overdrive | a soft clipper | Approximated (the OS's curve not decoded) |
 | (Not on the Digitone) sample-rate and bit reduction | ENV › LOFI: SRR (hold 1–64 samples), BRR (16–2 bits), per sound, lockable, before the filters | Added |
-| (Not on the Digitone) DJ filter | FX › MIXER FILT: a 2-pole lowpass / highpass on the mix (78 Hz … off … 7.7 kHz); HOME held: K1 | Added |
+| (Not on the Digitone) DJ filter | FX › MIXER FILT: a 2-pole lowpass / highpass on the mix (78 Hz … off … 7.7 kHz); FX held (PERFORM): K1 | Added |
 | (Not on the Digitone) sidechain ducking | FX › DUCK: source track or a tempo division (1/4 … 1/1: volume shaping), depth, release 10 ms–1.3 s, the FX returns too; FX › PUMP: a kit source's pad, attack, a track kept out; the curve drawn; HOME held: K2 | Added |
+| (Pattern changes, 0.17) SEQUENTIAL, DIRECT START, DIRECT JUMP | GLO > SONG > CHNG: at the pattern's end, at once from step 1, or at once in place; chains and songs at the end | Added |
+| (Not on the Digitone, 0.17) BRAIDS factory sounds | ten sounds in the PRESETS list's BRAIDS group | Added |
+| (Not on the Digitone, 0.18) held buttons (after Hortator) | a tap as before, held 0.4 s a screen: FX PERFORM (effects on the black keys; FILTER, DUCK, THROW, OVERDRIVE), SAVE patterns / chains, GLO mute / solo / next-bar mutes, SEQ step tools (copy, paste, clear, shift, duplicate, reverse, undo), EDIT preset list with audition, HOME menu, REC fill | Added |
+| (Not on the Digitone, 0.16) both CPU cores | the second core renders part of the voices and their control step, split by each voice's measured cost; the same sound sample for sample; given up (one core again) if it ever fails to answer | Added |
+| (Not on the Digitone, 0.14) BRAIDS engine | Mutable Instruments' Braids macro oscillator, all 47 models, TIMBRE / COLOR / MODEL as parameters and destinations; (0.15) hard SYNC, the signature waveshaper SIGN, a SUB sine | Added |
 | (Not on the Digitone, 0.12) per-pad drum controls | each pad's model-specific CTL A / B (BEND TICK, SNAP BODY, NOIS RESO, …) and PAN | Added |
 | (Not on the Digitone, 0.12) insert effect per voice | OVER, HARD, FUZZ, RECT, FOLD, CRUSH with AMT, TONE, MIX; LFO / mod destinations | Added |
 | (Not on the Digitone, 0.12) modulation envelope | DEL ATK DEC SUS REL to any destination, ± depth | Added |

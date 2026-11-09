@@ -9,12 +9,12 @@ expect engine 0
 key w3 down
 wait 100
 expect voices 1
-press HOME
+press FX
 wait 400
 expect perf 1
 key w3 up
 wait 50
-release HOME
+release FX
 wait 2500
 expect voices 0
 # a key held while GRID comes up
@@ -96,9 +96,7 @@ wait 30
 spin SELECT -5
 wait 30
 expect row 2
-spin K1 1
-wait 30
-spin K2 -12
+spin K1 -12
 wait 30
 expect len 4
 press REC

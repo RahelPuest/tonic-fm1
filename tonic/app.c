@@ -10,11 +10,25 @@
 #include <stdint.h>
 #endif
 
+#if defined(__has_include)
+#if __has_include("tonic_cpu1test.h")
+#include "tonic_cpu1test.h"                         /* tools/cpu1test_build.sh: the CPU1 test firmware */
+#endif
+#endif
 /* the engine's buffers: HARM tables, chorus, reverb, delay (the delay takes what is left) */
-#define ENGINE_POOL (210u * 1024u + (NVOICE - 8u) * 1028u)   /* (of the delay line: 12 KB went to undo, 6 KB to the
+#define ENGINE_POOL (210u * 1024u + (NVOICE - 8u) * 1028u + BR_AREA - 32768u + ENG_DUAL_BYTES + ENG_FXRAM_BYTES - 2016u)   /* (of the delay line: 12 KB went to undo, 6 KB to the
                                          * full-resolution screen, 2 KB to the drum kits' sounds; 0.11: each voice past
-                                         * eight brings its HARM table's 1028 B, so the delay line stays as long) */
+                                         * eight brings its HARM table's 1028 B, so the delay line stays as long; 0.13:
+                                         * undo's pattern copy came back, COPY's buffer went to RAMTEXT: as long; 0.14:
+                                         * the BRAIDS area in, the reverb's 32 KB at 16 bits out: as long; 0.17: the
+                                         * chorus line and the pre-delay in, the 2016 B the delay's rounding left out) */
+#ifdef TONIC_CPU1TEST
+static uint8_t engine_pool[ENGINE_POOL - 24u * 1024u] PLAT_POOL;   /* (the test's buffer and core 1's stacks) */
+#undef ENGINE_POOL
+#define ENGINE_POOL (210u * 1024u + (NVOICE - 8u) * 1028u + BR_AREA - 32768u + ENG_DUAL_BYTES + ENG_FXRAM_BYTES - 2016u - 24u * 1024u)
+#else
 static uint8_t engine_pool[ENGINE_POOL] PLAT_POOL;
+#endif
 
 static void demo_check(void);
 static int step_held_any(void);
@@ -29,6 +43,10 @@ static void mark_dirty(void);
 #include "ui.c"
 #include "draw.c"
 #include "midi.c"
+#include "app/cpu1.c"                               /* (0.16) the second core */
+#ifdef TONIC_CPU1TEST
+#include "app/cpu1test.c"
+#endif
 
 #if defined(__has_include)
 #if __has_include("tonic_bench.h")
@@ -61,6 +79,11 @@ static void bench_setup(void)
         s->p[V_WAV1] = VW_SQR; s->p[V_WAV2] = VW_SQR; s->p[V_PW] = 200; s->p[V_SYNC] = 1; s->p[V_XMOD] = 60;
         s->p[V_SUB] = 80; s->p[V_NOIS] = 40; s->p[V_DRFT] = 60; s->p[V_TUNE2] = 28;
         s->p[P_L2DST] = D_FDBK;
+#elif TONIC_BENCH == 4                               /* (0.14) the BRAIDS engine: its heaviest models */
+        sound_set_engine(s, ENG_BR);
+        { static const int16_t BRM[4] = {3, 27, 35, 23}; s->p[P_RATB] = BRM[t]; }   /* FOLD WTFM CYMB VFOF */
+        s->p[P_ALEV] = 90; s->p[P_BLEV] = 70;
+        s->p[P_DTUN] = 48; s->p[P_FDBK] = 90; s->p[P_OFSC] = 60;   /* (0.15) SYNC 12, SIGN, SUB on every voice */
 #elif TONIC_BENCH == 3                               /* the DRUM engine: cymbals (six squares, two filters) on every pad */
         sound_set_engine(s, ENG_DR);
         { int k; for (k = 0; k < NPAD; k++) s->s[S_DM1 + k] = DM_CYMB; }
@@ -108,13 +131,24 @@ void app_init(void)
     ui.grp = G_HOME;
     ui.row[G_ENV] = 1;                               /* FLTR: FREQ RESO TYPE ENV first */
     ui.roll_lo = -1;                                 /* the piano roll fits the notes */
-    ui.help_btn = 0xFF;
+    ui.hold_btn = 0xFF;                              /* (0.18) no button held */
 #ifdef TONIC_BENCH
     bench_setup();
 #endif
+#ifdef TONIC_CPU1TEST
+    c1t_init();                                      /* (the CPU1 test runs first) */
+#else
+    c1_engine_start();                               /* (0.16) part of the voices on the second core */
+#endif
 }
 
-void app_render(int32_t *lr, uint32_t n, uint32_t master_q12) { engine_render(lr, n, master_q12); }
+void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
+{
+    engine_render(lr, n, master_q12);
+#ifdef TONIC_CPU1TEST
+    c1t_audio();                                     /* (the CPU1 test: core 1 in the audio block) */
+#endif
+}
 void app_panic(void) { engine_panic(); }
 void app_overload(void) { engine_shed(); }
 
@@ -127,9 +161,22 @@ void app_ui_init(void)
 
 void app_frame(void)
 {
+#ifdef TONIC_CPU1TEST
+    if (c1t_frame())                                 /* (the CPU1 test's page first; no saving while it runs) */
+        return;
+#endif
+    c1_poll();                                       /* (0.17) a fault on core 1 noted */
+    if (boot_skipped >= 0) {                         /* (0.17) after a failed start: say which pattern was left out */
+        char b[16];
+        pat_name(boot_skipped, b);
+        tx_cat(b, " LEFT");
+        app_say("LAST START FAILED", b);
+        boot_skipped = -1;
+    }
     ui_input();
     midi_poll();
     pattern_cue_poll();
+    chain_poll();                                    /* (0.17) a chain's next place (by its index) */
     song_poll();
     store_poll();
     undo_poll();
@@ -139,6 +186,10 @@ void app_frame(void)
 
 void app_input_only(void)
 {
+#ifdef TONIC_CPU1TEST
+    if (c1t.active)                                  /* (the CPU1 test's page takes no input but HOME) */
+        return;
+#endif
     ui_input();
     midi_poll();
 }
@@ -165,16 +216,16 @@ int app_expect(const char *what, int *got)
     else if (!strcmp(what, "group")) *got = ui.grp;
     else if (!strcmp(what, "row")) *got = ui.row[ui.grp];
     else if (!strcmp(what, "rollzoom")) *got = ui.roll_zoom;
-    else if (!strcmp(what, "help")) *got = ui.help_btn < NB && !ui.help_block && (plat_buttons() >> ui.help_btn & 1u) && plat_ms() - ui.btn_t[ui.help_btn] > 900u;
     else if (!strcmp(what, "rolllo")) *got = ui.roll_lo;
     else if (!strcmp(what, "grid")) *got = ui.grid;
     else if (!strcmp(what, "engine")) *got = tsnd()->s[S_ENGINE];
     else if (!strcmp(what, "soundi")) *got = ui.sound_i;
     else if (!strcmp(what, "plist")) *got = ui.plist_on;
     else if (!strcmp(what, "plisti")) *got = ui.plist_i;
-    else if (!strcmp(what, "perf")) *got = ui.perf;
+    else if (!strcmp(what, "perf")) *got = ui.ov == OV_PERF;
+    else if (!strcmp(what, "ov")) *got = ui.ov;
     else if (!strcmp(what, "theme")) *got = set.theme;
-    else if (!strcmp(what, "perflock")) *got = ui.perf_lock;
+    else if (!strcmp(what, "solo")) *got = eng.solo;
     else if (!strcmp(what, "pfx")) *got = eng.pfx;
     else if (!strcmp(what, "playing")) *got = eng.playing;
     else if (!strcmp(what, "live")) *got = eng.rec_live;

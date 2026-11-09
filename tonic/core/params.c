@@ -12,6 +12,12 @@ static const char *const L_LMOD[] = {"FRE", "TRG", "HLD", "ONE", "HLF"};
 static const char *const L_RTIM[] = {"1/1", "1/2", "1/3", "1/4", "1/5", "1/6", "1/8", "1/10", "1/12", "1/16",
                                      "1/20", "1/24", "1/32", "1/40", "1/48", "1/64", "1/80"};   /* RT_DIV */
 static const char *const L_SCSRC[] = {"OFF", "T1", "T2", "T3", "T4", "1/4", "1/8", "1/16", "1/2", "1/1"};
+/* (0.14) the BRAIDS engine: its 47 models, as the module's display spells them (in this font's letters) */
+static const char *const L_BRM[47] = {"CSAW", "MRPH", "SAWSQ", "FOLD", "BUZZ", "SUBSQ", "SUBSW", "SYNSQ", "SYNSW",
+                                      "SAWx3", "SQRx3", "TRIx3", "SINx3", "RING", "SWARM", "COMB", "TOY", "ZLPF",
+                                      "ZPKF", "ZBPF", "ZHPF", "VOSIM", "VOWEL", "VFOF", "HARM", "FM", "FBFM", "WTFM",
+                                      "PLUCK", "BOWED", "BLOWN", "FLUTE", "BELL", "DRUM", "KICK", "CYMB", "SNARE",
+                                      "WTBL", "WMAP", "WLIN", "WTx4", "NOISE", "TWNQ", "CLKN", "CLOUD", "PRTC", "QPSK"};
 static const char *const L_INS[] = {"OFF", "OVER", "HARD", "FUZZ", "RECT", "FOLD", "CRUSH"};
 static const char *const L_SCPAD[] = {"ALL", "1", "2", "3", "4", "5", "6", "7", "8"};
 
@@ -105,7 +111,7 @@ const pdesc_t PDESC[NPARAM] = {
 #undef DPAD
     /* (0.12) the pads' two controls of their model (0: the model as it was) and their pans */
 #define DPX(n) [P_DA##n] = P("CTL A", F_BIP, 1, -64, 63, 0), [P_DB##n] = P("CTL B", F_BIP, 1, -64, 63, 0), \
-               [P_DPN##n] = P("PAN", F_BIP, 1, -64, 63, 0)
+               [P_DPN##n] = P("PAN", F_PAN, 1, -64, 63, 0)   /* (0.17: L / R as the sound's PAN) */
     DPX(1), DPX(2), DPX(3), DPX(4), DPX(5), DPX(6), DPX(7), DPX(8),
 #undef DPX
     /* (0.12) the insert effect; the modulation envelope (times as the filter envelope's) */
@@ -235,8 +241,20 @@ static const int8_t DR_KIT_TUN[NPAD] = {0, 0, 0, 0, 0, -10, 12, 0};
 
 static const pdesc_t VA_FOLD = P("FOLD", F_INT, 1, 0, 63, 0), VA_RING = P("RING", F_INT, 1, 0, 63, 0);
 
+/* (0.14) the BRAIDS engine's SYN page: MODEL, TIMBRE, COLOR (the module's two knobs), TUNE, in FM places whose ranges
+ * hold them (P_RATB 0..360, P_ALEV / P_BLEV 0..127, P_HARM +-104), so the patterns keep them as they are */
+static const pdesc_t BR_MODEL = PL("MODL", L_BRM, 46, 0), BR_TIMB = P("TIMB", F_INT, 1, 0, 127, 64),
+                     BR_COLOR = P("COLR", F_INT, 1, 0, 127, 64), BR_TUNE = P("TUNE", F_X4, 4, -96, 96, 0),
+                     /* (0.15) SYNC: Braids up to 48 semitones over a master at the note that resets it (0 off); SIGN:
+                      * Braids' signature waveshaper mixed in; SUB: a sine an octave below (P_DTUN, P_FDBK, P_OFSC) */
+                     BR_SYNC = P("SYNC", F_X4, 4, 0, 192, 0), BR_SIGN = P("SIGN", F_INT, 1, 0, 127, 0),
+                     BR_SUB = P("SUB", F_INT, 1, 0, 127, 0);
 const pdesc_t *param_desc(int engine, int p)
 {
+    if (engine == ENG_BR && p >= 0 && p <= P_BRST)
+        return p == P_RATB ? &BR_MODEL : p == P_ALEV ? &BR_TIMB : p == P_BLEV ? &BR_COLOR : p == P_HARM ? &BR_TUNE :
+               p == P_DTUN ? &BR_SYNC : p == P_FDBK ? &BR_SIGN : p == P_OFSC ? &BR_SUB :
+               PDESC[p].q == 4 ? &DR_NONE4 : &DR_NONE;
     if (engine == ENG_VA && p >= 0 && p <= P_PHRT && VADESC[p].name[0])
         return &VADESC[p];
     if (engine == ENG_VA && (p == V_FOLD || p == V_RING))

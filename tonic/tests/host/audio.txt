@@ -56,7 +56,7 @@ wait 30
 expect fx155 1
 shot audio_duck.png
 # the performance layer: K1 FILT, K2 DPTH
-press HOME
+press FX
 wait 400
 spin K1 5
 wait 30
@@ -65,7 +65,7 @@ spin K2 -10
 wait 30
 expect fx156 70
 shot audio_perf.png
-release HOME
+release FX
 wait 100
 # it plays: the demo with T1 retrigged, ducking T1 and a lowpass
 tap PLAY

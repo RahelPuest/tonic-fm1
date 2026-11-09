@@ -3,7 +3,7 @@ wait 1500
 spin PRESET 16
 wait 100
 expect pattern 16
-sound 75
+sound 85
 wait 50
 key w0 down
 key w1 down

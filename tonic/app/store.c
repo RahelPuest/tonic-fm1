@@ -34,7 +34,10 @@ typedef struct {
     uint8_t song_end;             /* 0 LOOP, 1 STOP */
     uint8_t song_pat[32], song_rep[32], song_mute[32];
     uint8_t theme;                /* the screen's colours (draw.c THEMES) [TONIC] */
-    uint8_t rsv[27];
+    uint8_t pchg;                 /* (0.17) the pattern change: SEQ START JUMP */
+    uint8_t ins_lq;               /* (0.17) GLO > SYSTEM > INSHQ OFF: the inserts at the base rate */
+    uint8_t mute_bar;             /* (0.18) the MUTE screen's mutes at the next bar */
+    uint8_t rsv[24];
 } settings_t;
 static settings_t set;
 
@@ -58,7 +61,7 @@ static uint8_t pool_dirty, lib_dirty, set_dirty;
 /* the patterns in RAM: the one playing (and edited), the next one (cued), the temporary save */
 static pattern_t pat_a PLAT_POOL, pat_b PLAT_POOL, pat_snap PLAT_POOL;
 static pattern_t *pcur = &pat_a, *pnext = &pat_b;
-static uint8_t copy_buf[PLAT_STORE_MAX] PLAT_POOL;  /* COPY PATTERN, packed (its own: not the temporary save's) [0.9.2] */
+static uint8_t copy_buf[PLAT_STORE_MAX] PLAT_POOL;    /* COPY PATTERN, packed (its own: not the temporary save's) [0.9.2]; in the pool (0.17: RAMTEXT is for code) */
 static uint16_t copy_len;
 static int8_t cur_idx = 0, next_idx = -1, snap_idx = -1;
 static uint8_t cur_dirty;
@@ -74,6 +77,10 @@ static uint8_t flush_wanted;
 
 static int pattern_load_into(int idx, pattern_t *p);
 static void pattern_cue_poll(void);
+void app_say(const char *a, const char *b);
+static void chain_poll(void);
+static int8_t boot_skipped = -1;
+static uint8_t sel_auto;                             /* (0.17) a chain or a song selects: its change at the end */                     /* (0.17) the pattern a failed start left out, -1 none */
 
 /* ------------------------------------------------------------------- the settings --- */
 static void settings_defaults(void)
@@ -210,8 +217,12 @@ static int pattern_keep(int idx, pattern_t *p)
                 break;
             }
     if (k < 0) {                                     /* full: write one now (a short gap in the sound) */
-        if (plat_store_save(OBJ_PAT0 + (uint32_t)dirty[0].idx, dirty_buf[0], dirty[0].len) == 0)
-            dirty[0].len = 0;
+        if (plat_store_save(OBJ_PAT0 + (uint32_t)dirty[0].idx, dirty_buf[0], dirty[0].len) != 0) {
+            /* (0.17: not written: the one waiting stays, nothing overwritten) */
+            app_say("SAVE", "FAILED");
+            return -1;
+        }
+        dirty[0].len = 0;
         k = 0;
     }
     for (i = 0; i < n; i++)
@@ -284,7 +295,7 @@ static void store_poll(void)
 
 /* undo [TONIC]: pat_shadow is the pattern as it last settled (no edit for 0.7 s), pat_undo the state before that;
  * an undo swaps the pattern with the one before the latest edits, a second undo swaps back (redo) */
-static pattern_t pat_shadow, pat_undo;   /* (both in RAM: the pool took the new voices' HARM tables (0.11) and the
+static pattern_t pat_shadow, pat_undo PLAT_POOL;   /* (0.13: undo back in the pool; before: the pool took the new voices' HARM tables (0.11) and the
                                           * larger sounds (0.12)) */
 static void euc_hist(int op);                        /* ui.c: the euclidean settings follow the undo [0.9.2] */
 static int8_t shadow_idx = -1;
@@ -356,6 +367,9 @@ static void pattern_select(int idx)
         pattern_load_into(idx, pnext);
         next_idx = (int8_t)idx;
         engine_cue(pnext);
+        engine_cue_how(sel_auto ? 0 : set.pchg);     /* (0.17) a chain's or a song's at the end; one picked: CHNG */
+        if (set.tempo_ptn)                           /* (0.17) its tempo with its first step */
+            engine_at_change(-1, 0, pnext->bpm10);
         return;
     }
     if (idx == cur_idx)
@@ -396,13 +410,38 @@ static void pattern_cue_poll(void)
         set_dirty = 1;
         if (set.tempo_ptn)
             eng.bpm = (float)pcur->bpm10 * 0.1f;
-        if (set.chain_n > 1 && !set.song_on) {       /* a chain: the next one cued at once */
-            int i;
-            for (i = 0; i < set.chain_n; i++)
-                if (set.chain[i] == cur_idx)
-                    break;
-            pattern_select(set.chain[(i + 1) % set.chain_n]);
-        }
+    }
+}
+
+/* a chain [MANUAL 10.10]: its place kept as an index (0.17: not searched by the pattern, so a chain may hold a
+ * pattern twice in a row, or start on the one playing); at each pass's end the next place, and its pattern cued
+ * (none if it is the one playing: it simply plays on) */
+static struct { uint8_t on, pos; uint32_t loops; } chn;
+static void chain_poll(void)
+{
+    int n = set.chain_n > 64 ? 64 : set.chain_n, nxt;
+    uint32_t lp;
+    if (n < 2 || set.song_on || !eng.playing) {
+        chn.on = 0;
+        return;
+    }
+    lp = engine_passes();
+    if (!chn.on || chn.pos >= n || (set.chain[chn.pos] != cur_idx && next_idx < 0)) {
+        int i;
+        for (i = 0; i < n && set.chain[i] != cur_idx; i++)
+            ;
+        chn.on = 1;
+        chn.loops = lp;
+        chn.pos = (uint8_t)(i < n ? i : n - 1);   /* (not in the chain: its first comes next) */
+    } else if (lp != chn.loops) {                  /* a pass ended: the next place plays now */
+        chn.loops = lp;
+        chn.pos = (uint8_t)((chn.pos + 1) % n);
+    }
+    nxt = set.chain[(chn.pos + 1) % n];
+    if (next_idx < 0 && nxt != cur_idx) {
+        sel_auto = 1;
+        pattern_select(nxt);
+        sel_auto = 0;
     }
 }
 
@@ -414,15 +453,14 @@ static void song_row_start(int r)
     song.row = (uint8_t)r;
     song.passes = 0;
     song.cued = 0;
-    eng.mute = set.song_mute[r];
 }
 static void song_start(void)
 {
     if (!set.song_on || !set.song_n)
         return;
-    set.chain_n = 0;
-    pattern_select(set.song_pat[0]);
+    pattern_select(set.song_pat[0]);                 /* (0.17: the chain is kept; song mode leaves it alone) */
     song_row_start(0);
+    eng.mute = set.song_mute[0];
     song.loops = 0;
 }
 static void song_poll(void)
@@ -454,8 +492,13 @@ cue:
     last = song.passes + 1 >= (set.song_rep[song.row] ? set.song_rep[song.row] : 1);
     if (last && !song.cued) {
         next = song.row + 1 >= set.song_n ? (set.song_end ? -1 : 0) : song.row + 1;
-        if (next >= 0 && set.song_pat[next] != cur_idx)
+        if (next >= 0 && set.song_pat[next] != cur_idx) {
+            sel_auto = 1;
             pattern_select(set.song_pat[next]);
+            sel_auto = 0;
+        }
+        /* (0.17) the next row's mutes, or END STOP, at the change point itself (in the render) */
+        engine_at_change(next >= 0 ? set.song_mute[next] : -1, next < 0, 0);
         song.cued = 1;
     }
 }
@@ -501,10 +544,43 @@ static void store_boot(void)
     }
     if (set.cur >= NPAT)
         set.cur = 0;
+    {   /* (0.17) the settings in range: a damaged or foreign record cannot read past its tables */
+        int k;
+        if (set.chain_n > 64) set.chain_n = 0;
+        for (k = 0; k < 64; k++) set.chain[k] %= NPAT;
+        if (set.song_n > 32) set.song_n = 0;
+        for (k = 0; k < 32; k++) {
+            set.song_pat[k] %= NPAT;
+            set.song_mute[k] &= (uint8_t)((1u << NTRK) - 1u);
+        }
+        for (k = 0; k < NTRK; k++)
+            if (set.midi_out[k] > 16) set.midi_out[k] = 16;
+        if (set.bpm10 < 200 || set.bpm10 > 3000) set.bpm10 = 1200;
+        set.midi_only &= (uint8_t)((1u << NTRK) - 1u);
+        set.mute &= (uint8_t)((1u << NTRK) - 1u);
+        if (set.pchg > 2) set.pchg = 0;
+        set.ins_lq = set.ins_lq ? 1 : 0;
+        set.mute_bar = set.mute_bar ? 1 : 0;
+    }
     bank_load(OBJ_POOL, pool, 16);
     bank_load(OBJ_LIB0, lib, 16);
     bank_load(OBJ_LIB1, lib + 16, 16);
     cur_idx = (int8_t)set.cur;
+#ifndef PLAT_HOST
+    if (bootguard.magic == 0x42475244u && bootguard.failed >= 1u) {
+        /* (0.17) the last start failed (a crash or a hang in its first 30 s): this one starts on an empty pattern
+         * slot instead of the pattern it was on, which stays as it is (a second failure: the base's safe mode) */
+        int i;
+        for (i = 0; i < NPAT; i++)
+            if (i != cur_idx && dirty_find(i) < 0 && plat_store_load(OBJ_PAT0 + (uint32_t)i, pack_buf, sizeof pack_buf_w) <= 0)
+                break;
+        if (i < NPAT) {
+            boot_skipped = cur_idx;
+            cur_idx = (int8_t)i;
+            set.cur = (uint8_t)i;
+        }
+    }
+#endif
     pattern_load_into(cur_idx, pcur);
     cur_dirty = 0;
     eng_pool = pool;
@@ -513,6 +589,7 @@ static void store_boot(void)
     eng.mute = set.mute;
     eng.rec_quant = set.quant;
     eng.ext_clock = set.clock_in;
+    eng.ins_lq = set.ins_lq;
     for (i = 0; i < NTRK; i++)
         eng_midi_chan[i] = set.midi_out[i];
     eng_midi_only = set.midi_only;

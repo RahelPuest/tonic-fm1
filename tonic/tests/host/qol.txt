@@ -1,5 +1,5 @@
 # quality of life: undo / redo (SCL + HOME), shifting a track (black 6/7, no step held), fine knob (SCL held),
-# row defaults (page button + OCT-), tap tempo (HOME held + black key 8), the help (a button held alone)
+# row defaults (page button + OCT-), tap tempo (0.18: SAVE held + black key 6)
 wait 1500
 spin PRESET 16
 wait 50
@@ -80,28 +80,20 @@ wait 30
 expect p31 489
 # tap tempo: HOME held, black key 8 four times 500 ms apart (a tapkey takes ~90 ms here): 120 BPM
 spin SELECT 0
-press HOME
+press SAVE
 wait 400
-tapkey b7
+tapkey b5
 wait 410
-tapkey b7
+tapkey b5
 wait 410
-tapkey b7
+tapkey b5
 wait 410
-tapkey b7
+tapkey b5
 wait 30
-release HOME
+release SAVE
 wait 30
 expect bpm10 >1180
 expect bpm10 <1220
-# the help: SCL held alone for a second
-press SEL
-wait 1200
-expect help 1
-shot help_scl.png
-release SEL
-wait 200
-expect help 0
 # the value pop-up after a turn
 spin K2 3
 wait 50

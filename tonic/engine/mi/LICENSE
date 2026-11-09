@@ -1,0 +1,26 @@
+Mutable Instruments' Braids (braids/) and stmlib (stmlib/), as used by TONIC's BRAIDS engine.
+Sources: https://github.com/pichenettes/eurorack (braids, commit f4cfa76) and https://github.com/pichenettes/stmlib
+(commit d18def8). TONIC's changes: the digital oscillator's delay lines outside it (shared by voices), the comb
+delay 4096 samples long (for 44.1 kHz); signature_waveshaper.h unchanged (0.15); stmlib's Random keeps a state
+per CPU core (0.16); digital_oscillator.cc's absolute frequencies (VOSIM, VOWEL, VFOF, the noise models' period)
+raised for 44.1 kHz (0.17); braids_voice.{h,cc} and shim/ are TONIC's own (MPL-2.0).
+
+Copyright 2012 Emilie Gillet.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

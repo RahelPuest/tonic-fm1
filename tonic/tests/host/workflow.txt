@@ -2,12 +2,12 @@
 # live recording, pattern change, save and reboot. P_* numbers: core/tonic.h (P_FREQ 31, P_ALEV 15).
 wait 1500
 # ---- a fresh pattern: B01 (empty)
-press HOME
+press SAVE
 wait 30
 wait 400
 tapkey w0
 wait 30
-release HOME
+release SAVE
 wait 30
 wait 100
 expect pattern 0

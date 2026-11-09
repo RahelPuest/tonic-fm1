@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.12.1" src="https://img.shields.io/badge/version-0.12.1-orange">
+  <img alt="Version 0.18" src="https://img.shields.io/badge/version-0.18-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -36,14 +36,22 @@ FM-1's flash.
 
 ### Sound
 
-- **Three engines, chosen per sound:**
+- **Four engines, chosen per sound:**
   - **FM:** four operators, the Digitone's eight algorithms, HARM, operator envelopes, feedback.
   - **Virtual analog:** two oscillators with sync, cross-modulation, sub, noise, drift, a wavefolder and ring
     modulation.
   - **DRUM:** a kit of eight synthesized drums on one track, from 31 models (808/909 kicks, snares, hats, claps, toms,
     cymbals, FM hats …). Each pad has its own tune, decay, tone, level and pan, plus two controls named by its model
     (BEND / TICK, SNAP / BODY, NOIS / RESO …).
+  - **BRAIDS:** Mutable Instruments' macro oscillator with all 47 of its models (analog-style, digital filters,
+    vowels, FM, physical models, wavetables, noise), TIMBRE and COLOR, plus hard SYNC, Braids' signature
+    waveshaper and a sub oscillator, through TONIC's filters and effects.
+- **Held buttons** (0.18, after Hortator's way of playing the FM-1): a tap as ever, held a screen of its own: FX PERFORM
+  (live effects on the black keys, filter / duck / throw / drive on the knobs), SAVE the patterns, GLO mute and solo,
+  SEQ step tools, EDIT a preset list that plays as you browse, HOME a settings menu, REC a fill.
 - **Twelve voices**, shared by the four tracks, with unison, reserved voices and four voice-stealing modes.
+- **Both CPU cores** (0.16, 0.17): the FM-1's second core renders part of the voices and their control step, and
+  runs the effects of each block while the first core prepares the next; sample for sample the same sound.
 - **Per voice:**
   - overdrive, LO-FI (sample-rate and bit reduction), base-width and multimode filters (LP2, HP2, LP4);
   - an **insert effect** after the filter: overdrive, hard clip, fuzz, rectifier, wavefolder or bitcrusher;
@@ -83,7 +91,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.12.1.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.18.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.
@@ -136,7 +144,8 @@ The details, the toolchain, the AC79 SDK files the package needs and the tests a
 
 TONIC is **MPL-2.0** ([LICENSE](LICENSE), details in [LICENSING.md](LICENSING.md)). It is built on
 [fm1-base](https://github.com/charlesvestal/fm1-base) by Charles Vestal and
-[felucca-bsp](https://github.com/hugelton/felucca-bsp) by Leo Kuroshita (Hügelton Instruments), and was tested with
+[felucca-bsp](https://github.com/hugelton/felucca-bsp) by Leo Kuroshita (Hügelton Instruments). The BRAIDS engine is
+[Braids](https://github.com/pichenettes/eurorack) by Emilie Gillet (Mutable Instruments, MIT licence). TONIC was tested with
 [fm1-emu](https://github.com/joakimeriksson/fm1-emu) by Joakim Eriksson.
 
 TONIC is an independent work inspired by the Elektron Digitone. It is not affiliated with or endorsed by Elektron or

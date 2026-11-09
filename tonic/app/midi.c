@@ -109,7 +109,7 @@ static void midi_poll(void)
                 ui.redraw = 1;
             }
             break;
-        case 0xC0: pattern_select((int)d1 % NPAT); ui.redraw = 1; break;
+        case 0xC0: if (d1 < NPAT) { pattern_select((int)d1); ui.redraw = 1; } break;   /* (0.17: 32 and up ignored) */
         case 0xD0: engine_mod(t, MS_AT, (int)d1); break;
         case 0xE0: engine_mod(t, MS_PB, (int)((d2 << 7 | d1)) - 8192); break;
         default: break;

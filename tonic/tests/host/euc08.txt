@@ -1,12 +1,12 @@
 # 0.8: EUCLID's RHYTHM, ACC, GHOST, CHANCE, NOTES; a kit's EUC KIT page; CHORD without the arp (CHORD, INV, VOICE,
 # BASS, STRUM); the arp's CHRD mode
 wait 1500
-press HOME
+press SAVE
 wait 30
 wait 400
 tapkey w0
 wait 30
-release HOME
+release SAVE
 wait 30
 wait 100
 spin PRESET 16

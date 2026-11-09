@@ -207,6 +207,43 @@ static void put_sound(wr_t *w, const sound_t *s)
     wbytes(w, s->name, NAMELEN);
 }
 
+static inline int pclamp(int id, int v) { return v < PDESC[id].lo ? PDESC[id].lo : v > PDESC[id].hi ? PDESC[id].hi : v; }
+/* (0.17) a pattern's sound as read: each setup value in range on its own (out of range: 0), the routing under
+ * NDEST, the name in the screen's characters; a damaged or newer project plays, nothing reads past a table */
+static void sound_fix(sound_t *s)
+{
+    int i, j;
+    for (i = 0; i < NMS; i++)
+        for (j = 0; j < NMSLOT; j++)
+            if (s->mdst[i][j] >= NDEST)
+                s->mdst[i][j] = 0;
+    for (i = 0; i < NAMELEN - 1 && s->name[i]; i++) {
+        uint8_t ch = (uint8_t)s->name[i];
+        if (ch < 32 || (ch > 95 && (ch < 'a' || ch > 'z')))
+            s->name[i] = ' ';
+    }
+    s->name[NAMELEN - 1] = 0;
+#define FIX(f, ok) do { if (!(ok)) s->s[f] = 0; } while (0)
+    FIX(S_PLAYMODE, s->s[S_PLAYMODE] <= 3);
+    FIX(S_VEL2VOL, s->s[S_VEL2VOL] <= 3);
+    FIX(S_ARPMODE, s->s[S_ARPMODE] < NARP);
+    FIX(S_MONOPRIO, s->s[S_MONOPRIO] <= 2);
+    FIX(S_OCT, s->s[S_OCT] <= 4);
+    FIX(S_ENGINE, s->s[S_ENGINE] < NENG);
+    for (i = S_DM1; i <= S_DM8; i++)
+        FIX(i, s->s[i] < NDM);
+    FIX(S_ARPCHD, s->s[S_ARPCHD] < NACH);
+    FIX(S_ARPINV, s->s[S_ARPINV] <= 3);
+    FIX(S_ARPSTEPS, s->s[S_ARPSTEPS] <= 16);
+    FIX(S_CHVOIC, s->s[S_CHVOIC] < NCV);
+    FIX(S_CHBASS, s->s[S_CHBASS] <= 1);
+    FIX(S_CHSDIR, s->s[S_CHSDIR] < NSD);
+    FIX(S_SCALE, s->s[S_SCALE] < NKSCALE);
+    FIX(S_SCROOT, s->s[S_SCROOT] <= 11);
+    FIX(S_SCHD, s->s[S_SCHD] < NDCH);
+#undef FIX
+}
+
 static void get_sound(rd_t *r, sound_t *s)
 {
     int i, n, ns;
@@ -235,6 +272,7 @@ static void get_sound(rd_t *r, sound_t *s)
     s->arp_on = (uint16_t)r16(r);
     rbytes(r, s->name, NAMELEN);
     s->name[NAMELEN - 1] = 0;
+    sound_fix(s);
 }
 
 int sound_pack(const sound_t *s, uint8_t *out, int max)
@@ -487,15 +525,21 @@ int pattern_unpack(pattern_t *p, const uint8_t *in, int n)
     for (i = 0; i < cnt; i++) {
         int v = r16(&r);
         if (i < NFXP)
-            p->fx[i] = (int16_t)v;
+            p->fx[i] = (int16_t)pclamp(P_CDEP + i, v);   /* (0.17: in range) */
     }
+    if (p->bpm10 < 200 || p->bpm10 > 3000) p->bpm10 = 1200;   /* (0.17) the pattern's own values in range */
+    if (p->swing < 50 || p->swing > 80) p->swing = 50;
+    if (p->lenmode > 1) p->lenmode = 0;
+    if (p->steal > 3) p->steal = 0;
+    if (p->mlen > NSTEP) p->mlen = 0;
+    if (p->chlen > NSTEP) p->chlen = 0;
     for (t = 0; t < NTRK; t++) {
         track_t *tk = &p->trk[t];
         cnt = r8(&r);
         for (i = 0; i < cnt; i++) {
             int v = r16(&r);
             if (i < NTP_END - NSP)
-                tk->tp[i] = (int16_t)v;
+                tk->tp[i] = (int16_t)pclamp(NSP + i, v);
         }
         tk->len = (uint8_t)r8(&r); tk->scale = (uint8_t)r8(&r); tk->transpose = (int8_t)r8(&r);
         tk->voices = (uint8_t)r8(&r); tk->unison = (uint8_t)r8(&r); tk->uspread = (uint8_t)r8(&r);
@@ -505,6 +549,12 @@ int pattern_unpack(pattern_t *p, const uint8_t *in, int n)
         if (tk->scale > 6) tk->scale = 4;
         if (tk->voices > NVOICE) tk->voices = 0;
         if (tk->unison < 1 || tk->unison > 4) tk->unison = 1;
+        if (tk->kscale >= NKSCALE) tk->kscale = 0;   /* (0.17) the keyboard's setup in range: its tables */
+        if (tk->kroot > 11) tk->kroot = 0;
+        if (tk->kfold > 1) tk->kfold = 0;
+        if (tk->kchord > 8) tk->kchord = 0;
+        if (tk->uspread > 127) tk->uspread = 127;
+        tk->layer &= (uint8_t)((1u << NTRK) - 1u);
         get_sound(&r, &p->snd[t]);
     }
     for (t = 0; t < NTRK; t++) {
@@ -526,6 +576,11 @@ int pattern_unpack(pattern_t *p, const uint8_t *in, int n)
                 g->chord[k - 1] = (int8_t)r8(&r);
             if (g->micro < -23 || g->micro > 23) g->micro = 0;
             if (g->cond >= C_END) g->cond = 0;
+            if (g->note > 127) g->note = 60;         /* (0.17) */
+            if (g->vel > 127) g->vel = 127;
+            if (g->len != 0xFF && g->len > 127) g->len = 0xFF;   /* (127: LEN_INF) */
+            for (k = 1; k < g->nnote; k++)
+                if (g->chord[k - 1] < -48 || g->chord[k - 1] > 48) g->chord[k - 1] = 0;
         }
     }
     cnt = (uint16_t)r16(&r);
@@ -542,6 +597,10 @@ int pattern_unpack(pattern_t *p, const uint8_t *in, int n)
             l.f.param = (uint8_t)(l.f.param + NSP12);
         if (l.f.param >= NPARAM && l.f.param != P_SOUND)
             continue;
+        if (l.f.param == P_SOUND ? l.f.val < 0 || l.f.val > 15 : 0)   /* (0.17) a sound lock: a pool slot */
+            continue;
+        if (l.f.param < NPARAM)
+            l.f.val = (int16_t)pclamp(l.f.param, l.f.val);
         p->lock[p->nlock++].w = l.w;
     }
     for (t = 0; t < NTRK; t++)

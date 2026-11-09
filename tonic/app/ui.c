@@ -24,10 +24,17 @@
 
 static const uint8_t WK[16] = PLAT_WHITE_KEYS, BK[11] = PLAT_BLACK_KEYS;
 static int8_t key_white[NKEYS], key_black[NKEYS];   /* key -> white index / black index, -1 */
+/* (0.18) what a held button shows, after Hortator's way (DEADACTIVE): a tap does what it did (on the release), held
+ * 0.4 s (or a key or knob with it) it opens its screen while held: HOME the MENU (it stays), FX PERFORM, SAVE the
+ * patterns (CUE), GLO MUTE, SEQ TOOLS, EDIT the preset list (it stays), REC a FILL */
+enum { OV_NONE, OV_MENU, OV_PERF, OV_CUE, OV_MUTE, OV_TOOLS };
+#define HOLD_MS 400u
 
 static struct {
     uint8_t trk, grp;
     uint8_t row[NG];
+    uint8_t eng_row[NENG][2];     /* (0.17) the SYN and TRIG rows last used with each engine */
+    uint8_t rows_trk, rows_eng;   /* (0.17) the track and engine those rows were for (rows_sync) */
     uint8_t grid, steprec, step_cur, spage;
     int8_t oct;
     uint32_t btn, keys;
@@ -40,25 +47,29 @@ static struct {
     uint8_t key_how[NKEYS];       /* how a key went down (its release does the same): KH_* [0.9.2] */
     uint8_t key_chord[NKEYS];     /* the keyboard CHORD it played with */
     uint8_t arp_step, sound_i, song_row;
-    uint8_t help_btn, help_block; /* a button held alone: its help after a second (help_block: it was used) */
+    uint8_t ov;                   /* (0.18) the screen a held button shows: OV_* (MENU stays until closed) */
+    uint8_t hold_btn, hold_on, hold_used;   /* (0.18) the button with a hold function down; its hold begun; used in a
+                                   * combination (no tap on release) */
+    uint8_t menu_i;               /* (0.18) the MENU's cursor */
+    uint8_t tool_arm;             /* (0.18) TOOLS: a CLEAR TRACK waiting for its second press (key + 1) */
+    uint32_t tool_t;
+    uint8_t aud_on;               /* (0.18) the preset list from EDIT held: the sound under the cursor plays */
     uint32_t taps[4];             /* tap tempo: the last taps */
     uint32_t plist_t;             /* PRESETS turned: when (the list window closes 6 s after the last turn) */
     uint8_t plist_on, plist_i;    /* the list window is open; its cursor (OCT+ loads it, OCT- closes) */
-    uint8_t perf_lock;            /* HOME tapped twice: the performance layer stays (a tap on HOME leaves) */
-    uint32_t home_tap;            /* the last short tap on HOME (ms) */
     uint8_t ntap;
     int8_t roll_lo;               /* the piano roll: the lowest note shown (-1 AUTO), the zoom (16 << z steps) */
-    uint16_t pfx_keys;            /* the white keys holding a momentary effect (bit: key) [TONIC 0.7] */
+    uint16_t pfx_keys;            /* the momentary effects held (bit: effect; 0.18: on the black keys) [TONIC 0.7] */
     uint8_t euc[NTRK][NPAD + 1][NEU_];   /* the euclidean generator [TONIC 0.6, 0.8]: EU_* a track's (its last slot) or
                                           * a kit pad's (not saved: the trigs it wrote are) */
     uint32_t euc_seed;                /* its dice (a kit's ghosts and chances: rolled at each write) */
     uint8_t roll_zoom;
     int8_t save_row;
-    uint8_t save_slot, confirm;
+    uint8_t save_slots[4], confirm;   /* (0.17) a slot each for SOUND > LIBRARY, SOUND > POOL, POOL > TRACK */
     uint32_t confirm_t;
     char msg[2][24];
     uint32_t msg_until;
-    uint8_t redraw, perf, perf_chain_n, perf_chain[16];
+    uint8_t redraw, perf_chain_n, perf_chain[16];
     uint32_t enc_t[NE];
     uint32_t touch_t;             /* when a knob K1-K4 last moved a value (the screen shows numbers then) */
     uint8_t touch_k;
@@ -68,10 +79,8 @@ static struct {
     uint8_t sr_n, sr_notes[NNOTE], sr_vel, sr_down;
     uint64_t rec_pass[NTRK];      /* live recording: steps written in this pass */
     uint32_t rec_loop[NTRK];
-    /* clipboard */
-    trig_t clip[NSTEP];
+    /* clipboard (its steps and locks: clip, clip_lock, in the pool [0.17]) */
     uint8_t clip_n, clip_ok;
-    plock_t clip_lock[NLOCK];      /* (a whole track's: up to the pattern's pool) [0.9.2] */
     uint16_t clip_nlock;
     /* CONTROL ALL and page randomize (a page button held): the sounds before, for SEL to revert */
     uint8_t pg_btn, pg_back, pg_used, pg_snap_ok;
@@ -79,9 +88,16 @@ static struct {
     int16_t pg_tsnap[NTRK][NTP_END - NSP];
     uint32_t rnd;
 } ui;
+static trig_t clip[NSTEP] PLAT_POOL;                  /* the clipboard: a track's steps and their locks (0.17: out of the RAM) */
+static plock_t clip_lock[NLOCK] PLAT_POOL;
 
 static void lock_compact_safe(void);
 static int page_held(void);
+/* (0.18) the MENU (HOME held): the settings of the device rather than the pattern */
+static const item_t MENU_IT[] = {GL(GL_TMODE_), GL(GL_MET_), GL(GL_CLKIN_), GL(GL_CLKOUT_), GL(GL_QUANT_), GL(GL_VELS_),
+                                 GL(GL_VELF_), GL(GL_MIDIIN_), GL(GL_TRKCH_), GL(GL_PCHG_), GL(GL_MUTEB_), GL(GL_INSHQ_),
+                                 GL(GL_THEME_)};
+#define NMENU ((int)(sizeof MENU_IT / sizeof MENU_IT[0]))
 static void control_all(const item_t *it, int v);
 static int step_held_any(void) { return ui.held != 0 || ui.steprec; }
 static const row_t *cur_row(void) { return grp_n(ui.grp) ? &grp_rows(ui.grp)[ui.row[ui.grp] % grp_n(ui.grp)] : 0; }
@@ -220,6 +236,9 @@ static int item_get(const item_t *it, int *locked)
         case GL_SLEN_: return set.song_n ? set.song_n : 1;
         case GL_SEND_: return set.song_end;
         case GL_THEME_: return set.theme;
+        case GL_PCHG_: return set.pchg;
+        case GL_INSHQ_: return !set.ins_lq;
+        case GL_MUTEB_: return set.mute_bar;
         default: return set.midi_out[it->id - GL_MIDI0_];
         }
     case IK_MOD: {
@@ -310,7 +329,8 @@ static void item_set_raw(const item_t *it, int v)
             (void)p;
             sound_set_engine(tsnd(), v);
             engine_sound_changed(ui.trk);
-            ui.row[G_SYN] = (uint8_t)(v == ENG_DR ? DRM_ENGINE_ROW : 6);   /* (the ENGINE knob stays in reach) */
+            ui.row[G_SYN] = (uint8_t)(v == ENG_DR ? DRM_ENGINE_ROW : v == ENG_BR ? BR_ENGINE_ROW : 6);   /* (the ENGINE
+                                                      * knob stays in reach) */
         } else if (it->id == S_ARPCHD && tsnd()->s[S_SCALE])
             tsnd()->s[S_SCHD] = (uint8_t)v;          /* (0.12) with a scale: the chord by degrees */
         else
@@ -393,6 +413,9 @@ static void item_set_raw(const item_t *it, int v)
         case GL_SLEN_: set.song_n = (uint8_t)v; break;
         case GL_SEND_: set.song_end = (uint8_t)v; break;
         case GL_THEME_: set.theme = (uint8_t)v; set_dirty = 1; ob_valid = 0; break;
+        case GL_PCHG_: set.pchg = (uint8_t)v; set_dirty = 1; break;
+        case GL_INSHQ_: set.ins_lq = (uint8_t)!v; eng.ins_lq = set.ins_lq; set_dirty = 1; break;
+        case GL_MUTEB_: set.mute_bar = (uint8_t)v; set_dirty = 1; break;
         case GL_MTRK_:
             set.midi_only = (uint8_t)(v ? set.midi_only | 1u << ui.trk : set.midi_only & ~(1u << ui.trk));
             eng_midi_only = set.midi_only;
@@ -726,12 +749,12 @@ static void clip_copy(int from, int n)
     int s, i;
     ui.clip_nlock = 0;
     for (s = 0; s < n; s++) {
-        ui.clip[s] = pcur->trig[ui.trk][from + s];
+        clip[s] = pcur->trig[ui.trk][from + s];
         for (i = 0; i < pcur->nlock && ui.clip_nlock < NLOCK; i++) {
             plock_t l = pcur->lock[i];
             if (l.f.param != P_NONE && l.f.step == LOCK_KEY(ui.trk, from + s)) {
                 l.f.step = (uint8_t)s;
-                ui.clip_lock[ui.clip_nlock++] = l;
+                clip_lock[ui.clip_nlock++] = l;
             }
         }
     }
@@ -748,11 +771,11 @@ static int clip_paste(int to)                  /* (0: pasted; -1: nothing, or st
         int ok = 1;
         step_save(ui.trk, to + s);
         lock_clear(pcur, ui.trk, to + s, P_NONE);
-        pcur->trig[ui.trk][to + s] = ui.clip[s];
+        pcur->trig[ui.trk][to + s] = clip[s];
         pcur->trig[ui.trk][to + s].flags &= (uint8_t)~(TF_PLOCK | TF_SLOCK);
         for (i = 0; i < ui.clip_nlock && ok; i++)
-            if (ui.clip_lock[i].f.step == s)
-                ok = lock_set(pcur, ui.trk, to + s, ui.clip_lock[i].f.param, ui.clip_lock[i].f.val) == 0;
+            if (clip_lock[i].f.step == s)
+                ok = lock_set(pcur, ui.trk, to + s, clip_lock[i].f.param, clip_lock[i].f.val) == 0;
         if (!ok || !pattern_fits()) {
             step_restore(ui.trk, to + s);
             app_say("PATTERN", "FULL");
@@ -896,7 +919,7 @@ static void rec_poll(void)
 {
     rec_ev_t e;
     while (engine_rec_get(&e)) {
-        trig_t *g;
+        trig_t *g, old;
         uint32_t lp;
         if (e.trk >= NTRK || e.step >= NSTEP)
             continue;
@@ -906,6 +929,7 @@ static void rec_poll(void)
             ui.rec_pass[e.trk] = 0;
         }
         g = &pcur->trig[e.trk][e.step];
+        old = *g;                                    /* (0.17) as it was: restored if the pattern is full */
         if (e.kind == 0) {
             if ((ui.rec_pass[e.trk] >> e.step & 1u) && (g->flags & TF_NOTE) && g->nnote < NNOTE) {
                 g->chord[g->nnote - 1] = (int8_t)(e.note - g->note);   /* the same step this pass: a chord */
@@ -927,7 +951,7 @@ static void rec_poll(void)
                 lock_clear(pcur, e.trk, e.step, e.note);
         }
         if (!pattern_fits()) {
-            g->flags = 0;
+            *g = old;                                /* (0.17: the note there before kept, not erased) */
             app_say("PATTERN", "FULL");
         }
         mark_dirty();
@@ -949,7 +973,7 @@ static void group_button(int g, int back)
 }
 
 /* the page button of the active group, while it is held (CONTROL ALL, randomize) */
-static const uint8_t PG_BTN[NG] = {B_SEQ, B_EDIT, B_ENV, B_LFO, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static const uint8_t PG_BTN[NG] = {0xFF, 0xFF, B_ENV, B_LFO, 0xFF, B_ARP, 0xFF, 0xFF, 0xFF};   /* (0.18: ENV LFO ARP) */
 static int page_held(void)
 {
     uint8_t b = PG_BTN[ui.grp];
@@ -1044,7 +1068,7 @@ static void transport_play(int sel)
 {
     uint32_t b = plat_buttons();
     if (b >> B_REC & 1u) {                           /* REC + PLAY: live recording; PLAY again: quantize */
-        if (eng.rec_live && plat_ms() - ui.rec_play_t < 1500u) {
+        if (eng.rec_live) {                          /* (0.17: any time while live recording, not only 1.5 s) */
             set.quant ^= 1u;
             eng.rec_quant = set.quant;
             set_dirty = 1;
@@ -1079,36 +1103,148 @@ static void transport_play(int sel)
 }
 
 static void save_action(void);
-static void perf_key(int k, int down);
+static int ov_key(int k, int down);
+static int sound_index(void);
+static void plist_close(void);
+static void plist_open(int aud);
+static void plist_audition(void);
+static void hold_start(void);
 static void lock_compact_safe(void);
 static int page_held(void);
 static void control_all(const item_t *it, int v);
+
+/* (0.18) the preset list, opened by PRESETS or by EDIT held; from EDIT it plays the sound under the cursor
+ * (audition), OCT+ keeps it, anything else puts the track's own sound back */
+static sound_t aud_bak;
+static void plist_open(int aud)
+{
+    if (!ui.plist_on) {
+        ui.plist_on = 1;
+        ui.plist_i = (uint8_t)sound_index();
+    }
+    if (aud && !ui.aud_on) {
+        ui.aud_on = 1;
+        aud_bak = *tsnd();
+    }
+    ui.plist_t = plat_ms();
+    ui.msg_until = 0;
+    ui.redraw = 1;
+}
+static void plist_close(void)                      /* (cancelled: the audition's sound back) */
+{
+    if (ui.aud_on) {
+        *tsnd() = aud_bak;
+        engine_sound_changed(ui.trk);
+        ui.aud_on = 0;
+    }
+    ui.plist_on = 0;
+    ui.redraw = 1;
+}
+static void plist_audition(void)
+{
+    int i = ui.plist_i;
+    if (!ui.aud_on)
+        return;
+    if (i < NFACTORY)
+        preset_apply(tsnd(), &FACTORY[i]);
+    else if (lib[i - NFACTORY].name[0])
+        *tsnd() = lib[i - NFACTORY];
+    engine_sound_changed(ui.trk);
+}
+
+/* (0.18) a button's hold begins: its screen (or the list, or a FILL) */
+static void hold_start(void)
+{
+    if (ui.hold_btn == 0xFF || ui.hold_on)
+        return;
+    ui.hold_on = 1;
+    switch (ui.hold_btn) {
+    case B_HOME: ui.ov = OV_MENU; break;
+    case B_FX: ui.ov = OV_PERF; break;
+    case B_SAVE: ui.ov = OV_CUE; ui.perf_chain_n = 0; break;
+    case B_GLO: ui.ov = OV_MUTE; break;
+    case B_SEQ: ui.ov = OV_TOOLS; ui.tool_arm = 0; break;
+    case B_EDIT: plist_open(1); break;
+    case B_REC: eng.fill = 1; app_say("FILL", "WHILE HELD"); break;
+    }
+    ui.redraw = 1;
+}
+/* (0.18) the button let go: its hold ends, or (short, alone) its tap */
+static void hold_end(int sel)
+{
+    int b = ui.hold_btn;
+    ui.hold_btn = 0xFF;
+    if (ui.hold_on) {
+        ui.hold_on = 0;
+        if (b == B_SAVE && ui.perf_chain_n > 1) {   /* several patterns pressed in a row: a chain */
+            int k;
+            set.chain_n = ui.perf_chain_n;
+            for (k = 0; k < ui.perf_chain_n; k++)
+                set.chain[k] = ui.perf_chain[k];
+            set_dirty = 1;
+            app_say("CHAIN", "");
+        }
+        ui.perf_chain_n = 0;
+        if (b == B_REC)
+            eng.fill = 0;
+        if (b != B_HOME && ui.ov != OV_MENU)
+            ui.ov = OV_NONE;
+        ui.redraw = 1;
+        return;
+    }
+    if (ui.hold_used) {
+        ui.hold_used = 0;
+        return;
+    }
+    switch (b) {                                     /* the taps */
+    case B_HOME:
+        if (ui.ov == OV_MENU)
+            ui.ov = OV_NONE;
+        else {
+            if (ui.plist_on)
+                plist_close();
+            group_button(G_HOME, 0);
+        }
+        break;
+    case B_FX: group_button(G_FX, sel); break;
+    case B_GLO: group_button(G_GLO, sel); break;
+    case B_SEQ: group_button(G_TRIG, sel); break;
+    case B_EDIT:
+        if (ui.plist_on && ui.aud_on)                /* the audition list open: EDIT closes it, the sound back */
+            plist_close();
+        else
+            group_button(G_SYN, sel);
+        break;
+    case B_SAVE:
+        if (ui.grp == G_SAVE)
+            save_action();
+        else
+            group_button(G_SAVE, 0);
+        break;
+    case B_REC:
+        if (eng.rec_live) {                          /* from live to grid recording */
+            eng.rec_live = 0;
+            ui.grid = 1;
+        } else {
+            ui.grid ^= 1u;
+            ui.steprec = 0;
+            ui.held = 0;
+        }
+        break;
+    }
+    ui.redraw = 1;
+}
 
 static void buttons(uint32_t b)
 {
     uint32_t press = b & ~ui.btn, rel = ~b & ui.btn, now = plat_ms();
     int sel = (b >> B_SEL) & 1u, i;
-    if (ui.plist_on && (press & ~(1u << B_SEL | 1u << B_OCTDN | 1u << B_OCTUP))) {
-        ui.plist_on = 0;                             /* another button: the preset list closes */
-        ui.redraw = 1;
-    }
+    static const uint8_t HOLDB[7] = {B_HOME, B_EDIT, B_SEQ, B_FX, B_SAVE, B_GLO, B_REC};
+    if (ui.plist_on && (press & ~(1u << B_SEL | 1u << B_OCTDN | 1u << B_OCTUP | 1u << B_EDIT)))
+        plist_close();                               /* another button: the preset list closes */
     for (i = 0; i < NB; i++)
         if (press >> i & 1u)
             ui.btn_t[i] = now;
-    if (press) {                                     /* the help: a button pressed alone, nothing else since */
-        if ((b & ~press) == 0 && !ui.keys && !(press & (press - 1u))) {
-            for (i = 0; i < NB; i++)
-                if (press >> i & 1u)
-                    ui.help_btn = (uint8_t)i;
-            ui.help_block = 0;
-        } else
-            ui.help_block = 1;
-    }
-    if (ui.help_btn != 0xFF && ui.help_btn < NB && !(b >> ui.help_btn & 1u)) {
-        if (!ui.help_block && now - ui.btn_t[ui.help_btn] > 900u)
-            ui.redraw = 1;                           /* the help goes */
-        ui.help_btn = 0xFF;
-    }
     if (page_held() && (press & (1u << B_REC | 1u << B_SEL | 1u << B_OCTDN))) {
         if (press >> B_REC & 1u)
             page_randomize();
@@ -1120,29 +1256,47 @@ static void buttons(uint32_t b)
         ui.redraw = 1;
         return;
     }
-    if (press >> B_PLAY & 1u)
+    if (press >> B_PLAY & 1u) {
         transport_play(sel);
-    if (press >> B_REC & 1u) {
-        if (sel) {                                   /* step recording */
-            ui.steprec ^= 1u;
-            ui.grid = 0;
-            ui.sr_n = ui.sr_down = 0;
-            app_say("STEP REC", ui.steprec ? "ON" : "OFF");
-        } else if (eng.rec_live) {                   /* from live to grid recording */
-            eng.rec_live = 0;
-            ui.grid = 1;
-        } else if (!(b >> B_PLAY & 1u)) {
-            ui.grid ^= 1u;
-            ui.steprec = 0;
-            ui.held = 0;
-        }
-        ui.redraw = 1;
+        if (ui.hold_btn == B_REC)                    /* REC + PLAY: live recording, no tap for REC */
+            ui.hold_used = 1;
     }
-    {                                                /* SEQ EDIT ENV LFO: the next row on release, unless the
-                                                      * held button was used for CONTROL ALL or randomize */
-        static const uint8_t PB[4] = {B_SEQ, B_EDIT, B_ENV, B_LFO}, PG[4] = {G_TRIG, G_SYN, G_ENV, G_LFO};
+    if ((press >> B_REC & 1u) && sel) {              /* SCL + REC: step recording */
+        ui.steprec ^= 1u;
+        ui.grid = 0;
+        ui.sr_n = ui.sr_down = 0;
+        app_say("STEP REC", ui.steprec ? "ON" : "OFF");
+        press &= ~(1u << B_REC);
+    }
+    if ((press >> B_SAVE & 1u) && sel) {             /* SCL + SAVE: save everything now */
+        if (eng.playing)
+            app_say("STOP", "TO SAVE");
+        else
+            app_say(store_flush() == 0 ? "SAVED" : "SAVE FAILED", "");
+        press &= ~(1u << B_SAVE);
+    }
+    if ((press >> B_HOME & 1u) && sel) {             /* SCL + HOME: undo (again: redo) [TONIC] */
+        int u2 = undo_do();
+        app_say(u2 > 0 ? "UNDO" : u2 < 0 ? "UNDO" : "NOTHING", u2 > 0 ? "SCL+HOME AGAIN: REDO" : u2 < 0 ? "AFTER THE CHANGE" : "TO UNDO");
+        press &= ~(1u << B_HOME);
+    }
+    for (i = 0; i < 7; i++) {                        /* (0.18) the buttons with a hold */
+        uint8_t hb = HOLDB[i];
+        if ((press >> hb & 1u) && ui.hold_btn == 0xFF) {
+            ui.hold_btn = hb;
+            ui.hold_on = ui.hold_used = 0;
+        } else if ((press >> hb & 1u) && ui.hold_btn != 0xFF && !ui.hold_on)
+            ui.hold_used = 1;                        /* (two at once: neither taps) */
+        if ((rel >> hb & 1u) && ui.hold_btn == hb)
+            hold_end((b >> B_SEL) & 1u);
+    }
+    if (ui.hold_btn != 0xFF && !ui.hold_on && !ui.hold_used && now - ui.btn_t[ui.hold_btn] >= HOLD_MS)
+        hold_start();
+    {                                                /* ENV LFO ARP: the next row on release, unless the held button
+                                                      * was used for CONTROL ALL or randomize */
+        static const uint8_t PB[3] = {B_ENV, B_LFO, B_ARP}, PG[3] = {G_ENV, G_LFO, G_ARP};
         int j;
-        for (j = 0; j < 4; j++) {
+        for (j = 0; j < 3; j++) {
             if (press >> PB[j] & 1u) {
                 ui.pg_btn = PB[j];
                 ui.pg_back = (uint8_t)sel;
@@ -1158,71 +1312,21 @@ static void buttons(uint32_t b)
             }
         }
     }
-    if (press >> B_FX & 1u) group_button(G_FX, sel);
-    if (press >> B_ARP & 1u) group_button(G_ARP, sel);
-    if (press >> B_GLO & 1u) group_button(G_GLO, sel);
-    if (rel >> B_HOME & 1u) {                        /* HOME: a tap the home screen; held, the performance layer */
-        if (!ui.perf_chain_n && now - ui.btn_t[B_HOME] < 350u) {
-            if (sel) {                               /* SCL + HOME: undo (again: redo) [TONIC] */
-                int u2 = undo_do();
-                app_say(u2 > 0 ? "UNDO" : u2 < 0 ? "UNDO" : "NOTHING", u2 > 0 ? "SCL+HOME AGAIN: REDO" : u2 < 0 ? "AFTER THE CHANGE" : "TO UNDO");
-            } else if (ui.perf_lock) {               /* locked: a tap leaves the performance layer [TONIC] */
-                ui.perf_lock = 0;
-                ui.home_tap = 0;
-                app_say("PERFORM", "UNLOCKED");
-            } else if (ui.home_tap && now - ui.home_tap < 450u) {   /* a second tap: lock it [TONIC] */
-                ui.perf_lock = 1;
-                ui.home_tap = 0;
-                app_say("PERFORM LOCKED", "HOME: LEAVE");
-            } else {
-                group_button(G_HOME, 0);
-                ui.home_tap = now;
-            }
-        } else
-            ui.home_tap = 0;
-        if (ui.perf_chain_n > 1) {                   /* several patterns pressed in a row: a chain */
-            int k;
-            set.chain_n = ui.perf_chain_n;
-            for (k = 0; k < ui.perf_chain_n; k++)
-                set.chain[k] = ui.perf_chain[k];
-            set_dirty = 1;
-            app_say("CHAIN", "");
-        }
-        ui.perf = ui.perf_lock;
-        ui.perf_chain_n = 0;
-        if (eng.fill == 1 && !ui.perf_lock)
-            eng.fill = 0;
-        ui.redraw = 1;
-    }
-    if (ui.perf_lock)
-        ui.perf = 1;
-    if ((b >> B_HOME & 1u) && now - ui.btn_t[B_HOME] > 250u && !ui.perf) {
-        ui.perf = 1;
-        ui.redraw = 1;
-    }
-    if (press >> B_SAVE & 1u) {
-        if (sel) {                                   /* SEL + SAVE: save everything now */
-            if (eng.playing)
-                app_say("STOP", "TO SAVE");
-            else
-                app_say(store_flush() == 0 ? "SAVED" : "SAVE FAILED", "");
-        } else if (ui.grp == G_SAVE)
-            save_action();
-        else
-            group_button(G_SAVE, 0);
-    }
     if (press & (1u << B_OCTDN | 1u << B_OCTUP)) {
         int d = (press >> B_OCTUP & 1u) ? 1 : -1, s = first_held();
+        if (ui.hold_btn != 0xFF && !ui.hold_on && ui.hold_btn != B_REC)
+            hold_start();                            /* (OCT with a held button: its screen at once) */
         if (ui.plist_on) {                           /* the preset list: OCT+ loads, OCT- closes [TONIC] */
-            ui.plist_on = 0;
             if (d > 0) {
-                int i = ui.plist_i;
-                ui.sound_i = (uint8_t)i;
-                snd_bak = *tsnd();
-                if (i < NFACTORY)
-                    preset_apply(tsnd(), &FACTORY[i]);
+                int i2 = ui.plist_i;
+                ui.sound_i = (uint8_t)i2;
+                snd_bak = ui.aud_on ? aud_bak : *tsnd();
+                if (i2 < NFACTORY)
+                    preset_apply(tsnd(), &FACTORY[i2]);
                 else
-                    *tsnd() = lib[i - NFACTORY];
+                    *tsnd() = lib[i2 - NFACTORY];
+                ui.aud_on = 0;
+                ui.plist_on = 0;
                 if (!pattern_fits()) {               /* (too big for the pattern: the sound as it was) [0.9.2] */
                     *tsnd() = snd_bak;
                     app_say("PATTERN", "FULL");
@@ -1230,13 +1334,21 @@ static void buttons(uint32_t b)
                     app_say("LOADED", tsnd()->name);
                 engine_sound_changed(ui.trk);
                 mark_dirty();
-            } else
+            } else {
+                plist_close();
                 app_say("PRESETS", "CANCELLED");
+            }
             ui.redraw = 1;
+        } else if (ui.ov == OV_MENU) {               /* MENU: OCT- closes */
+            if (d < 0)
+                ui.ov = OV_NONE;
+        } else if (ui.ov == OV_TOOLS) {              /* TOOLS: the step page */
+            ui.spage = (uint8_t)clamp(ui.spage + d, 0, page_count() - 1);
+        } else if (ui.ov == OV_MUTE || ui.ov == OV_PERF) {
         } else if (ui.grp == G_SAVE && ui.confirm) {
             ui.confirm = 0;
             app_say("CANCELLED", "");
-        } else if (ui.perf) {                        /* HOME held: transpose the pattern [MANUAL 10.9.9] */
+        } else if (ui.ov == OV_CUE) {                /* the patterns' screen: transpose the pattern [MANUAL 10.9.9] */
             int t;
             char tx[8];
             for (t = 0; t < NTRK; t++)
@@ -1311,82 +1423,211 @@ static void tap_tempo(void)
         app_say("TAP TEMPO", "TAP AGAIN");
 }
 
-/* the momentary effects on the performance layer [TONIC 0.7]: SCL + white key 1-9 while held (the key's release ends
- * it, SCL may go first) */
+/* the momentary effects [TONIC 0.7]; (0.18) FX held: black keys 1-9 (the key's release ends one, FX may go first) */
 static const char *const PFX_NAME[NPFX] = {"ROLL 1/4", "ROLL 1/8", "ROLL 1/16", "ROLL 1/32", "HALFTIME", "TAPE STOP",
                                            "LP SWEEP", "HP SWEEP", "FREEZE"};
-static void pfx_key(int w, int down)
+static void pfx_key(int e, int down)
 {
     if (down) {
-        ui.pfx_keys |= (uint16_t)(1u << w);
-        eng.pfx |= (uint16_t)(1u << w);
-        app_say("EFFECT", PFX_NAME[w]);
+        ui.pfx_keys |= (uint16_t)(1u << e);
+        eng.pfx |= (uint16_t)(1u << e);
+        app_say("EFFECT", PFX_NAME[e]);
     } else {
-        ui.pfx_keys &= (uint16_t)~(1u << w);
-        eng.pfx &= (uint16_t)~(1u << w);
-    }
-    ui.redraw = 1;
-}
-static void perf_key(int k, int down)
-{
-    int w = key_white[k], bl = key_black[k];
-    if (w >= 0 && w < NPFX && down && (plat_buttons() >> B_SEL & 1u)) {
-        pfx_key(w, 1);
-        return;
-    }
-    if (w >= 0 && down) {                            /* a pattern of the bank */
-        int bank = cur_idx / 16, idx = bank * 16 + w;
-        if (!(plat_buttons() >> B_HOME & 1u))        /* locked, HOME up: no chain, each key a pattern */
-            ui.perf_chain_n = 0;
-        if (ui.perf_chain_n < 16)
-            ui.perf_chain[ui.perf_chain_n++] = (uint8_t)idx;
-        if (ui.perf_chain_n == 1) {
-            set.chain_n = 0;
-            pattern_select(idx);
-        }
-        if (!(plat_buttons() >> B_HOME & 1u))        /* (locked, HOME up: not a chain in the making) */
-            ui.perf_chain_n = 0;
-    } else if (bl >= 0) {
-        if (bl < 4 && down) {                        /* mutes */
-            eng.mute ^= (uint8_t)(1u << bl);
-            set.mute = eng.mute;
-            set_dirty = 1;
-        } else if (bl == 4)
-            eng.fill = down ? 1 : 0;                 /* FILL while held */
-        else if (bl == 5 && down) {                  /* FILL for one pass, from the pattern's next start */
-            eng.fill_cue = 1;
-            app_say("FILL", "NEXT PASS");
-        }
-        else if (bl == 6 && down)                    /* bank A / B */
-            pattern_select((cur_idx + 16) % NPAT);
-        else if (bl == 7 && down)                    /* tap tempo [TONIC] */
-            tap_tempo();
-        else if (bl == 8 && down) {
-            pattern_temp_save();
-            app_say("TEMP SAVE", "");
-        } else if (bl == 9 && down) {
-            if (pattern_temp_reload() == 0)
-                app_say("RELOAD", "");
-        } else if (bl == 10 && down)
-            engine_restart();
+        ui.pfx_keys &= (uint16_t)~(1u << e);
+        eng.pfx &= (uint16_t)~(1u << e);
     }
     ui.redraw = 1;
 }
 
-enum { KH_NONE, KH_NOTE, KH_PERF, KH_GRID, KH_SEL };
+/* (0.18) TOOLS (SEQ held): the active track's steps a whole at a time */
+static void track_dup(void)                          /* the track twice as long, the new half a copy */
+{
+    int L = ttrk()->len ? ttrk()->len : 16, s, i, n = pcur->nlock;
+    item_t it = TF(TF_LEN_);
+    if (L * 2 > NSTEP) {
+        app_say("DUPLICATE", "64 STEPS MAX");
+        return;
+    }
+    for (s = 0; s < L; s++)
+        pcur->trig[ui.trk][L + s] = pcur->trig[ui.trk][s];
+    for (i = 0; i < n; i++) {
+        plock_t l = pcur->lock[i];
+        if (l.f.param != P_NONE && (l.f.step >> 6) == ui.trk && (l.f.step & 63) < L)
+            if (lock_set(pcur, ui.trk, (l.f.step & 63) + L, l.f.param, l.f.val) < 0)
+                break;
+    }
+    item_set(&it, L * 2);
+    for (s = 0; s < NSTEP; s++)
+        trig_flags_update(pcur, ui.trk, s);
+    mark_dirty();
+    app_say("DUPLICATED", "");
+}
+static void track_reverse(void)                      /* the steps back to front, their timing mirrored */
+{
+    trig_t *tmp = (trig_t *)(void *)pack_buf_w;
+    int s, i, L = ttrk()->len ? ttrk()->len : 16, t = ui.trk;
+    for (s = 0; s < L; s++) {
+        tmp[L - 1 - s] = pcur->trig[t][s];
+        tmp[L - 1 - s].micro = (int8_t)-tmp[L - 1 - s].micro;
+    }
+    for (s = 0; s < L; s++)
+        pcur->trig[t][s] = tmp[s];
+    for (i = 0; i < pcur->nlock; i++) {
+        plock_t l = pcur->lock[i];
+        if (l.f.param != P_NONE && (l.f.step >> 6) == t && (l.f.step & 63) < L) {
+            l.f.step = (uint8_t)LOCK_KEY(t, L - 1 - (l.f.step & 63));
+            pcur->lock[i].w = l.w;
+        }
+    }
+    mark_dirty();
+    app_say("REVERSED", "");
+}
+static const char *const TOOL_NAME[11] = {"COPY PAGE", "PASTE PAGE", "CLEAR PAGE", "COPY TRACK", "PASTE TRACK",
+                                          "CLEAR TRACK", "SHIFT <", "SHIFT >", "DUPLICATE", "REVERSE", "UNDO"};
+static void tool_key(int b)
+{
+    int s, base = cur_step_base();
+    uint32_t now = plat_ms();
+    switch (b) {
+    case 0: clip_copy(base, 16); app_say("COPY", "PAGE"); break;
+    case 1: if (clip_paste(base) == 0) app_say("PASTE", "PAGE"); break;
+    case 2:
+        for (s = base; s < base + 16; s++) {
+            lock_clear(pcur, ui.trk, s, P_NONE);
+            pcur->trig[ui.trk][s].flags = 0;
+        }
+        lock_compact_safe();
+        mark_dirty();
+        app_say("CLEAR", "PAGE");
+        break;
+    case 3: clip_copy(0, ttrk()->len); app_say("COPY", "TRACK"); break;
+    case 4: if (clip_paste(0) == 0) app_say("PASTE", "TRACK"); break;
+    case 5:                                          /* CLEAR TRACK: a second press within 2 s */
+        if (ui.tool_arm != 6 || now - ui.tool_t > 2000u) {
+            ui.tool_arm = 6;
+            ui.tool_t = now;
+            app_say("CLEAR TRACK?", "PRESS AGAIN");
+            break;
+        }
+        for (s = 0; s < NSTEP; s++) {
+            lock_clear(pcur, ui.trk, s, P_NONE);
+            pcur->trig[ui.trk][s].flags = 0;
+        }
+        lock_compact_safe();
+        mark_dirty();
+        app_say("CLEAR", "TRACK");
+        break;
+    case 6: case 7: track_shift(b == 6 ? -1 : 1); app_say("SHIFT", b == 6 ? "< ONE STEP" : "ONE STEP >"); break;
+    case 8: track_dup(); break;
+    case 9: track_reverse(); break;
+    default: {
+        int u2 = undo_do();
+        app_say(u2 ? "UNDO" : "NOTHING", u2 ? "" : "TO UNDO");
+        break;
+    }
+    }
+    if (b != 5)
+        ui.tool_arm = 0;
+    ui.redraw = 1;
+}
+
+/* (0.18) the MUTE screen (GLO held): white 1-4 mute, black 1-4 solo; black 10 / 11: mutes at once / at the next bar */
+static void mute_toggle(int t)
+{
+    if (set.mute_bar && eng.playing) {               /* NEXT BAR: it waits for the bar's first step */
+        uint8_t m = eng.mute_q ? eng.mute_next : eng.mute;
+        eng.mute_next = (uint8_t)(m ^ (1u << t));
+        eng.mute_q = 1;
+    } else {
+        eng.mute ^= (uint8_t)(1u << t);
+        eng.mute_q = 0;
+    }
+    set.mute = eng.mute_q ? eng.mute_next : eng.mute;
+    set_dirty = 1;
+}
+
+/* (0.18) a key on a held button's screen: 1 if it took it */
+static int ov_key(int k, int down)
+{
+    int w = key_white[k], bl = key_black[k];
+    switch (ui.ov) {
+    case OV_PERF:                                    /* black 1-9 the effects, 10 FILL held, 11 FILL next pass */
+        if (bl < 0)
+            return 0;                                /* (white keys: the keyboard, as ever) */
+        if (bl < NPFX)
+            pfx_key(bl, down);
+        else if (bl == 9)
+            eng.fill = down ? 1 : 0;
+        else if (bl == 10 && down) {
+            eng.fill_cue = 1;
+            app_say("FILL", "NEXT PASS");
+        }
+        break;
+    case OV_CUE:                                     /* white: the bank's patterns (several in a row: a chain) */
+        if (!down)
+            break;
+        if (w >= 0) {
+            int idx = (cur_idx / 16) * 16 + w;
+            if (ui.perf_chain_n < 16)
+                ui.perf_chain[ui.perf_chain_n++] = (uint8_t)idx;
+            if (ui.perf_chain_n == 1) {
+                set.chain_n = 0;
+                pattern_select(idx);
+            }
+        } else if (bl == 0 || bl == 1) {             /* bank A / B */
+            if (cur_idx / 16 != bl)
+                pattern_select(bl * 16 + cur_idx % 16);
+        } else if (bl == 2) {
+            pattern_temp_save();
+            app_say("TEMP SAVE", "");
+        } else if (bl == 3) {
+            if (pattern_temp_reload() == 0)
+                app_say("RELOAD", "");
+        } else if (bl == 4)
+            engine_restart();
+        else if (bl == 5)
+            tap_tempo();
+        break;
+    case OV_MUTE:
+        if (!down)
+            break;
+        if (w >= 0 && w < NTRK)
+            mute_toggle(w);
+        else if (bl >= 0 && bl < NTRK)
+            eng.solo ^= (uint8_t)(1u << bl);
+        else if (bl == 9 || bl == 10) {
+            set.mute_bar = (uint8_t)(bl == 10);
+            set_dirty = 1;
+            app_say("MUTES", set.mute_bar ? "AT THE NEXT BAR" : "AT ONCE");
+        }
+        break;
+    case OV_TOOLS:                                   /* white: the page's steps (as the grid), black: the tools */
+        if (w >= 0)
+            grid_white(w, down);
+        else if (bl >= 0 && down)
+            tool_key(bl);
+        break;
+    default:                                         /* MENU: the keys rest */
+        break;
+    }
+    ui.redraw = 1;
+    return 1;
+}
+
+enum { KH_NONE, KH_NOTE, KH_OV, KH_GRID, KH_SEL };
 static void keys(uint32_t k)
 {
     uint32_t press = k & ~ui.keys, rel = ~k & ui.keys;
     int i, sel = (plat_buttons() >> B_SEL) & 1u;
-    if (press)
-        ui.help_block = 1;
+    if (press && ui.hold_btn != 0xFF && !ui.hold_on && ui.hold_btn != B_REC)
+        hold_start();                                /* (0.18) a key with a held button: its screen at once */
     for (i = 0; i < NKEYS; i++) {
         uint32_t bit = 1u << i;
         int w = key_white[i], bl = key_black[i];
         if (!((press | rel) & bit))
             continue;
-        if ((rel & bit) && w >= 0 && w < NPFX && (ui.pfx_keys >> w & 1u)) {   /* a momentary effect ends, wherever */
-            pfx_key(w, 0);
+        if ((rel & bit) && bl >= 0 && bl < NPFX && (ui.pfx_keys >> bl & 1u)) {   /* a momentary effect ends, wherever */
+            pfx_key(bl, 0);
             ui.key_how[i] = KH_NONE;
             continue;
         }
@@ -1399,9 +1640,11 @@ static void keys(uint32_t k)
             }
             if (how == KH_SEL)
                 continue;
-            if (how == KH_PERF) {
-                if (ui.perf)
-                    perf_key(i, 0);
+            if (how == KH_OV) {                      /* (0.18) FILL held ends with its key, wherever */
+                if (bl == 9 && eng.fill == 1)
+                    eng.fill = 0;
+                else if (ui.ov)
+                    ov_key(i, 0);
                 continue;
             }
             if (how == KH_GRID) {
@@ -1410,12 +1653,13 @@ static void keys(uint32_t k)
                 continue;
             }
         }
-        if (press & bit)
-            ui.key_how[i] = (uint8_t)(ui.perf ? KH_PERF : ui.grid ? KH_GRID : KH_NOTE);
-        if (ui.perf) {
-            perf_key(i, (press & bit) != 0);
+        if ((press & bit) && ui.ov && !(ui.ov == OV_PERF && w >= 0)) {   /* (0.18) a held button's screen */
+            ui.key_how[i] = (uint8_t)(ui.ov == OV_TOOLS && w >= 0 ? KH_GRID : KH_OV);
+            ov_key(i, 1);
             continue;
         }
+        if (press & bit)
+            ui.key_how[i] = (uint8_t)(ui.grid ? KH_GRID : KH_NOTE);
         if (ui.grid) {
             if (w >= 0 && (press & bit) && drum_trk() && (k >> BK[7] & 1u)) {   /* a kit: black 8 + a white key picks
                                                                               * the pad [TONIC 0.6.1] */
@@ -1499,7 +1743,7 @@ static void preset_turn(int d)
         ui.redraw = 1;
         return;
     }
-    if (ui.grp == G_HOME) {                          /* the pattern */
+    if (ui.grp == G_HOME || ui.ov == OV_CUE) {       /* the pattern (0.18: on the patterns' screen too) */
         int idx = ((next_idx >= 0 ? next_idx : cur_idx) + d + NPAT) % NPAT;
         set.chain_n = 0;
         pattern_select(idx);
@@ -1507,7 +1751,11 @@ static void preset_turn(int d)
         return;
     }
     if (ui.grp == G_SAVE) {
-        ui.save_slot = (uint8_t)((ui.save_slot + d + 64) % 64);
+        if (ui.save_row >= 1 && ui.save_row <= 3) {   /* (0.17: the row's own slot) */
+            int n = ui.save_row == 1 ? 32 : 16;
+            ui.save_slots[ui.save_row] = (uint8_t)((ui.save_slots[ui.save_row] + d + 4 * n) % n);
+        }
+        ui.confirm = 0;
         ui.redraw = 1;
         return;
     }
@@ -1516,8 +1764,7 @@ static void preset_turn(int d)
     {
         int n = NFACTORY + 32, i, steps = d < 0 ? -d : d, dir = d < 0 ? -1 : 1, k;
         if (!ui.plist_on) {
-            ui.plist_on = 1;
-            ui.plist_i = (uint8_t)sound_index();
+            plist_open(0);
             steps = 0;                               /* the first detent opens it where the sound is */
         }
         i = ui.plist_i;
@@ -1551,6 +1798,8 @@ static void preset_turn(int d)
         ui.plist_t = plat_ms();
         ui.msg_until = 0;
         ui.redraw = 1;
+        if (steps)
+            plist_audition();                        /* (0.18: from EDIT held, the sound plays as it moves) */
     }
 }
 
@@ -1565,15 +1814,48 @@ static void encoders(void)
             continue;
         dt = now - ui.enc_t[e];
         ui.enc_t[e] = now;
-        ui.help_block = 1;
-        switch (e) {
-        case EN_K1: case EN_K2: case EN_K3: case EN_K4:
-            if (ui.perf && e <= EN_K2) {             /* HOME held: K1 the DJ filter, K2 the ducking depth [TONIC] */
-                item_t it = F_(e == EN_K1 ? P_MFLT : P_SCDEP);
+        if (ui.hold_btn != 0xFF && !ui.hold_on && ui.hold_btn != B_REC)
+            hold_start();                            /* (0.18) a knob with a held button: its screen at once */
+        if (ui.ov == OV_MENU && e != EN_ALGO) {      /* (0.18) the MENU: SELECT the row, a knob its value */
+            if (e == EN_SELECT)
+                ui.menu_i = (uint8_t)clamp(ui.menu_i + d, 0, NMENU - 1);
+            else if (e != EN_PRESET) {
+                const item_t *it = &MENU_IT[ui.menu_i];
+                int lk;
+                item_set(it, item_get(it, &lk) + d);
+            }
+            ui.redraw = 1;
+            continue;
+        }
+        if (ui.ov == OV_PERF && e <= EN_K4) {        /* (0.18) PERFORM: K1 the DJ filter, K2 ducking, K3 THROW, K4 the
+                                                      * master overdrive */
+            if (e == EN_K3) {
+                eng.thr = fm_clampf(eng.thr + (float)d * (dt < 40 ? 4.0f : 1.0f) * (1.0f / 127.0f), 0.0f, 1.0f);
+                if (eng.thr < 0.004f)
+                    eng.thr = 0.0f;
+            } else {
+                item_t it = F_(e == EN_K1 ? P_MFLT : e == EN_K2 ? P_SCDEP : P_MOVD);
                 int lk;
                 item_set(&it, item_get(&it, &lk) + d * (dt < 40 ? 4 : 1));
-                ui.redraw = 1;
-            } else if (ui.grp == G_HOME) {           /* home: the track levels */
+            }
+            ui.redraw = 1;
+            continue;
+        }
+        if (ui.ov == OV_CUE && e == EN_K1) {         /* (0.18) the patterns' screen: K1 how a change comes */
+            set.pchg = (uint8_t)clamp(set.pchg + d, 0, 2);
+            set_dirty = 1;
+            ui.redraw = 1;
+            continue;
+        }
+        if ((ui.ov == OV_MUTE || ui.ov == OV_TOOLS || ui.ov == OV_CUE || ui.ov == OV_PERF) && e <= EN_K4)
+            continue;                                /* (their knobs rest) */
+        if (ui.plist_on && ui.aud_on && e == EN_K1) {   /* (0.18) the audition list: K1 as PRESETS */
+            preset_turn(d);
+            continue;
+        }
+        switch (e) {
+        case EN_K1: case EN_K2: case EN_K3: case EN_K4:
+            if (ui.grp == G_HOME) {                  /* home: the track levels */
                 item_t it = L_(e - EN_K1);
                 int lk;
                 item_set(&it, item_get(&it, &lk) + d * (dt < 40 ? 4 : 1));
@@ -1582,7 +1864,7 @@ static void encoders(void)
                 knob(e - EN_K1, d, dt);
             break;
         case EN_SELECT:
-            if (ui.grp == G_HOME) {
+            if (ui.grp == G_HOME || ui.ov) {         /* (0.18: on a held button's screen too: the tempo) */
                 item_t it = PF(PF_BPM_);
                 int lk;
                 item_set(&it, item_get(&it, &lk) + d * (dt < 60 ? 10 : 1));
@@ -1617,30 +1899,53 @@ static void leds(void)
         lit |= 1u << B_REC;
     if (plat_buttons() >> B_SEL & 1u)
         lit |= 1u << B_SEL;
+    if (ui.hold_on && ui.hold_btn != 0xFF)           /* (0.18) the held button's screen up: its LED */
+        lit |= 1u << ui.hold_btn;
+    if (ui.ov == OV_MENU)
+        lit |= 1u << B_HOME;
     if (store_unsaved() && !eng.playing)
         mid_b |= 1u << B_SAVE;
-    if (ui.perf && ((plat_buttons() >> B_SEL & 1u) || ui.pfx_keys)) {   /* the effects' keys [TONIC 0.7] */
-        for (i = 0; i < NPFX; i++) {
-            if (ui.pfx_keys >> i & 1u)
-                keys |= 1u << WK[i];
+    if (ui.ov == OV_PERF) {                          /* (0.18) the effects' keys */
+        for (i = 0; i < 11; i++)
+            if ((i < NPFX && (ui.pfx_keys >> i & 1u)) || (i == 9 && eng.fill))
+                keys |= 1u << BK[i];
             else
-                dim_k |= 1u << WK[i];
-        }
-    } else if (ui.perf) {
+                dim_k |= 1u << BK[i];
+        keys |= ui.keys & ~(uint32_t)0;
+    } else if (ui.ov == OV_CUE) {                    /* the bank's patterns: the playing one lit, the cued blinks */
         for (i = 0; i < 16; i++) {
             int idx = (cur_idx / 16) * 16 + i;
-            if (idx == cur_idx)
-                keys |= 1u << WK[i];
-            else if (idx == next_idx && blink)
+            if (idx == cur_idx || (idx == next_idx && blink))
                 keys |= 1u << WK[i];
             else
                 dim_k |= 1u << WK[i];
         }
-        for (i = 0; i < 4; i++)
-            if (!(eng.mute >> i & 1u))
+        keys |= 1u << BK[cur_idx / 16 ? 1 : 0];
+        for (i = 2; i < 6; i++)
+            mid_k |= 1u << BK[i];
+    } else if (ui.ov == OV_MUTE) {                   /* heard tracks lit, soloed ones on the black keys */
+        uint8_t m = eng.mute_q ? eng.mute_next : eng.mute;
+        for (i = 0; i < NTRK; i++) {
+            if (!(m >> i & 1u) && !(eng.mute_q && (eng.mute ^ eng.mute_next) >> i & 1u && blink))
+                keys |= 1u << WK[i];
+            else
+                dim_k |= 1u << WK[i];
+            if (eng.solo >> i & 1u)
                 keys |= 1u << BK[i];
-        if (eng.fill)
-            keys |= 1u << BK[4];
+            else
+                dim_k |= 1u << BK[i];
+        }
+        keys |= 1u << BK[set.mute_bar ? 10 : 9];
+    } else if (ui.ov == OV_TOOLS) {                  /* the page's steps, the tools dim */
+        for (i = 0; i < 16; i++) {
+            s = cur_step_base() + i;
+            if (s < ttrk()->len && (pcur->trig[ui.trk][s].flags & TF_NOTE))
+                keys |= 1u << WK[i];
+            else if (s < ttrk()->len)
+                dim_k |= 1u << WK[i];
+        }
+        for (i = 0; i < 11; i++)
+            mid_k |= 1u << BK[i];
     } else if (ui.grid || ui.steprec) {
         for (i = 0; i < 16; i++) {
             s = cur_step_base() + i;
@@ -1681,17 +1986,42 @@ static void leds(void)
 }
 
 /* ------------------------------------------------------------------- the input --- */
-static void ui_input(void)
+/* (0.17) the engine-dependent groups' rows (SYN, TRIG) follow the track: a track with another engine gets the row
+ * last used with that engine, and a row is never past its group's end (a kit's row 18 on an FM track left its page
+ * blank and the knobs editing unseen) */
+static void rows_sync(void)
 {
-    if (ui.plist_on && (plat_ms() - ui.plist_t > 6000u || ui.perf || ui.grp == G_HOME || ui.grp == G_SAVE)) {
-        ui.plist_on = 0;                             /* the preset list: closed after 6 s untouched */
+    int g, eng = tsnd()->s[S_ENGINE] < NENG ? tsnd()->s[S_ENGINE] : 0;
+    if (ui.trk != ui.rows_trk) {
+        if (ui.rows_eng < NENG) {
+            ui.eng_row[ui.rows_eng][0] = ui.row[G_SYN];
+            ui.eng_row[ui.rows_eng][1] = ui.row[G_TRIG];
+        }
+        if (eng != ui.rows_eng) {
+            ui.row[G_SYN] = ui.eng_row[eng][0];
+            ui.row[G_TRIG] = ui.eng_row[eng][1];
+        }
+        ui.rows_trk = ui.trk;
         ui.redraw = 1;
     }
+    ui.rows_eng = (uint8_t)eng;
+    for (g = 0; g < NG; g++)
+        if (grp_n(g) && ui.row[g] >= grp_n(g))
+            ui.row[g] = (uint8_t)(ui.row[g] % grp_n(g));
+}
+
+static void ui_input(void)
+{
+    rows_sync();
+    if (ui.plist_on && !ui.aud_on && (plat_ms() - ui.plist_t > 6000u || ui.ov || ui.grp == G_HOME || ui.grp == G_SAVE))
+        plist_close();                               /* the preset list: closed after 6 s untouched (0.18: not the
+                                                      * audition list from EDIT: it stays until EDIT, OCT or HOME) */
     touch_poll();
     buttons(plat_buttons());
     keys(touch_keys());
     encoders();
     rec_poll();
+    rows_sync();
 }
 
 /* a kit's pad the grid places: the track's NOTE */

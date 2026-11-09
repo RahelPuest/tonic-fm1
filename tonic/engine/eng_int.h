@@ -8,10 +8,18 @@
 /* buffers in the RAM that .ram_text leaves (base/device/app.ld .lowram): only the device has it [TONIC 0.10.1] */
 #if defined(PLAT_HOST) || defined(__APPLE__) || defined(__EMSCRIPTEN__) || defined(__linux__) || defined(_WIN32)
 #define ENG_LOWRAM
+#define ENG_HIRAM
+#define ENG_RAMCODE
 #else
 #define ENG_LOWRAM __attribute__((section(".lowram")))
+#define ENG_HIRAM __attribute__((section(".hiram")))       /* (0.13) zeroed RAM in NOINIT */
+#define ENG_RAMCODE __attribute__((section(".ram_dsp")))   /* (0.13) the audio loops run from RAM, not the XIP flash */
 #endif
-static inline int clampi(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
+/* (0.13) XIP code (0x02xxxxxx) calls the RAM code (0x01C0xxxx) beyond a call's reach: through a pointer the compiler
+ * cannot fold back (as felucca-bsp's flash driver does) */
+static inline __attribute__((always_inline)) void *eng_far(void *p) { void *volatile q = p; return q; }
+#define ENG_FAR(fn) ((__typeof__(&fn))eng_far((void *)&fn))
+static inline __attribute__((always_inline)) int clampi(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 #define CR 32                     /* control rate: parameters, envelopes and the sequencer every 32 samples */
 #define CRF ((float)CR)
 #define INV_SR (1.0f / (float)SR)
@@ -85,6 +93,9 @@ typedef struct {
     uint8_t c_ftype;
     uint8_t ftype;
     uint8_t wti;                  /* its HARM shape table (a stolen voice's copy keeps its voice's) */
+    uint8_t br_i, br_slot;        /* (0.14) its BRAIDS oscillator (the fader: its own copy), its shared delay buffer
+                                   * (BR_NOSLOT: none) */
+    uint8_t br_want;              /* (0.16) its control step asked for a delay buffer (given after all the voices') */
     uint8_t eng;                  /* the engine its state is for (voice_start clears the union below on a change) */
     uint16_t wait;                /* control blocks before it sounds (a strummed chord's later notes) [TONIC 0.8] */
     uint8_t latch;                /* the operator envelopes take their modulated ATK DEC DEL next control step [0.9.2] */
@@ -94,6 +105,8 @@ typedef struct {
      * wet, and its state (the lowpass, a DC blocker, CRUSH's held sample and its count) */
     uint8_t in_typ, in_n, in_len;
     float in_g, in_c, in_b, in_tg, in_c2, in_mix, in_q, in_lp, in_dc, in_hold;   /* (in_c2: TONE's cache) */
+    float in_hx[15], in_hu[30], in_hd[15];   /* (0.17) the insert's 2x oversampling (room for up to 31 taps): the input, the 2x stream, the dry
+                                              * line (HB_D samples: the halfbands' delay) */
     lfo_t lfo[2];
     /* filters */
     float bw_hp, bw_lp, bw_lpp;   /* base-width one-poles' states */
@@ -102,6 +115,7 @@ typedef struct {
     float s1, s2, s3, s4;         /* multimode states */
     float fg, fk, fr;             /* multimode coefficients */
     float drive_g;
+    float drive_w;                /* (0.17) the drive blended in over DRV's first steps (no level step at 0) */
     float lf_inc, lf_q, lf_iq;    /* LO-FI: sample-hold increment (0 off), quantum (0 off) and its inverse */
     float lf_ph, lf_hold;
     /* the VA engine's state that lives from note to note (free-running phases, drift) and its noise, which the
@@ -138,19 +152,31 @@ typedef struct {
             float dr_xa, dr_xb, dr_xr, dr_xc;   /* (0.12) the pad's CTL A / B as the model uses them: factors (1
                                                  * at 0), a ratio's factor, the kick's click added */
         };
+        struct {                  /* BRAIDS [TONIC 0.14]: the model, pitch (1/128 semitones at the engine's rate),
+                                   * TIMBRE and COLOR (0..32767) from each control block */
+            uint8_t br_model;
+            int16_t br_pitch, br_timb, br_col;
+            uint8_t br_sync;              /* (0.15) SYNC on: the master's resets go in */
+            uint8_t br_ask;               /* (0.17) a delay buffer asked for: at the note's start, a new model */
+            uint16_t br_sign;             /* SIGN, 0..65535 */
+            uint32_t br_mph, br_minc;     /* the master at the note (2^-32 cycles) */
+            float br_sph, br_sinc, br_sub;   /* SUB: its phase, increment (cycles), level */
+        };
     };
     float amp_now, amp_tgt;       /* amp: envelope x level, interpolated */
     float panl, panr;
     float snd_c, snd_d, snd_r;    /* sends */
     float steal_g;
     float meter;
+    uint16_t cost;
+    uint8_t fresh;                /* (0.17) just started: its control step is done (voice_start), the block's skips it */                /* (0.16) its last block's render time (ticks): the two cores' split */
 } voice_t;
 
 extern voice_t vc[NVOICE];
 #define HARM_N 256
 #define SIN_N 256
 extern float sin_tab[SIN_N + 1];  /* the sine, 256 points (+1) */
-static inline float lks(float x)                 /* sin(2 pi x), from the table */
+static inline __attribute__((always_inline)) float lks(float x)                 /* sin(2 pi x), from the table */
 {
     float fi;
     int32_t i;
@@ -158,6 +184,7 @@ static inline float lks(float x)                 /* sin(2 pi x), from the table 
     fi = x * (float)SIN_N;
     i = (int32_t)fi;
     fi -= (float)i;
+    i &= SIN_N - 1;                                  /* (0.17: x just under 0 rounds to 1.0: index 256, fi 0) */
     return sin_tab[i] + fi * (sin_tab[i + 1] - sin_tab[i]);
 }
 
@@ -185,7 +212,8 @@ void fx_init(void *pool, uint32_t *used, uint32_t pool_bytes);
 void fx_block(float *dl, float *dr, const float *sc, const float *sd, const float *sr, int n);
 void fx_params(const int16_t *fx, float bpm);
 void fx_clear(void);
-void fx_duck(float g);             /* the returns' gain this block (sidechain ducking) */
+void fx_duck(float g);
+void fx_throw(float t);             /* the returns' gain this block (sidechain ducking) */
 void fx_freeze(int on);            /* FREEZE [TONIC 0.7]: the reverb takes no new input */
 
 /* the sequencer (seq.c), at control rate */
@@ -211,8 +239,12 @@ extern sound_t *eng_pool;         /* the project's sound pool (sound locks); a s
 void seq_start(void);
 void seq_release_all(void);
 void seq_cue(pattern_t *p);
+void seq_cue_how(int how);
 pattern_t *seq_cued(void);
 int seq_took_cue(void);
+void seq_at_change(int mute, int stop, int bpm10);   /* (0.17) at the next change point: mutes, a stop, a tempo */
+int seq_take_stop(void);
+extern volatile uint32_t seq_clk_rx;                         /* (0.17) 1 once: the change point stopped the sequencer */
 int seq_step(int t);
 uint32_t seq_loops(void);
 uint32_t seq_ends(void);          /* the pattern's passes since PLAY, across pattern changes */
@@ -231,6 +263,13 @@ extern const char *const ARP_DIV_NAME[11];
 
 /* synth.c */
 void synth_control(void);
+void synth_control_voice(voice_t *v, int core);   /* (0.16) one voice's control step, on core 0 or 1 (its scratch) */
+void synth_control_end(void);                     /* after them all, on core 0: the BRAIDS delay buffers they asked for */
 void synth_param(int trk, int p, int val);
 void synth_sound(int trk);        /* the track's sounding voices take its sound's parameters (not their locks) */
 void synth_lock(int trk, const plock_t *locks, int nlock, int lock_key);
+#define NFADE 3                    /* (0.17) faders: stolen voices fading out at once (was one: a second steal cut the first) */
+void synth_fader(voice_t *fader, const voice_t *v, int f);   /* (0.14) a stolen BRAIDS voice: fader f its own oscillator */
+#define BR_NOSLOT 0xFFu
+#define BR_AREA (27u * 1024u + 256u)      /* (0.14) the pool's room for the BRAIDS oscillators (13), two delay buffers and
+                                     * (0.15) the signature waveshaper (0.17: 27.1 KB of it, an oscillator for each of the three faders) */

@@ -47,7 +47,14 @@ static float mpos, cpos;          /* the master and change counters, ticks at 1X
 static float gtick;               /* ticks since boot (the arpeggiator's clock) */
 static uint8_t starting;          /* the first block after PLAY */
 static pattern_t *cued;
-static volatile uint8_t took_cue;
+static float clk;                 /* (0.17) MIDI clock out: ticks to the next clock */
+volatile uint32_t seq_clk_rx;     /* (0.17) MIDI clocks received since START (the main loop counts) */
+static float slave_pos;           /* (0.17) ticks played since then */
+static uint8_t clk_run;           /* (0.17) the clock runs: PLAY sent its first */
+static volatile int16_t pend_mute = -1, pend_bpm10;   /* (0.17) what the next change point brings */
+static volatile uint8_t pend_stop, stop_now;
+static volatile uint8_t cue_how;  /* (0.17) the cued change: 0 at the end, 1 at once from step 1, 2 at once in place */
+static volatile uint8_t took_cue;              /* (0.17) a count the render raises; the main loop compares */
 static uint32_t pat_loops;
 static uint32_t pat_ends;         /* the pattern's passes since PLAY, across changes (song mode) [TONIC 0.9.2] */
 volatile uint8_t seq_click;        /* a beat: 1, a bar: 2 (engine.c plays the metronome) */
@@ -263,9 +270,11 @@ static void arp_block(int t, float dt1x)
     strk_t *k = &st[t];
     const sound_t *s = ts[t].snd;
     int i;
-    for (i = 0; i < k->nah; i++)                     /* notes from trigs end with their length */
+    float sm = eng_pat ? SCALE_MUL[eng_pat->trk[t].scale < 7 ? eng_pat->trk[t].scale : 4] : 1.0f;
+    for (i = 0; i < k->nah; i++)                     /* notes from trigs end with their length (0.17: in the
+                                                      * track's ticks, as it was set: its SCALE) */
         if (k->ah[i].left >= 0) {
-            k->ah[i].left -= dt1x;
+            k->ah[i].left -= dt1x * sm;
             if (k->ah[i].left <= 0) {
                 int j;
                 for (j = i; j + 1 < k->nah; j++)
@@ -392,7 +401,7 @@ static void fire(pattern_t *p, int t, int s, uint32_t loop)
         float len = li >= LEN_INF ? 1e31f : (float)LEN_TICKS[li < NLEN ? li : 14] * (1.0f / 4.0f);
         int n;
         root = lock_of(lk, nl, P_NOTE, root);
-        if (slock >= 0 && slock < NPOOL && eng_pool && eng_pool[slock].name[0])
+        if (slock >= 0 && slock < 16 && eng_pool && eng_pool[slock].name[0])   /* (0.17: the pool holds 16) */
             snd = &eng_pool[slock];
         if (snd->s[S_ENGINE] != ENG_DR)              /* (a kit's notes are its pads: not transposed) */
             root += tk->transpose;
@@ -461,7 +470,7 @@ static void take_cue(void)
         return;
     eng_pat = cued;
     cued = 0;
-    took_cue = 1;
+    took_cue++;
     mpos = cpos = 0;
     pat_loops = 0;
     for (t = 0; t < NTRK; t++) {
@@ -477,9 +486,17 @@ static void take_cue(void)
     starting = 1;
 }
 
-void seq_cue(pattern_t *p) { cued = p; }
+void seq_cue(pattern_t *p) { cued = p; cue_how = 0; }
+void seq_cue_how(int how) { cue_how = (uint8_t)how; }   /* (0.17) after seq_cue: 0 SEQ, 1 START, 2 JUMP */
 pattern_t *seq_cued(void) { return cued; }
-int seq_took_cue(void) { int r = took_cue; took_cue = 0; return r; }
+int seq_took_cue(void)                           /* (0.17: a count, so a change taken while this reads is not lost) */
+{
+    static uint8_t seen;
+    uint8_t n = took_cue;
+    int r = n != seen;
+    seen = n;
+    return r;
+}
 
 void seq_start(void)
 {
@@ -488,6 +505,9 @@ void seq_start(void)
     pat_loops = 0;
     pat_ends = 0;
     gtick = 0;                                       /* the arpeggiator's divisions from PLAY [TONIC 0.9.2] */
+    clk_run = 0;                                     /* (0.17) the first clock on step 1 */
+    slave_pos = 0;
+    pend_stop = stop_now = 0;
     for (t = 0; t < NTRK; t++) {
         st[t].pos = 0;
         st[t].loop = 0;
@@ -513,6 +533,96 @@ static float roll_len(void)
            f >> PFX_ROLL4 & 1u ? 96.0f : 0.0f;
 }
 
+/* (0.17) every track moves on by d 1X ticks: its steps fired, its end wrapped (unless `upto`: a restart comes
+ * right there, which wraps it instead); ROLL around where it began */
+static void seq_adv(pattern_t *p, float d, float roll, int roll_new, int upto)
+{
+    int t;
+    for (t = 0; t < NTRK; t++) {
+        track_t *tk = &p->trk[t];
+        strk_t *k = &st[t];
+        float sm = SCALE_MUL[tk->scale < 7 ? tk->scale : 4];
+        float dt = d * sm, L = (float)(tk->len ? tk->len : 16) * TPS;
+        float a = k->pos, b = a + dt;
+        int play = !(roll > 0.0f && !starting);      /* ROLL: the real position runs on silently */
+        rt_block(p, t, dt);                          /* the repeats first: a trig in this block starts afresh */
+        if (starting)
+            window(p, t, a, b, k->loop, 1);
+        else if (b < L || (upto && b < L + 0.01f)) {
+            if (play)
+                window(p, t, a, b < L ? b : L, k->loop, 0);
+            if (b >= L)
+                b = L;                               /* (the restart wraps it) */
+        } else {                                     /* the track's end: the rest of this loop, then the next */
+            if (play)
+                window(p, t, a, L, k->loop, 0);
+            k->loop++;
+            k->npass++;
+            b -= L;
+            if (play)
+                window(p, t, 0, b, k->loop, 0);
+        }
+        if (!play) {                                 /* ROLL [TONIC 0.7]: the stretch around where it began, again */
+            float lt = roll * sm, ra, rb, end;
+            if (roll_new) {                          /* (a new length while rolling: around the rolled place) */
+                float ref = roll_prev > 0.0f ? k->rpos : a;
+                k->r0 = fm_floorf(ref / lt) * lt;
+                k->rpos = ref;
+            }
+            ra = k->rpos;
+            rb = ra + dt;
+            end = k->r0 + lt;
+            if (rb < end)
+                window(p, t, ra, rb, k->loop, 0);
+            else {
+                window(p, t, ra, end, k->loop, 0);
+                rb = k->r0 + (rb - end);
+                window(p, t, k->r0, rb, k->loop, 0);
+            }
+            k->rpos = rb;
+            k->step = (int8_t)((int)(rb / TPS) % (tk->len ? tk->len : 16));
+        } else
+            k->step = (int8_t)((int)(b / TPS) % (tk->len ? tk->len : 16));
+        k->pos = b;
+        sn_tick(t, dt);
+    }
+}
+/* (0.17) what the next change point brings (the main loop sets it, the render takes it there) */
+void seq_at_change(int mute, int stop, int bpm10)
+{
+    if (mute >= 0)
+        pend_mute = (int16_t)mute;
+    if (stop)
+        pend_stop = 1;
+    if (bpm10 > 0)
+        pend_bpm10 = (int16_t)bpm10;
+}
+int seq_take_stop(void) { int r = stop_now; stop_now = 0; return r; }
+/* the pattern's change point: its passes counted, a cued FILL begins, one ends; what was asked for it */
+static void pat_change(void)
+{
+    pat_loops++;
+    pat_ends++;
+    if (pend_mute >= 0) {
+        eng.mute = (uint8_t)pend_mute;
+        pend_mute = -1;
+    }
+    if (pend_bpm10 > 0) {
+        eng.bpm = (float)pend_bpm10 * 0.1f;
+        pend_bpm10 = 0;
+    }
+    if (pend_stop) {
+        pend_stop = 0;
+        stop_now = 1;
+    }
+    if (eng.fill == 3)
+        eng.fill = 0;
+    if (eng.fill_cue) {
+        eng.fill_cue = 0;
+        eng.fill = 3;
+    }
+}
+
 void seq_block(void)
 {
     pattern_t *p = eng_pat;
@@ -521,13 +631,31 @@ void seq_block(void)
     int t;
     if (eng_speed != 1.0f)                           /* HALF, TAPE [TONIC 0.7] */
         d1x *= eng_speed;
+    if (eng.ext_clock && eng.playing) {              /* (0.17) MIDI clock in: 4 ticks a clock, locked to the clocks
+                                                      * received (never past the next, caught up when behind); the
+                                                      * tempo only smooths between them */
+        uint32_t rx = seq_clk_rx;                    /* (the first clock after START is tick 0) */
+        float lo = rx ? (float)(rx - 1u) * 4.0f : 0.0f, hi = rx ? lo + 4.0f : 0.0f;
+        if (slave_pos + d1x > hi)
+            d1x = hi - slave_pos > 0.0f ? hi - slave_pos : 0.0f;
+        else if (slave_pos + d1x < lo)
+            d1x = lo - slave_pos;
+        slave_pos += d1x;
+    }
     eng_now++;
+    if (eng.mute_q && eng.playing && fm_floorf((gtick + d1x) * (1.0f / 384.0f)) != fm_floorf(gtick * (1.0f / 384.0f))) {
+        eng.mute = eng.mute_next;                    /* (0.18) a NEXT BAR mute: at the bar's first step */
+        eng.mute_q = 0;
+    }
     gtick += d1x;
     if (!p)
         return;
-    if (eng.playing && eng_clock_cb) {               /* MIDI clock out: one every 4 ticks */
-        static float clk;
-        clk += d1x;
+    if (eng.playing && eng_clock_cb) {               /* MIDI clock out: one every 4 ticks (0.17: the first at PLAY's
+                                                      * step 1, on the beat) */
+        if (starting && !clk_run)
+            clk = 4.0f, clk_run = 1;
+        else
+            clk += d1x;
         while (clk >= 4.0f) {
             clk -= 4.0f;
             eng_clock_cb(0);
@@ -544,96 +672,83 @@ void seq_block(void)
             seq_click = (nbeat++ % 4u) ? 1 : 2;
         }
     }
+    if (eng.playing && cued && cue_how && !starting) {   /* (0.17) DIRECT START / DIRECT JUMP: the change at once */
+        if (cue_how == 1)
+            take_cue();                              /* (from step 1, this block) */
+        else {                                       /* (the tracks' places kept: the new pattern goes on there) */
+            eng_pat = cued;
+            cued = 0;
+            took_cue++;
+        }
+        cue_how = 0;
+        p = eng_pat;
+    }
     if (eng.playing) {
-        float ml;
-        int change = 0;
         int roll_new = roll != roll_prev && roll > 0.0f;
+        float mlen = p->lenmode ? (float)p->mlen * TPS : 0.0f, clen = p->lenmode ? (float)p->chlen * TPS : 0.0f, ml;
+        float cut = -1.0f, mcut = -1.0f;             /* 1X ticks of this block after the change / M.LEN point */
+        int t1mode = !p->lenmode || (p->mlen == 0 && p->chlen == 0);
         if (roll == 0.0f || starting)
             roll_prev = 0.0f;
-        for (t = 0; t < NTRK; t++) {
-            track_t *tk = &p->trk[t];
-            strk_t *k = &st[t];
-            float sm = SCALE_MUL[tk->scale < 7 ? tk->scale : 4];
-            float dt = d1x * sm, L = (float)(tk->len ? tk->len : 16) * TPS;
-            float a = k->pos, b = a + dt;
-            int play = !(roll > 0.0f && !starting);  /* ROLL: the real position runs on silently */
-            rt_block(p, t, dt);                      /* the repeats first: a trig in this block starts afresh */
-            if (starting)
-                window(p, t, a, b, k->loop, 1);
-            else if (b < L) {
-                if (play)
-                    window(p, t, a, b, k->loop, 0);
-            } else {                                 /* the track's end: the rest of this loop, then the next */
-                if (play)
-                    window(p, t, a, L, k->loop, 0);
-                k->loop++;
-                k->npass++;
-                b -= L;
-                if (play)
-                    window(p, t, 0, b, k->loop, 0);
-                if (t == 0 && (!p->lenmode || (p->mlen == 0 && p->chlen == 0)))   /* (0.12: per track with M.LEN
-                                                      * INF and no CH.LEN too: at T1's end, not never) */
-                    change = 1, pat_loops++, pat_ends++;
-            }
-            if (!play) {                             /* ROLL [TONIC 0.7]: the stretch around where it began, again */
-                float lt = roll * sm, ra, rb, end;
-                if (roll_new) {                      /* (a new length while rolling: around the rolled place) */
-                    float ref = roll_prev > 0.0f ? k->rpos : a;
-                    k->r0 = fm_floorf(ref / lt) * lt;
-                    k->rpos = ref;
-                }
-                ra = k->rpos;
-                rb = ra + dt;
-                end = k->r0 + lt;
-                if (rb < end)
-                    window(p, t, ra, rb, k->loop, 0);
-                else {
-                    window(p, t, ra, end, k->loop, 0);
-                    rb = k->r0 + (rb - end);
-                    window(p, t, k->r0, rb, k->loop, 0);
-                }
-                k->rpos = rb;
-                k->step = (int8_t)((int)(rb / TPS) % (tk->len ? tk->len : 16));
-            } else
-                k->step = (int8_t)(b / TPS);
-            k->pos = b;
-            sn_tick(t, dt);
+        ml = clen > 0 && (mlen <= 0 || clen < mlen) ? clen : mlen;
+        for (t = 0; t < NTRK; t++) {                 /* (0.17) a LEN made shorter while playing: back inside it */
+            float L = (float)(p->trk[t].len ? p->trk[t].len : 16) * TPS;
+            if (st[t].pos >= L)
+                st[t].pos -= fm_floorf(st[t].pos / L) * L;
         }
-        if (roll > 0.0f && !starting)
-            roll_prev = roll;
-        starting = 0;
-        /* per-track mode [MANUAL 10.8.2]: M.LEN restarts every track; the change point comes every CH.LEN, else
-         * every M.LEN (INF and no CH.LEN: never) */
-        if (p->lenmode) {
-            float mlen = (float)p->mlen * TPS, clen = (float)p->chlen * TPS;
-            ml = clen > 0 && (mlen <= 0 || clen < mlen) ? clen : mlen;
-            mpos += d1x;
-            cpos += d1x;
-            if (mlen > 0 && mpos >= mlen) {
-                mpos -= mlen;
+        if (mlen > 0 && mpos >= mlen)
+            mpos -= fm_floorf(mpos / mlen) * mlen;
+        if (ml > 0 && cpos >= ml)
+            cpos -= fm_floorf(cpos / ml) * ml;
+        /* (0.17) where this block crosses the pattern's change point or M.LEN's restart: the block is played up to
+         * it, then the change (the cued pattern from its start, next block) or the restart (the rest from step 1),
+         * so step 1 plays once and a loop counts once */
+        if (!starting) {
+            if (t1mode) {
+                track_t *tk = &p->trk[0];
+                float sm = SCALE_MUL[tk->scale < 7 ? tk->scale : 4], L = (float)(tk->len ? tk->len : 16) * TPS;
+                if (st[0].pos + d1x * sm >= L)
+                    cut = (st[0].pos + d1x * sm - L) / sm;
+            } else if (ml > 0 && cpos + d1x >= ml)
+                cut = cpos + d1x - ml;
+            if (mlen > 0 && mpos + d1x >= mlen)
+                mcut = mpos + d1x - mlen;
+        }
+        if (cut >= 0.0f && (cued || pend_stop)) {   /* the change: the old pattern up to it, the new from step 1
+                                                      * (or the stop there) */
+            seq_adv(p, d1x - cut, roll, roll_new, 1);
+            pat_change();
+            if (cued)
+                take_cue();
+            mpos = cpos = 0;
+        } else {
+            if (mcut >= 0.0f) {                      /* M.LEN: every track to the restart, then again from step 1 */
+                seq_adv(p, d1x - mcut, roll, roll_new, 1);
                 for (t = 0; t < NTRK; t++) {
                     st[t].pos = 0;
                     st[t].loop++;
                     st[t].npass++;
                 }
+                starting = 1;                        /* (an early first step plays at once, as from PLAY) */
+                seq_adv(p, mcut, roll, 0, 0);
+                starting = 0;
+            } else
+                seq_adv(p, d1x, roll, roll_new, 0);
+            if (roll > 0.0f && !starting)
+                roll_prev = roll;
+            if (p->lenmode) {
+                mpos += d1x;
+                cpos += d1x;
+                if (mlen > 0 && mpos >= mlen)
+                    mpos -= mlen;
             }
-            if (ml > 0 && cpos >= ml) {
-                cpos -= ml;
-                change = 1;
-                pat_loops++;
-                pat_ends++;
+            if (cut >= 0.0f) {                       /* (no cue) the change point all the same: FILL, the counts */
+                if (!t1mode)
+                    cpos -= ml;
+                pat_change();
             }
+            starting = 0;
         }
-        if (change) {                                /* the pattern's start: a cued FILL begins, one ends */
-            if (eng.fill == 3)
-                eng.fill = 0;
-            if (eng.fill_cue) {
-                eng.fill_cue = 0;
-                eng.fill = 3;
-            }
-        }
-        if (change && cued)
-            take_cue();
     } else {
         for (t = 0; t < NTRK; t++)
             sn_tick(t, d1x);

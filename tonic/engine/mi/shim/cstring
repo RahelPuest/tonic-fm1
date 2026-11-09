@@ -1,0 +1,6 @@
+// SPDX-License-Identifier: MPL-2.0
+// TONIC: Braids includes <cstring> for memset / memcpy; freestanding on the device: the compiler's builtins
+#pragma once
+#include <stddef.h>
+#define memset __builtin_memset
+#define memcpy __builtin_memcpy

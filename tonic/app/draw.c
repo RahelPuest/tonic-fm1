@@ -497,6 +497,22 @@ static void o_va(int x0, int y0, const sound_t *s)
     o_tm(x0 + 3, y0 + 41, "VA", 1, 1);
 }
 
+/* the BRAIDS engine [TONIC 0.14]: the model's name large, as on the module's display, TIMBRE and COLOR as bars */
+static void o_braids(int x0, int y0, const sound_t *s)
+{
+    const pdesc_t *d = param_desc(ENG_BR, P_RATB);
+    int md = s->p[P_RATB] < 0 ? 0 : s->p[P_RATB] > d->hi ? d->hi : s->p[P_RATB];
+    o_frame(x0, y0, 25, 14);
+    o_ts_c(x0, 25, y0 + 4, d->list[md], 1);
+    o_ts(x0, y0 + 18, "T", 1);
+    o_frame(x0 + 5, y0 + 18, 20, 5);
+    o_rect(x0 + 6, y0 + 19, s->p[P_ALEV] * 18 / 127, 3, 1);
+    o_ts(x0, y0 + 26, "C", 1);
+    o_frame(x0 + 5, y0 + 26, 20, 5);
+    o_rect(x0 + 6, y0 + 27, s->p[P_BLEV] * 18 / 127, 3, 1);
+    o_tm(x0 + 1, y0 + 37, "MI", 1, 1);
+}
+
 /* a DRUM kit [TONIC]: its 8 pads, 2 x 4, each with its model's letters; lit while it sounds, the pad the grid
  * places (the track's NOTE) in the foreground */
 static void o_kit(int x0, int y0, const sound_t *s)
@@ -760,6 +776,15 @@ static void o_row(const row_t *rr, int x0, int pitch, int y, int active)
             if (!engine_filter_view(ui.trk, &fn, &rn))
                 fn = fs, rn = rs;
             o_filter(x0, y + 1, 4 * pitch - 2, 16, s->p[P_FTYP], fn, fs, rn);
+            {   /* (0.17) its type and resonance as text too (the picture alone left them to guess) */
+                static const char *const FT[4] = {"OFF", "LP2", "HP2", "LP4"};
+                char t[12];
+                tx_cpy(t, FT[s->p[P_FTYP] & 3]);
+                tx_cat(t, " R");
+                tx_num(t + tx_len(t), s->p[P_RESO] / 4);
+                o_rect(x0 + 4 * pitch - 4 - o_ws(t) - 2, y + 2, o_ws(t) + 3, 7, 0);
+                o_ts(x0 + 4 * pitch - 4 - o_ws(t), y + 3, t, 1);
+            }
         } else if (it[0].id == P_FATK)
             o_env(x0, y + 1, 4 * pitch - 2, 16, s->p[P_FATK], s->p[P_FDEC], s->p[P_FSUS], s->p[P_FREL], 1, 2);
         else if (it[0].id == P_MATK)
@@ -1126,7 +1151,7 @@ static void o_page(void)
     char name[24];
     if (!r)
         return;
-    gi = ui.row[ui.grp];
+    gi = grp_n(ui.grp) ? ui.row[ui.grp] % grp_n(ui.grp) : 0;   /* (0.17: never past the group) */
     row0 = gi > 0 && grp_rows(ui.grp)[gi - 1].title == r->title ? gi - 1 : gi;
     {                                                /* the page's place in its group, as "(1/2)" */
         int i, n = 0, me = 0;
@@ -1143,6 +1168,8 @@ static void o_page(void)
         }
     }
     name[0] = 'T'; name[1] = (char)('1' + ui.trk); name[2] = ' '; name[3] = 0;
+    if (ui.grp == G_FX)                              /* (0.17) the pattern's effects: no track in the header */
+        tx_cpy(name, "FX ");
     tx_cat(name, ui.grp == G_FX || ui.grp == G_GLO ? r->title : tsnd()->name[0] ? tsnd()->name : "-");
     o_header(name, right);
     o_tabs(r);
@@ -1156,7 +1183,9 @@ static void o_page(void)
         return;
     }
     o_meters(19, 42);
-    if (syn && tsnd()->s[S_ENGINE] == ENG_VA)
+    if (syn && tsnd()->s[S_ENGINE] == ENG_BR)
+        o_braids(18, 20, tsnd());
+    else if (syn && tsnd()->s[S_ENGINE] == ENG_VA)
         o_va(18, 20, tsnd());
     else if (syn && drum_trk())
         o_kit(18, 20, tsnd());
@@ -1241,9 +1270,9 @@ static void o_keys(void)
 {
     char b[24];
     int t, x;
-    const char *mode = ui.perf ? "PERFORM" : eng.rec_live ? "LIVE REC" : ui.steprec ? "STEP REC" : ui.grid ? "GRID" : "KEYS";
+    const char *mode = eng.rec_live ? (set.quant ? "LIVE REC Q" : "LIVE REC") : ui.steprec ? "STEP REC" : ui.grid ? "GRID" : "KEYS";
     char mpad[24];
-    if (!ui.perf && drum_trk()) {                    /* a kit: the picked pad beside the mode [TONIC 0.6.1] */
+    if (drum_trk()) {                                /* a kit: the picked pad beside the mode [TONIC 0.6.1] */
         tx_cpy(mpad, mode);
         tx_cat(mpad, " ");
         tx_cat(mpad, pad_label(cur_pad()));
@@ -1367,8 +1396,9 @@ static void o_home(void)
     o_header(pcur->name[0] ? pcur->name : "UNTITLED", "");
     pat_name(cur_idx, b);
     o_tm(0, 12, b, 1, 2);
-    tx_cpy(b, "CPU ");                               /* the render's share of its time (the platform measures it) */
-    tx_num(b + 4, (int)plat_cpu_pct());
+    tx_cpy(b, engine_dual_on() ? "CPU2 " : "CPU ");  /* the render's share of its time (the platform measures it);
+                                                      * CPU2: the second core renders with it [0.16] */
+    tx_num(b + tx_len(b), (int)plat_cpu_pct());
     tx_cat(b, "%");
     if (plat_xruns()) {
         tx_cat(b, " XR ");
@@ -1400,29 +1430,80 @@ static void o_home(void)
     }
 }
 
-static void o_perf(void)
+/* (0.18) the screens of the held buttons, after Hortator's way: what the keys do on them, drawn as the keys lie */
+static void o_kbox(int x, int y, int w, const char *t, int on, int dim)   /* a key's box and its label */
 {
-    static const char *const BL[11] = {"M1", "M2", "M3", "M4", "FILL", "FIL+", "BANK", "TAP", "TSAV", "RELD", "RST"};
-    char b[8];
-    int i;
-    int fxm = (plat_buttons() >> B_SEL & 1u) || ui.pfx_keys;   /* SCL held or an effect on: the effects' keys */
-    o_header("PERFORM", ui.perf_lock ? "LOCKED" : "");
-    o_ts(0, 12, fxm ? "EFFECTS: HOLD A KEY" : "PATTERNS      SCL+KEY: EFFECTS", 1);
-    for (i = 0; fxm && i < 16; i++) {                /* the momentary effects [TONIC 0.7] */
-        static const char *const FN[NPFX] = {"1/4", "1/8", "1/16", "1/32", "HALF", "TAPE", "LP", "HP", "FRZ"};
-        int x = (i % 8) * 15, y = 19 + (i / 8) * 11;
-        if (i >= NPFX) {
-            o_ink = K_DIM;
-            o_frame(x, y, 14, 9);
-            continue;
-        }
-        o_ink = i < 4 ? K_FG : K_ACC;
-        if (ui.pfx_keys >> i & 1u) { o_box(x, y, 14, 9); o_ts_c(x, 14, y + 2, FN[i], 0); }
-        else { o_ink = K_FG; o_frame(x, y, 14, 9); o_ts_c(x, 14, y + 2, FN[i], 1); }
+    if (dim)
+        o_ink = K_DIM;
+    if (on) {
+        o_box(x, y, w, 9);
+        o_ts_c(x, w, y + 2, t, 0);
+    } else {
+        o_frame(x, y, w, 9);
+        o_ts_c(x, w, y + 2, t, 1);
     }
     o_ink = K_FG;
-    for (i = 0; !fxm && i < 16; i++) {
-        int idx = (cur_idx / 16) * 16 + i, x = (i % 8) * 15, y = 19 + (i / 8) * 11;
+}
+static void o_bar(int y, const char *n, int v, int lo, int hi, const char *val)   /* a macro: name, bar, value */
+{
+    int w = 50, x0 = 18, z = lo < 0 ? x0 + w / 2 : x0;
+    o_ts(0, y, n, 1);
+    o_frame(x0, y - 1, w, 7);
+    if (lo < 0) {
+        o_rect(z, y, 1, 5, 1);
+        if (v < 0) o_rect(z + v * (w / 2 - 2) / -lo, y + 1, -v * (w / 2 - 2) / -lo, 3, 1);
+        else if (v > 0) o_rect(z + 1, y + 1, v * (w / 2 - 2) / hi, 3, 1);
+    } else if (v > 0)
+        o_rect(x0 + 2, y + 1, v * (w - 4) / hi, 3, 1);
+    o_ts(x0 + w + 4, y, val, 1);
+}
+static void o_perf(void)                             /* FX held */
+{
+    static const char *const FN[11] = {"1/4", "1/8", "1/16", "1/32", "HALF", "TAPE", "LP", "HP", "FRZ", "FILL", "FIL+"};
+    char b[12];
+    int i, lk, v;
+    o_header("PERFORM", "");
+    o_ts(0, 12, "BLACK KEYS: EFFECTS WHILE HELD", 1);
+    for (i = 0; i < 11; i++) {
+        int on = (i < NPFX && (ui.pfx_keys >> i & 1u)) || (i == 9 && eng.fill == 1) || (i == 10 && eng.fill_cue);
+        o_ink = i < 4 ? K_FG : i < NPFX ? K_ACC : K_FG;
+        o_kbox((i % 6) * 20, 20 + (i / 6) * 11, 19, FN[i], on, 0);
+    }
+    o_ink = K_ACC;
+    {
+        item_t a = F_(P_MFLT), d = F_(P_SCDEP), o = F_(P_MOVD);
+        v = item_get(&a, &lk);
+        item_fmt(&a, v, b);
+        o_bar(46, "K1", v, -64, 63, v ? b : "FILTER OFF");
+        v = item_get(&d, &lk);
+        item_fmt(&d, v, b);
+        o_bar(55, "K2", pcur->fx[P_SCSRC - P_CDEP] ? v : 0, 0, 127, pcur->fx[P_SCSRC - P_CDEP] ? b : "DUCK OFF");
+        tx_cpy(b, "THROW ");
+        tx_num(b + tx_len(b), (int)(eng.thr * 100.0f + 0.5f));
+        tx_cat(b, "%");
+        o_bar(64, "K3", (int)(eng.thr * 127.0f + 0.5f), 0, 127, eng.thr > 0.0f ? b : "THROW OFF");
+        v = item_get(&o, &lk);
+        item_fmt(&o, v, b);
+        o_bar(73, "K4", v, 0, 127, v ? b : "OVD OFF");
+    }
+    o_ink = K_DIM;
+    o_ts(0, 86, "K1 DJ FILTER  K2 DUCKING", 1);
+    o_ts(0, 94, "K3 THROW TO DELAY+REVERB", 1);
+    o_ts(0, 102, "K4 OVERDRIVE  WHITE: PLAY", 1);
+    tx_cpy(b, "TEMPO ");
+    tx_fix(b + 6, (int)(eng.bpm * 10.0f + 0.5f), 10, 1);
+    o_ts(0, 113, b, 1);
+    o_ink = K_FG;
+}
+static void o_cue(void)                              /* SAVE held: the patterns */
+{
+    static const char *const BL[6] = {"BK A", "BK B", "TSV", "RLD", "RST", "TAP"};
+    static const char *const CH[3] = {"AT ITS END", "AT ONCE", "AT ONCE, IN PLACE"};
+    char b[32];
+    int i;
+    o_header("PATTERNS", cur_idx / 16 ? "BANK B" : "BANK A");
+    for (i = 0; i < 16; i++) {
+        int idx = (cur_idx / 16) * 16 + i, x = (i % 8) * 15, y = 12 + (i / 8) * 11;
         pat_name(idx, b);
         if (idx == cur_idx) { o_box(x, y, 14, 9); o_ts(x + 2, y + 2, b, 0); }
         else {
@@ -1431,33 +1512,126 @@ static void o_perf(void)
             o_ts(x + 2, y + 2, b, 1);
         }
     }
+    for (i = 0; i < 6; i++)
+        o_kbox(i * 20, 36, 19, BL[i], i == (cur_idx / 16 ? 1 : 0), i >= 2);
+    tx_cpy(b, "K1 CHNG ");
+    tx_cat(b, CH[set.pchg < 3 ? set.pchg : 0]);
+    o_ts(0, 50, b, 1);
+    if (next_idx >= 0) {
+        tx_cpy(b, "NEXT ");
+        pat_name(next_idx, b + 5);
+        o_ts(0, 58, b, 1);
+    }
+    if (set.chain_n > 1 && !set.song_on) {          /* (0.17) the chain: its patterns, the one playing marked */
+        int k, n = set.chain_n > 64 ? 64 : set.chain_n, p0 = chn.on && chn.pos < n ? chn.pos : 0, first = p0 > 2 ? p0 - 2 : 0;
+        tx_cpy(b, "CHAIN");
+        for (k = first; k < n && k < first + 6; k++) {
+            char nb[4];
+            pat_name(set.chain[k], nb);
+            tx_cat(b, k == p0 && chn.on ? ">" : " ");
+            tx_cat(b, nb);
+        }
+        o_ts(0, 66, b, 1);
+    }
+    o_ink = K_DIM;
+    o_ts(0, 78, "WHITE: A PATTERN", 1);
+    o_ts(0, 86, "SEVERAL IN A ROW: A CHAIN", 1);
+    o_ts(0, 94, "OCT: TRANSPOSE THE PATTERN", 1);
+    o_ts(0, 102, "PRESETS PATTERN  SELECT TEMPO", 1);
+    tx_cpy(b, "TEMPO ");
+    tx_fix(b + 6, (int)(eng.bpm * 10.0f + 0.5f), 10, 1);
+    o_ts(0, 113, b, 1);
+    o_ink = K_FG;
+}
+static void o_mute(void)                             /* GLO held: mutes and solo */
+{
+    uint8_t m = eng.mute_q ? eng.mute_next : eng.mute;
+    int t, blink = (plat_ms() / 200u) & 1u;
+    o_header("MUTE", set.mute_bar ? "NEXT BAR" : "AT ONCE");
+    for (t = 0; t < NTRK; t++) {
+        int x = t * 30, y = 13, muted = m >> t & 1u, hushed = eng.solo && !(eng.solo >> t & 1u);
+        int pend = eng.mute_q && ((eng.mute ^ eng.mute_next) >> t & 1u);
+        char n[8];
+        o_ink = K_TRK[t];
+        if (pend && blink)
+            o_frame(x, y, 28, 30);
+        else if (!muted && !hushed)
+            o_box(x, y, 28, 30);
+        else if (!muted && hushed) {                 /* (silent by another's solo: half) */
+            o_frame(x, y, 28, 30);
+            o_rect(x, y + 15, 28, 15, 1);
+        } else
+            o_frame(x, y, 28, 30);
+        n[0] = 'T'; n[1] = (char)('1' + t); n[2] = 0;
+        o_ts(x + 2, y + 2, n, !(!muted && !hushed && !(pend && blink)));
+        if (eng.solo >> t & 1u)
+            o_ts(x + 22, y + 2, "S", !(!muted && !hushed));
+        tx_cpy(n, pcur->snd[t].name);
+        n[6] = 0;
+        o_ts(x + 2, y + 22, n, !(!muted && !hushed && !(pend && blink)));
+    }
+    o_ink = K_DIM;
+    o_ts(0, 50, "WHITE 1-4  MUTE", 1);
+    o_ts(0, 58, "BLACK 1-4  SOLO", 1);
+    o_ts(0, 66, "BLACK 10 AT ONCE  11 NEXT BAR", 1);
+    if (eng.mute_q)
+        o_ts(0, 80, "THE MUTES WAIT FOR THE BAR", 1);
+    if (eng.solo)
+        o_ts(0, 88, "SOLO ON: THE OTHERS SILENT", 1);
+    o_ink = K_FG;
+}
+static void o_tools(void)                            /* SEQ held: the track's steps a whole at a time */
+{
+    char b[16];
+    int i;
+    b[0] = 'T'; b[1] = (char)('1' + ui.trk); b[2] = ' '; b[3] = 0;
+    tx_cat(b, "PAGE ");
+    tx_num(b + tx_len(b), ui.spage + 1);
+    tx_cat(b, "/");
+    tx_num(b + tx_len(b), page_count());
+    o_header("TOOLS", b);
     for (i = 0; i < 11; i++) {
-        int x = (i % 8) * 15, y = 50, on = (i < 4 && !(eng.mute >> i & 1u)) || (i == 4 && eng.fill);
-        o_ink = i < 4 ? K_TRK[i] : i == 4 && eng.fill ? K_ACC : K_FG;
-        if (!BL[i][0] || i >= 8)
-            continue;
-        if (on) { o_box(x, y, 14, 9); o_ts_c(x, 14, y + 2, BL[i], 0); }
-        else { o_frame(x, y, 14, 9); o_ts_c(x, 14, y + 2, BL[i], 1); }
+        char t[16];
+        int x = (i / 6) * 61, y = 12 + (i % 6) * 8;
+        tx_num(t, i + 1);
+        tx_cat(t, " ");
+        tx_cat(t, TOOL_NAME[i]);
+        o_ink = i == 5 ? K_ACC : K_FG;
+        o_ts(x, y, t, !(i == 5 && ui.tool_arm == 6));
+        if (i == 5 && ui.tool_arm == 6)
+            o_rect(x - 1, y - 1, o_ws(t) + 2, 7, 0), o_ts(x, y, t, 0);
     }
-    o_ink = K_ACC;
-    {   /* in place of the keys' label: K1 the DJ filter (a bar from the centre), K2 the ducking depth */
-        item_t a = F_(P_MFLT), d = F_(P_SCDEP);
-        int lk, v = item_get(&a, &lk);
-        o_rect(0, 42, OW, 7, 0);
-        o_ts(0, 43, "FLT", 1);
-        o_frame(13, 42, 29, 7);
-        o_rect(27, 43, 1, 5, 1);
-        if (v < 0) o_rect(27 + v * 13 / 64, 44, -v * 13 / 64, 3, 1);
-        else if (v > 0) o_rect(28, 44, v * 13 / 63, 3, 1);
-        item_fmt(&a, v, b);
-        o_ts(44, 43, v ? b : "OFF", 1);
-        v = item_get(&d, &lk);
-        o_ts(62, 43, "DCK", 1);
-        o_frame(75, 42, 29, 7);
-        if (pcur->fx[P_SCSRC - P_CDEP]) o_rect(77, 44, v * 25 / 127, 3, 1);
-        item_fmt(&d, v, b);
-        o_ts(106, 43, pcur->fx[P_SCSRC - P_CDEP] ? b : "OFF", 1);
+    o_ink = K_FG;
+    o_steps(66);
+    o_ink = K_DIM;
+    o_ts(0, 80, "BLACK KEYS: THE TOOLS", 1);
+    o_ts(0, 88, "WHITE: STEPS  OCT: THE PAGE", 1);
+    o_ts(0, 96, "CLEAR TRACK: PRESS IT TWICE", 1);
+    o_ink = K_FG;
+}
+static void o_menu(void)                             /* HOME held: the settings (it stays) */
+{
+    char v[24];
+    int i, lk, top = ui.menu_i > 11 ? ui.menu_i - 11 : 0;
+    o_header("MENU", "TONIC");
+    for (i = top; i < NMENU && i < top + 12; i++) {
+        int y = 12 + (i - top) * 7, on = i == ui.menu_i;
+        const item_t *it = &MENU_IT[i];
+        item_fmt(it, item_get(it, &lk), v);
+        if (on) {
+            o_rect(0, y - 1, OW, 7, 1);
+            o_ts(2, y, item_name(it), 0);
+            o_ts(OW - o_ws(v) - 2, y, v, 0);
+        } else {
+            o_ts(2, y, item_name(it), 1);
+            o_ts(OW - o_ws(v) - 2, y, v, 1);
+        }
     }
+    o_ink = K_DIM;
+    tx_cpy(v, engine_dual_on() ? "TWO CPU CORES" : "ONE CPU CORE");
+    o_ts(0, 100, v, 1);
+    o_ts(0, 108, "SELECT ROW  KNOB VALUE", 1);
+    o_ts(0, 115, "OCT- OR HOME: CLOSE", 1);
     o_ink = K_FG;
 }
 
@@ -1474,7 +1648,7 @@ static void o_save(void)
         if (on) { o_rect(0, y - 1, OW, 7, 1); o_ts(2, y, SAVE_ROW[i], 0); }
         else o_ts(2, y, SAVE_ROW[i], 1);
         if (i >= 1 && i <= 3) {                      /* the slot */
-            int slot = i == 1 ? ui.save_slot % 32 : ui.save_slot % 16, k;
+            int slot = ui.save_slots[i], k;
             const sound_t *s = i == 1 ? &lib[slot] : &pool[slot];
             tx_num(b, slot + 1);
             tx_cat(b, " ");
@@ -1485,7 +1659,14 @@ static void o_save(void)
         }
     }
     o_hline(0, 84, OW, 1);
-    o_ts(1, 88, ui.confirm ? "SAVE AGAIN: CONFIRM" : "SELECT ROW  PRESETS SLOT", 1);
+    if (ui.confirm && ui.save_row >= 1 && ui.save_row <= 2) {   /* (0.17) what it overwrites */
+        const sound_t *t = ui.save_row == 1 ? &lib[ui.save_slots[1] % 32] : &pool[ui.save_slots[2] % 16];
+        tx_cpy(b, "OVERWRITE ");
+        tx_cat(b, t->name);
+        b[23] = 0;
+        o_ts(1, 88, b, 1);
+    } else
+        o_ts(1, 88, ui.confirm ? "SAVE AGAIN: CONFIRM" : "SELECT ROW  PRESETS SLOT", 1);
     o_ts(1, 96, ui.confirm ? "OCT: CANCEL" : "SAVE: DO IT", 1);
     o_ts(1, 108, store_unsaved() ? "UNSAVED CHANGES" : "ALL SAVED", 1);
 }
@@ -1506,6 +1687,11 @@ static void o_msg(void)
 static void save_action(void)
 {
     int r = ui.save_row, destructive = r == 5 || r == 8 || r == 9;
+    /* (0.17) a filled library or pool slot overwritten, the pattern pasted over, the sound replaced or cleared: a
+     * second SAVE too (the library and the pool have no undo) */
+    if ((r == 1 && lib[ui.save_slots[1] % 32].name[0]) || (r == 2 && pool[ui.save_slots[2] % 16].name[0]) || r == 3 ||
+        r == 4 || r == 7)
+        destructive = 1;
     if (destructive && !ui.confirm) {
         ui.confirm = 1;
         ui.redraw = 1;
@@ -1523,12 +1709,12 @@ static void save_action(void)
         else
             app_say(store_flush() == 0 ? "SAVED" : "SAVE FAILED", "");
         break;
-    case 1: lib[ui.save_slot % 32] = *tsnd(); lib_dirty = 1; app_say("TO LIBRARY", tsnd()->name); break;
-    case 2: pool[ui.save_slot % 16] = *tsnd(); pool_dirty = 1; app_say("TO POOL", tsnd()->name); break;
+    case 1: lib[ui.save_slots[1] % 32] = *tsnd(); lib_dirty = 1; app_say("TO LIBRARY", tsnd()->name); break;
+    case 2: pool[ui.save_slots[2] % 16] = *tsnd(); pool_dirty = 1; app_say("TO POOL", tsnd()->name); break;
     case 3:
-        if (pool[ui.save_slot % 16].name[0]) {
+        if (pool[ui.save_slots[3] % 16].name[0]) {
             snd_bak = *tsnd();
-            *tsnd() = pool[ui.save_slot % 16];
+            *tsnd() = pool[ui.save_slots[3] % 16];
             if (!pattern_fits()) {                   /* [0.9.2] */
                 *tsnd() = snd_bak;
                 app_say("PATTERN", "FULL");
@@ -1622,6 +1808,8 @@ static void o_popup(void)
     o_ink = K_ACC;
     if (lk)
         o_ts(120 - o_ws("LOCK") - 4, 75, "LOCK", 1);
+    else if ((it->kind == IK_SND || it->kind == IK_TRK) && !ui.held && page_held())
+        o_ts(120 - o_ws("ALL TRACKS") - 4, 75, "ALL TRACKS", 1);   /* (0.17) CONTROL ALL: the page button held */
     o_ink = K_FG;
     while (o_wm(v, 2) > OW - 8 && v[0])
         v[tx_len(v) - 1] = 0;
@@ -1690,76 +1878,6 @@ static void o_plist(void)
     o_ts(x + 3, y0 + 13 + rows * 8, "OCT+ LOAD  OCT- BACK", 1);
 }
 
-/* a button held alone for a second: what it does, alone and with the others [TONIC] */
-static void o_help(int b)
-{
-    /* (0.9.1: up to date with 0.5 .. 0.9) */
-    static const char *const H_SCL[] = {"SCL = THE DIGITONE'S FUNC", "+REC    STEP RECORDING", "+PLAY   STOP, CUT THE FX",
-                                        "+SAVE   SAVE NOW", "+HOME   UNDO (AGAIN: REDO)", "+OCT    TRANSPOSE (KIT: PAD)",
-                                        "+KNOB   FINE STEPS", "+PAGE   THE ROW BEFORE", "+WHITE  LOCK TRIG (GRID)",
-                                        "+KEY1-4 TRACK (KEYS)", "+PRESET THE NEXT GROUP", "HOME+SCL+KEY  EFFECTS", 0};
-    static const char *const H_PAGE[] = {"TAP AGAIN  NEXT ROW", "HOLD + KNOB  ALL TRACKS", "HOLD + REC   RANDOMIZE ROW",
-                                         "HOLD + OCT-  ROW DEFAULTS", "HOLD + SCL   UNDO THAT", 0};
-    static const char *const H_REC[] = {"REC   GRID RECORDING", "WHITE KEYS  THE STEPS", "BLK 1-4  STEP PAGES",
-                                        "BLK 5 + WHITE  LOCK TRIG", "BLK 6/7  MICRO (STEP HELD)", "BLK 6/7  SHIFT TRACK",
-                                        "BLK 8 + WHITE  KIT: PAD", "BLK 9 10 11  COPY PASTE CLR", "PAGE + WHITE  LENGTH",
-                                        "REC+PLAY  LIVE RECORDING", "SCL+REC  STEP RECORDING", 0};
-    static const char *const H_PLAY[] = {"PLAY  START / STOP", "REC+PLAY  LIVE RECORDING", "PLAY AGAIN  QUANTIZE ON/OFF",
-                                         "SCL+PLAY  STOP, CUT THE FX", 0};
-    static const char *const H_OCT[] = {"OCT  THE KEYBOARD OCTAVE", "KIT  THE PAD BEFORE/AFTER", "GRID  THE STEP PAGE",
-                                        "STEP HELD  ITS NOTE", "SCL  TRANSPOSE (KIT: PAD)", "HOME HELD  TRANSPOSE PTN",
-                                        "PAGE HELD + OCT-  DEFAULTS", "PRESET LIST: + LOAD - BACK", 0};
-    static const char *const H_SAVE[] = {"SAVE  THE SAVE PAGE", "ON IT  SAVE DOES THE ROW", "SELECT ROW  PRESETS SLOT",
-                                         "SCL+SAVE  SAVE NOW", "SAVED BY ITSELF WHEN", "STOPPED AND QUIET", 0};
-    static const char *const H_FX[] = {"FX  CHORUS DELAY REVERB", "    MIXER: LEVELS OVD FILT", "    DUCK PUMP: SIDECHAIN",
-                                       "    COMP: MASTER COMPRESSOR", "TAP AGAIN  NEXT ROW", "SCL+FX  THE ROW BEFORE", 0};
-    static const char *const H_GLO[] = {"GLO  TEMPO SCALE VOICE", "     SETUP PORTA MOD SONG", "     KEYBOARD MIDI DISPLAY",
-                                        "TAP AGAIN  NEXT ROW", 0};
-    static const char *const H_ARP[] = {"ARP  THE ARPEGGIATOR", "MODE SPEED RANGE LENGTH", "STEPS AND THEIR OFFSETS",
-                                        "CHORD  ON EACH NOTE, NO ARP", "  NEEDED: VOICE BASS STRUM", "SCALE  NOTES SNAP TO IT,",
-                                        "  CHORDS BY DEGREES", 0};
-    static const char *const H_SEQ[] = {"TRIG  NOTE VEL LEN PROB", "ROLL  THE PIANO ROLL", "RTRG  RETRIG / RATCHETS",
-                                        "EUCLID  RHYTHMS: LEN HITS", "  ROT STYLE / ACC GHOST", "  NOTES (KIT: ALL PADS)",
-                                        "TRACK  ITS LEN AND SCALE", 0};
-    static const char *const H_EDIT[] = {"THE SOUND'S ENGINE:", "FM  SYN1 SYN2 (OPERATORS)", "VA  OSC ENV SHAPE",
-                                         "DRUM  PAD 1-8 LEVEL KIT", "ENGINE  K4, THE LAST ROW", 0};
-    static const char *const H_ENV[] = {"FLTR  FILTER, ITS ENVELOPE", "AMP  ENVELOPE DRIVE PAN", "AMP 2  FX SENDS",
-                                        "LOFI  SAMPLE RATE, BITS", "INSRT  DIST FOLD CRUSH", 0};
-    static const char *const H_LFO[] = {"LFO1 LFO2  SPEED DEST", "WAVE MODE DEPTH", "LFO2 ALSO MOVES LFO1",
-                                        "DEST: ANY PARAMETER", "(KIT: PADS, ALL ...)",
-                                        "MENV  AN ENVELOPE, A DEST", 0};
-    const char *const *h = H_PAGE;
-    const char *title = "", *first = 0;
-    int i, y;
-    switch (b) {
-    case B_SEL: h = H_SCL; title = "SCL"; break;
-    case B_REC: h = H_REC; title = "REC"; break;
-    case B_PLAY: h = H_PLAY; title = "PLAY"; break;
-    case B_OCTDN: case B_OCTUP: h = H_OCT; title = "OCT"; break;
-    case B_SAVE: h = H_SAVE; title = "SAVE"; break;
-    case B_FX: h = H_FX; title = "FX"; break;
-    case B_GLO: h = H_GLO; title = "GLO"; break;
-    case B_ARP: h = H_ARP; title = "ARP"; break;
-    case B_SEQ: h = H_SEQ; title = "SEQ"; break;
-    case B_EDIT: h = H_EDIT; title = "EDIT"; break;
-    case B_ENV: h = H_ENV; title = "ENV"; break;
-    case B_LFO: h = H_LFO; title = "LFO"; break;
-    default: return;
-    }
-    o_clear();
-    o_box(0, 0, OW, 9);
-    o_tm(2, 1, title, 0, 1);
-    o_tm(OW - o_wm("HELP", 1) - 2, 1, "HELP", 0, 1);
-    y = 13;
-    if (first) {
-        o_ts(1, y, first, 1);
-        y += 9;
-    }
-    for (i = 0; h[i] && y < 112; i++, y += 8)
-        o_ts(1, y, h[i], 1);
-    o_ts(1, 113, "LET GO TO RETURN", 1);
-}
-
 static void ui_draw(void)
 {
     uint32_t now = plat_ms();
@@ -1780,19 +1898,29 @@ static void ui_draw(void)
         return;
     last = now;
     o_clear();
-    if (ui.perf)
+    if (ui.ov == OV_PERF)                            /* (0.18) a held button's screen, the whole screen */
         o_perf();
+    else if (ui.ov == OV_CUE)
+        o_cue();
+    else if (ui.ov == OV_MUTE)
+        o_mute();
+    else if (ui.ov == OV_TOOLS)
+        o_tools();
+    else if (ui.ov == OV_MENU)
+        o_menu();
     else if (ui.grp == G_HOME)
         o_home();
     else if (ui.grp == G_SAVE)
         o_save();
     else
         o_page();
-    if (!ui.perf && ui.grp == G_TRIG && is_roll(cur_row()))
+    if (ui.ov)
+        ;
+    else if (ui.grp == G_TRIG && is_roll(cur_row()))
         o_keys_roll();
     else if (ui.grp != G_SAVE)
         o_keys();
-    if (touch && !ui.perf && ui.grp != G_HOME && ui.grp != G_SAVE && !(ui.grp == G_TRIG && is_roll(cur_row())))
+    if (touch && !ui.ov && ui.grp != G_HOME && ui.grp != G_SAVE && !(ui.grp == G_TRIG && is_roll(cur_row())))
         o_popup();
     if (ui.plist_on)
         o_plist();
@@ -1800,8 +1928,6 @@ static void ui_draw(void)
         o_msg();
         msg_up = 1;
     }
-    if (ui.help_btn < NB && !ui.help_block && (plat_buttons() >> ui.help_btn & 1u) && now - ui.btn_t[ui.help_btn] > 900u)
-        o_help(ui.help_btn);
     o_send();
     drawn_step = (uint8_t)step;
     ui.redraw = 0;

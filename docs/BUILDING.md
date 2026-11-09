@@ -10,12 +10,19 @@ git clone --recursive <this repository> digitone     # base/ and base/bsp/ are s
 cd digitone
 ```
 
-Since 0.10.1 TONIC needs one change to fm1-base that is not upstream: a `.lowram` section (zeroed RAM in what
-`.ram_text` leaves of RAMTEXT, `PLAT_LOWRAM`) that holds the HARM tables and the reverb pre-delay. It is the local
-branch `tonic-lowram` of `base/` (commit `cd85753`, on fm1-base `6c0b47e`), and the same change is in
-`tonic/tools/base-lowram.patch`: on a fresh clone whose `base/` lacks the commit, run
-`cd base && git checkout 6c0b47e && git apply ../tonic/tools/base-lowram.patch`. Without it the linker has no
-place for `.lowram` (an orphan section): check that the build's RAM line reads about 68 KB, not 98 KB.
+TONIC needs changes to fm1-base that are not upstream (the branch `tonic-lowram` of
+[RahelPuest/fm1-base](https://github.com/RahelPuest/fm1-base/tree/tonic-lowram), commit `3e953cd`, on fm1-base
+`6c0b47e`; the same changes are in `tonic/tools/base-lowram.patch`):
+- **`.ram_dsp`** (0.13, `PLAT_RAMCODE`): the voice and effect loops run from RAM instead of the XIP flash, out of the
+  flash cache's way. The build reports `.ram_dsp: N B of audio code in RAM`.
+- **`.hiram`** (0.13, `PLAT_HIRAM`): zeroed RAM after `.noinit` (the HARM tables), and **`.lowram`** (0.10.1,
+  `PLAT_LOWRAM`): zeroed RAM after `.ram_text` (COPY PATTERN's buffer).
+- C++ o2 units (0.14, for Braids): `.cc` files compiled without exceptions, RTTI or a C++ library.
+- `fastmath.h` always inlined: RAM code cannot call XIP functions (they are out of a call's reach); XIP code calls the
+  RAM code through a pointer (`ENG_FAR`).
+
+On a fresh clone whose `base/` lacks the commits: `cd base && git checkout 6c0b47e && git apply
+../tonic/tools/base-lowram.patch`.
 
 ## Prerequisites
 
@@ -37,7 +44,7 @@ From `tonic/`:
 ```sh
 . tools/env.sh                                 # toolchain, SDK, fribidi, emsdk
 python3 ../base/tools/build.py .               # build/tonic.fwsc (identity FM-1_4700) + build/tonic.bin
-python3 ../base/tools/build.py . --release 0.12.1 # build/tonic-0.12.1.fwsc (identity FM-1_47001201)
+python3 ../base/tools/build.py . --release 0.18  # build/tonic-0.18.fwsc (identity FM-1_47001800)
 python3 ../base/tools/build.py . --host        # build/host/tonic_host (the simulator)
 python3 ../base/tools/build.py . --web         # build/emu/ (the browser emulator)
 tools/bench_build.sh                           # build/bench/tonic-bench.fwsc (CPU benchmark firmware)
@@ -49,9 +56,9 @@ The device build checks the memory budget and prints it, e.g.
 `image 174360 B; RAM .data+.bss 84628 B of 98304; pool 334752 B of 344064`.
 
 The installer site (installer page, emulator, manual, backup page):
-`python3 ../base/tools/make_site.py . build/tonic-0.12.1.fwsc 0.12.1 OUT_DIR` (needs a release build). Copy the
+`python3 ../base/tools/make_site.py . build/tonic-0.18.fwsc 0.18 OUT_DIR` (needs a release build). Copy the
 earlier packages into `OUT_DIR/firmware/` to keep them downloadable (the landing page links `tonic-0.1.fwsc`,
-`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc` and `tonic-0.12.fwsc`).
+`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc`, `tonic-0.12.fwsc`, `tonic-0.12.1.fwsc`, `tonic-0.13.fwsc`, `tonic-0.14.fwsc`, `tonic-0.15.fwsc`, `tonic-0.16.fwsc` and `tonic-0.17.fwsc`).
 
 ## Tests
 

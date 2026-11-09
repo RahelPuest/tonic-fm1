@@ -1,0 +1,93 @@
+# 0.14 / 0.15: the BRAIDS engine (0.15: SYNC SIGN SUB): ENGINE BRAID on the SYN page's K4, its page (MODEL TIMB COLOR TUNE), notes sound, the
+# models, an LFO on MODEL, the engine back to FM
+wait 1500
+spin PRESET 16
+wait 100
+expect pattern 16
+sound 85
+wait 50
+tap EDIT
+wait 30
+spin SELECT 6
+wait 30
+expect row 6
+spin K4 3
+wait 50
+expect engine 3
+expect row 1
+spin SELECT -1
+wait 30
+expect row 0
+expect p3 0
+expect p15 64
+expect p19 64
+shot braids_page.png
+key w0 down
+wait 300
+expect voices 1
+key w0 up
+wait 2000
+spin K1 28
+wait 30
+expect p3 28
+key w4 down
+wait 50
+key w5 down
+wait 50
+key w6 down
+wait 300
+expect voices 3
+key w4 up
+key w5 up
+key w6 up
+wait 3000
+spin K1 6
+wait 30
+expect p3 34
+shot braids_kick.png
+spin K2 20
+wait 30
+expect p15 84
+spin K3 -30
+wait 30
+expect p19 34
+tap LFO
+wait 30
+expect row 0
+spin K4 1
+wait 30
+expect p52 4
+spin K4 3
+wait 30
+expect p52 7
+spin K4 -3
+wait 30
+expect p52 4
+shot braids_lfo.png
+tap EDIT
+wait 30
+spin SELECT 1
+wait 30
+expect row 1
+# (0.15) SYNC SIGN SUB on the second row
+expect p5 0
+expect p6 0
+expect p8 0
+spin K1 48
+wait 30
+expect p5 48
+spin K2 90
+wait 30
+expect p6 90
+spin K3 60
+wait 30
+expect p8 60
+key w0 down
+wait 300
+expect voices 1
+key w0 up
+wait 1500
+shot braids_row2.png
+spin K4 -3
+wait 50
+expect engine 0

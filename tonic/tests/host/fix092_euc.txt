@@ -1,9 +1,9 @@
 # 0.9.2 euclid fixes: STYLE round trip, accents on hits, lock trigs kept, undo, orphan LEV lock, 4 PADS FULL, clip > 128 locks
 wait 1500
-press HOME
+press SAVE
 wait 400
 tapkey w0
-release HOME
+release SAVE
 wait 100
 spin PRESET 16
 wait 100

@@ -10,6 +10,7 @@
 | [fm1-base](https://github.com/charlesvestal/fm1-base) (`base/`, submodule): platform layer, build tools, host simulator, browser emulator, installer | Charles Vestal, Leo Kuroshita | MPL-2.0 (see `base/LICENSING.md`) |
 | [felucca-bsp](https://github.com/hugelton/felucca-bsp) (`base/bsp/`, submodule): the FM-1 board support | Leo Kuroshita and contributors | MPL-2.0 |
 | JieLi AC79 SDK files the package needs (`uboot.boot`, `cfg_tool.bin`, `eq_cfg_hw.bin`) | Zhuhai Jieli Technology | Apache-2.0; read from your SDK checkout at build time, not in this repository |
+| Mutable Instruments' Braids and stmlib (`tonic/engine/mi/`: the BRAIDS engine, 0.14; small changes noted there) | Emilie Gillet | MIT (`tonic/engine/mi/LICENSE`, the notice in every file) |
 | Fonts (Barlow Semi Condensed, Terminus) | The Barlow Project Authors; Dimitar Toshkov Zhekov | SIL OFL 1.1 (`base/assets/fonts/`) |
 
 TONIC's build does not enable Bluetooth or Wi-Fi, so none of JieLi's binary radio libraries are linked.

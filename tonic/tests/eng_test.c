@@ -14,11 +14,12 @@
 #include <unistd.h>
 #endif
 #include "eng_int.h"
+#include "braids_voice.h"
 #include "pattern.h"
 
 static const char *outdir = ".";
 static int fails;
-static uint8_t pool[336 * 1024 + (NVOICE - 8) * 1028];   /* (as the app: the voices past eight bring their HARM tables) */
+static uint8_t pool[336 * 1024 + (NVOICE - 8) * 1028 + BR_AREA - 32768 + ENG_DUAL_BYTES + ENG_FXRAM_BYTES - 2016];   /* (as the app: the voices past eight bring their HARM tables; 0.16 the second core's buffers) */
 static pattern_t pat;
 static sound_t spool[NPOOL];
 
@@ -543,6 +544,96 @@ static void t_scale(void)
     check(ok, "scale snap, chords by degrees", "C major: C# -> C, Dm, G7, E+3rd, D power; A minor Am; no scale MAJ; a kit as it is");
 }
 
+/* [0.14] the BRAIDS engine: every model sounds and stays finite; two delay-line voices at once, a third takes the
+ * oldest's buffer */
+static int br_sync_, br_sign_, br_sub_;               /* (0.15) SYNC (quarter semitones), SIGN, SUB for br_run */
+static float br_run(int model, int timb, int col, int note)
+{
+    uint32_t i;
+    float pk = 0;
+    reset();
+    sound_set_engine(&pat.snd[0], ENG_BR);
+    pat.snd[0].p[P_DTUN] = (int16_t)br_sync_;
+    pat.snd[0].p[P_FDBK] = (int16_t)br_sign_;
+    pat.snd[0].p[P_OFSC] = (int16_t)br_sub_;
+    pat.snd[0].p[P_RATB] = (int16_t)model;
+    pat.snd[0].p[P_ALEV] = (int16_t)timb;
+    pat.snd[0].p[P_BLEV] = (int16_t)col;
+    put(0, 0, note);
+    pat.trig[0][0].len = LEN_INF;
+    wav_start(1);
+    engine_play();
+    render(0.5f, 1);
+    for (i = 0; i < wav_n; i++) {
+        if (!isfinite(wav_l[i]))
+            return -1.0f;
+        if (fabsf(wav_l[i]) > pk)
+            pk = fabsf(wav_l[i]);
+    }
+    return pk;
+}
+static void t_braids(void)
+{
+    int md, quiet = 0, bad = 0, busy;
+    for (md = 0; md < BR_NMODEL; md++) {
+        float pk = br_run(md, 64, 64, 48);
+        if (pk < 0.0f)
+            bad++;
+        else if (pk < 0.003f) {
+            printf("     model %d quiet: %.4f\n", md, pk);
+            quiet++;
+        }
+    }
+    /* three PLUCK notes held: the third takes a buffer, all three sounding at first is not possible: 2 of 3 */
+    reset();
+    sound_set_engine(&pat.snd[0], ENG_BR);
+    pat.snd[0].p[P_RATB] = 28;
+    engine_note_on(0, 48, 100);
+    render(0.05f, 0);
+    engine_note_on(0, 55, 100);
+    render(0.05f, 0);
+    engine_note_on(0, 60, 100);
+    render(0.05f, 0);
+    busy = engine_voices_busy(0);
+    {   /* in tune: model 3 (FOLD, a sine at TIMBRE 0) on A3, 220 Hz */
+        float hz;
+        br_run(3, 0, 0, 57);
+        hz = pitch_of(8000, 8192);
+        printf("     A3 on FOLD: %.2f Hz\n", hz);
+        bad += fabsf(hz - 220.0f) > 1.5f;
+    }
+    {   /* (0.15) SYNC 12 on FOLD (a sine at TIMB 0) at A3: Braids an octave up, reset at 220 Hz: the period stays 220 Hz;
+         * SUB: energy at 110 Hz; SIGN: another wave, finite */
+        double c220 = 0, c110s = 0, c110 = 0, e = 0;
+        uint32_t k, L = (uint32_t)(SR / 220.0f + 0.5f), from = 8000, n = 8192;
+        float pk;
+        br_sync_ = 48;
+        br_run(3, 0, 0, 57);
+        for (k = from; k < from + n; k++) {
+            c220 += wav_l[k] * wav_l[k + L];
+            e += wav_l[k] * wav_l[k];
+        }
+        c220 /= e;
+        br_sync_ = 0;
+        br_sub_ = 127;
+        br_run(3, 0, 0, 57);
+        for (k = from; k < from + n; k++)
+            c110s += wav_l[k] * sinf(2.0f * 3.14159265f * 110.0f * (float)k / SR);
+        br_sub_ = 0;
+        br_run(3, 0, 0, 57);
+        for (k = from; k < from + n; k++)
+            c110 += wav_l[k] * sinf(2.0f * 3.14159265f * 110.0f * (float)k / SR);
+        br_sign_ = 127;
+        pk = br_run(0, 64, 64, 57);
+        br_sign_ = 0;
+        printf("     SYNC 12: the 220 Hz period's correlation %.3f; SUB: 110 Hz %.1f against %.1f; SIGN peak %.3f\n",
+               c220, fabs(c110s), fabs(c110), pk);
+        bad += c220 < 0.9 || fabs(c110s) < 10.0 * fabs(c110) + 1.0 || pk <= 0.0f;
+    }
+    check(!bad && quiet == 0 && busy == 3, "BRAIDS models", "47 models: %d silent, %d not finite; 3 PLUCK notes on 2 buffers: %d voices",
+          quiet, bad, busy);
+}
+
 /* [0.9.2] an LFO on VOL in MODE FRE (the default) and HLD moves a held note (they used to stand still) */
 static float lfo_swing(int mode)
 {
@@ -990,7 +1081,8 @@ static void t_cpu(void)
     ips = (double)(b.ri_instructions - a.ri_instructions) / (2.0 * SR);
     /* a regression guard: the device binary at this load measured 45 % of a 240 MHz core in fm1-emu (2026-10-23,
      * docs/VALIDATION.md); this host figure was 2103 then */
-    check(ips < 2650.0, "CPU regression guard", "%.0f host instr / sample (worst case; 2414 = 48 %% in the ISS)", ips);
+    /* (0.14: 2564 -> 2673, the reverb's half floats: 13 conversions a sample) */
+    check(ips < 2750.0, "CPU regression guard", "%.0f host instr / sample (worst case; 2414 = 48 %% in the ISS)", ips);
     printf("     voices busy %d\n", engine_voices_busy(-1));
 #endif
 }
@@ -1702,7 +1794,7 @@ int main(int argc, char **argv)
 {
     static const struct { const char *name; void (*fn)(void); } T[] = {
         {"pitch", t_pitch}, {"fm", t_fm_levels}, {"algo", t_algorithms}, {"timing", t_timing},
-        {"swing", t_swing}, {"cond", t_conditions}, {"plock", t_plock}, {"firmware", t_firmware}, {"pack", t_pack}, {"retrig", t_retrig}, {"lofi", t_lofi}, {"drumctl", t_drum_ctl}, {"insert", t_insert}, {"menv", t_menv}, {"scale", t_scale}, {"pump", t_pump}, {"lfo", t_lfo}, {"duck", t_duck},
+        {"swing", t_swing}, {"cond", t_conditions}, {"plock", t_plock}, {"firmware", t_firmware}, {"pack", t_pack}, {"retrig", t_retrig}, {"lofi", t_lofi}, {"braids", t_braids}, {"drumctl", t_drum_ctl}, {"insert", t_insert}, {"menv", t_menv}, {"scale", t_scale}, {"pump", t_pump}, {"lfo", t_lfo}, {"duck", t_duck},
         {"djf", t_djfilter}, {"va", t_va}, {"vacpu", t_va_cpu}, {"drum", t_drum}, {"drumcpu", t_drum_cpu}, {"golden", t_golden}, {"new06", t_new06}, {"pfx", t_pfx}, {"chord08", t_chord08}, {"mod09", t_mod09}, {"new06cpu", t_new06_cpu}, {"cpu", t_cpu}, {"cpuparts", t_cpu_parts},
     };
     unsigned i;

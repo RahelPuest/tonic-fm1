@@ -16,6 +16,11 @@ typedef struct {
     uint8_t ext_clock;            /* follow MIDI clock */
     uint8_t metronome;
     uint8_t click_vol;
+    uint8_t ins_lq;               /* (0.17) the inserts at the base rate (GLO > SYSTEM > INSHQ OFF: less CPU) */
+    uint8_t solo;                 /* (0.18) bit t: track t soloed (any set: the others silent; not saved) */
+    uint8_t mute_next;            /* (0.18) the mutes to take at the next bar (mute_q set) */
+    volatile uint8_t mute_q;      /* (0.18) mute_next waits for the bar's first step (MUTE screen, NEXT BAR) */
+    float thr;                    /* (0.18) THROW: the dry mix into the delay and the reverb, 0..1 (not saved) */
     volatile uint16_t pfx;        /* the momentary performance effects held (PFX_*) [TONIC 0.7] */
 } eng_state_t;
 /* the momentary performance effects [TONIC 0.7]: while held. ROLL: the sequencer repeats the current 1/4 .. 1/32 (the
@@ -32,6 +37,26 @@ extern pattern_t *volatile eng_pat;
 
 void engine_init(void *pool, uint32_t pool_bytes);   /* buffers from the pool */
 void engine_render(int32_t *lr, uint32_t n, uint32_t gain_q12);   /* audio interrupt */
+
+/* (0.16) the second core: the app hands the engine a job runner, and part of the voices render there (each into its
+ * own buffers, then added in the voices' order: the same bits as on one core). give: fn(arg) to the other core;
+ * wait: 0 once it is done, -1 if not within us microseconds (the engine then renders alone from there on); now: a
+ * tick counter both cores read (for the split by each voice's cost). 0: one core. The voices' buffers come from the
+ * engine's pool (ENG_DUAL_BYTES of it) */
+typedef struct {
+    void (*give)(void (*fn)(uint32_t), uint32_t arg);
+    int (*wait)(uint32_t us);
+    uint32_t (*now)(void);
+    uint32_t (*bad)(void);                      /* (0.17) jobs the other core read wrong so far: a rise ends it */
+    void (*gave_up)(void);                      /* (0.17) the engine gave it up (the app keeps one core from then on) */
+} eng_dual_t;
+void engine_dual(const eng_dual_t *d);
+int engine_dual_on(void);                       /* 1 while the second core renders (0: off, or given up) */
+uint32_t engine_dual_lost(void);                /* the times it did not finish in time (and was given up) */
+extern uintptr_t eng_c1_stack_lo, eng_c1_stack_hi;   /* its stack: Braids' noise keeps a state per core */
+#define ENG_DUAL_MAXV 6                          /* voices on the second core at most */
+#define ENG_DUAL_BYTES (ENG_DUAL_MAXV * 5u * 32u * 4u)
+#define ENG_FXRAM_BYTES (1024u * 4u + 5520u * 2u)   /* (0.17) the chorus line and the reverb's pre-delay, from the pool */
 void engine_panic(void);                             /* all sound off now */
 
 /* notes from the keys or MIDI (main loop or render; queued, played at the next block) */
@@ -49,8 +74,12 @@ void engine_play(void);
 void engine_stop(void);                              /* stop: notes released, effects ring out */
 void engine_stop_hard(void);                         /* stop twice: effects too */
 void engine_cue(pattern_t *next);                    /* play `next` when the current pattern ends (CH.LEN) */
+void engine_cue_how(int how);                        /* (0.17) after engine_cue: 0 at the end, 1 at once from step 1, 2 at once in place */
 pattern_t *engine_cued(void);                        /* the cued pattern, 0 none */
 int engine_took_cue(void);                           /* 1 once after the render switched to the cued pattern */
+/* (0.17) at the pattern's next change point, in the render: these mutes (-1: as they are), a stop (song END STOP),
+ * this tempo (0: as it is); so a song row's mutes and tempo come with its first step, not a frame after */
+void engine_at_change(int mute, int stop, int bpm10);
 void engine_restart(void);                           /* the pattern from its first step, now */
 
 /* where the sequencer is (main loop: the playhead on the screen and the keys) */

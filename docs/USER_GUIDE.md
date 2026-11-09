@@ -23,7 +23,7 @@ is live recording; SCL (the second page button) is FUNC; the page buttons open t
 | **FX** | CHORUS, DELAY, REVERB, MIXER (track levels, master overdrive, pattern volume, the DJ filter FILT), DUCK and PUMP (sidechain ducking, volume shaping), COMP. |
 | **ARP** | The arpeggiator (MODE, SPD, RNG, LEN / STEPS and each step's offset). |
 | **GLO** | TEMPO (BPM, swing, tempo mode, metronome, clock, quantize, velocity), SCALE (length mode, track length, speed, transpose, master and change length, MICRO: quantize after recording), VOICE (stealing, reuse, locked voices, unison, spread, layer), SETUP (key scaling, octave, play mode, note priority, velocity to volume, pitch bend), PORTA, VEL MOD / MODWHEEL / AFTERTCH / BREATH / PITCHBND (four destinations each), SONG, KEYBOARD (scale, root, fold, chord), MIDI (channels, MIDI tracks), DISPLAY (THEME: OLED, AMBER, PHOSPHOR, BLUE, PAPER). |
-| **HOME** | Tap: the overview (patterns, tracks, levels with K1–K4). **Hold: the performance layer** (below); **tap twice: lock it** (a tap leaves). |
+| **HOME** | Tap: the overview (patterns, tracks, levels with K1–K4). **Hold: the MENU** (settings). The other held screens: see *Performing*. |
 | **SAVE** | The save page. **SCL+SAVE**: save everything now. |
 | **PLAY** | Start / stop. SCL+PLAY: stop and cut the effects' tails. |
 | **REC** | Grid recording on / off. **REC+PLAY**: live recording (PLAY again while holding REC: quantize on/off). **SCL+REC**: step recording. |
@@ -117,7 +117,7 @@ song's length, END loops or stops at the end. With song mode on, PLAY starts the
   can be a MIDI track: a silent track of kick trigs ducks the pads without sounding. Since 0.10 DUCK can also be a
   division of the tempo (1/4, 1/8, 1/16, 1/2, 1/1): volume shaping with no kick. FX > PUMP: PAD (a kit source: only that
   pad ducks, e.g. the BD), ATK (the dip comes in over 2–250 ms), KEEP (a track never ducked). Both pages draw the curve.
-- On the **performance layer** (HOME held) K1 is the DJ filter and K2 the ducking depth; the screen shows both.
+- On **PERFORM** (FX held, since 0.18) K1 is the DJ filter, K2 the ducking depth, K3 THROW and K4 the overdrive; the screen shows them.
 
 - **VA engine** (EDIT, SYN2 2, K4 ENGINE: VA): two oscillators instead of the FM operators. OSC: WAV1, WAV2 (SAW,
   SQR, TRI, SIN, OFF), SUB (a square an octave down) / TUNE (OSC2, ±24 semitones), DETN, PW (pulse width), MIX.
@@ -158,21 +158,25 @@ song's length, END loops or stops at the end. With song mode on, PLAY starts the
   (SCL, still holding, takes that back).
 - **Shift a track:** in grid recording, black key 6 / 7 with no step held moves all the track's trigs (and their locks)
   one step earlier / later, round its length.
-- **Tap tempo:** hold HOME and tap black key 8 in time; two taps set the tempo, up to four are averaged.
+- **Tap tempo:** hold SAVE and tap black key 6 in time; two taps set the tempo, up to four are averaged.
 
 ## Performing
 
-**Hold HOME** for the performance layer (the screen shows it):
+Since 0.18 a button held for 0.4 s (or with a key or knob) opens its own screen, as on Hortator; a tap does what it
+always did:
 
-- White keys: patterns 1–16 of the bank. A pattern changes at the end of the current one (or its change length).
-  Several keys pressed in turn while holding HOME make a **chain**.
-- Black keys: 1–4 **mute** T1–T4, 5 **FILL** while held, 6 FILL for the next pass of the pattern, 7 the other bank (A/B),
-  8 **tap tempo**, 9 **temporary save**, 10 **reload** (back to the temporary save, or to the saved pattern), 11 restart.
-- K1: the **DJ filter**, K2: the **ducking depth** (with DUCK set to a track).
+- **FX held, PERFORM:** black keys 1–9 the momentary effects (ROLL 1/4 … 1/32, HALFTIME, TAPE STOP, LP / HP SWEEP,
+  FREEZE), 10 **FILL** while held, 11 FILL for the next pass; K1 the **DJ filter**, K2 **ducking depth**, K3 **THROW**
+  (the dry mix into delay and reverb), K4 master overdrive. The white keys still play.
+- **SAVE held, PATTERNS:** white keys the bank's patterns (several in turn: a **chain**); black 1 / 2 bank A / B,
+  3 **temporary save**, 4 **reload**, 5 restart, 6 **tap tempo**; K1 CHNG; OCT transposes the pattern.
+- **GLO held, MUTE:** white 1–4 **mute**, black 1–4 **solo**, black 10 / 11 mutes at once / at the next bar.
+- **SEQ held, TOOLS:** copy / paste / clear a page or the track, shift, duplicate, reverse, undo on the black keys.
+- **EDIT held:** the preset list, each sound playing as you move (OCT+ keeps it). **HOME held:** the MENU (settings).
+  **REC held:** a FILL. **ENV / LFO / ARP held + a knob:** all four tracks.
 
-Also: track levels with K1–K4 on HOME, track transposition with SCL+OCT and pattern transposition with OCT while
-holding HOME, the arpeggiator on any sound (ARP), the mixer page
-(FX > MIXER) for levels and master overdrive.
+Also: track levels with K1–K4 on HOME, track transposition with SCL+OCT, the arpeggiator on any sound (ARP), the mixer
+page (FX > MIXER) for levels and master overdrive.
 
 ## Saving and coming back
 

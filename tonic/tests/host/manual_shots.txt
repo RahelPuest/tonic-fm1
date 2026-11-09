@@ -5,10 +5,10 @@ wait 1200
 tap HOME
 wait 200
 shot home.png
-press HOME
+press FX
 wait 500
 shot perform.png
-release HOME
+release FX
 wait 100
 tap EDIT
 wait 200
@@ -61,10 +61,27 @@ spin K1 3
 wait 300
 shot popup.png
 wait 1800
-press REC
-wait 1200
-shot help.png
-release REC
+press SAVE
+wait 500
+shot cue.png
+release SAVE
+wait 100
+press GLO
+wait 500
+shot mute.png
+release GLO
+wait 100
+press SEQ
+wait 500
+shot tools.png
+release SEQ
+wait 100
+press HOME
+wait 500
+release HOME
+wait 100
+shot menu.png
+tap OCT-
 wait 100
 tap REC
 wait 100
@@ -87,11 +104,11 @@ shot va_osc2.png
 # the DRUM engine: a beat on B02 with the 909 KIT (factory 65): the kit page while it plays, the levels, the roll
 tap HOME
 wait 800
-press HOME
+press SAVE
 wait 400
 tapkey w0
 wait 30
-release HOME
+release SAVE
 wait 100
 expect group 7
 expect perf 0

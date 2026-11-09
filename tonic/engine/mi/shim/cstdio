@@ -1,0 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
+// TONIC: Braids includes <cstdio> for memset / memcpy only
+#pragma once
+#include <cstring>

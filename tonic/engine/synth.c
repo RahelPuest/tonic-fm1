@@ -3,12 +3,14 @@
  * FDBK, MIX, operator envelopes A and B), overdrive, base-width filter, multimode filter, amp envelope, pan,
  * sends, and two LFOs per voice. Control rate CR samples; per-sample work only in voice_block. */
 #include "eng_int.h"
+#include "braids_voice.h"
 #include <stddef.h>
 
 voice_t vc[NVOICE];
 float sin_tab[SIN_N + 1];
 #define sin_small sin_tab
-static int16_t harm_q[NHARM][HARM_N + 1] ENG_LOWRAM;    /* the HARM shapes, x 32767 */
+static int16_t harm_q[NHARM][HARM_N + 1] ENG_HIRAM;   /* (0.13: NOINIT's RAM; RAMTEXT holds the audio code) */    /* the HARM shapes, x 32767 */
+static void br_setup(uint8_t *area);           /* (0.14) the BRAIDS engine's room (below) */
 static float (*wt_voice)[HARM_N + 1];        /* each voice's HARM shape (the blend of two tables), in the pool */
 /* each voice table's blend: the two shapes and their weights; pend: not written to the table yet (1: set this
  * block, 2: a block old) */
@@ -65,6 +67,9 @@ const char *dest_name(int engine, int d)
         for (i = 0; i < sizeof VAN / sizeof VAN[0]; i++)
             if (VAN[i].d == d)
                 return VAN[i].n;
+    if (engine == ENG_BR && d >= D_ALGO && d <= D_OFSB2 && d != D_PITCH)   /* (0.14) BRAIDS: its four, else unused */
+        return d == D_RATB ? "MODEL" : d == D_ALEV ? "TIMB" : d == D_BLEV ? "COLOR" : d == D_HARM ? "TUNE" :
+               d == D_DTUN ? "SYNC" : d == D_FDBK ? "SIGN" : d == D_OFSC ? "SUB" : "---";
     if (engine == ENG_DR && d >= D_ALGO && d <= D_OFSB2 && d != D_PITCH) {   /* DRUM: pads 1-4, else unused */
         static const struct { uint8_t d; const char *n; } DRN[16] = {
             {D_MIX, "1 TUNE"}, {D_AATK, "1 DEC"}, {D_ADEC, "1 TONE"}, {D_AEND, "1 LEV"},
@@ -127,6 +132,8 @@ void synth_init(void *pool, uint32_t *used)
     }
     wt_voice = (float (*)[HARM_N + 1])((uint8_t *)pool + *used);
     *used += NVOICE * (HARM_N + 1) * sizeof(float);
+    br_setup((uint8_t *)pool + *used);                /* (0.14) the BRAIDS oscillators and delay buffers */
+    *used += BR_AREA;
     for (i = 0; i < NHARM; i++)
         build_harm(harm_q[i], HARM_SPECTRUM[i], wt_voice[0]);   /* (the voices' tables are free until a note) */
     for (i = 0; i < NVOICE; i++) {
@@ -134,12 +141,14 @@ void synth_init(void *pool, uint32_t *used)
         vc[i].lfo[0].seed = 0x9E3779B9u * (uint32_t)(i + 1);
         vc[i].lfo[1].seed = 0x7F4A7C15u * (uint32_t)(i + 1);
         vc[i].va_ns = 0x2545F491u * (uint32_t)(i + 1);
+        vc[i].br_i = (uint8_t)i;
+        vc[i].br_slot = BR_NOSLOT;
     }
 }
 
 /* --------------------------------------------------------------------- envelopes --- */
 /* per-block coefficients of an exponential stage that has fallen by `db` dB after `time` s */
-static inline float k_db(float time, float db)
+static inline __attribute__((always_inline)) float k_db(float time, float db)
 {
     if (time <= 0.0f)
         return 0.0f;
@@ -239,8 +248,8 @@ static void adsr_step(env_t *e, float del, float atk, float dec, float sus, floa
 }
 
 /* -------------------------------------------------------------------------- LFOs --- */
-static inline uint32_t rnd32(uint32_t *s) { *s = *s * 1664525u + 1013904223u; return *s; }
-static inline float rndf(uint32_t *s) { return (float)(int32_t)rnd32(s) * (1.0f / 2147483648.0f); }
+static inline __attribute__((always_inline)) uint32_t rnd32(uint32_t *s) { *s = *s * 1664525u + 1013904223u; return *s; }
+static inline __attribute__((always_inline)) float rndf(uint32_t *s) { return (float)(int32_t)rnd32(s) * (1.0f / 2147483648.0f); }
 
 /* the waves [FIRMWARE: the OS's LFO wave functions]: TRI SIN SQR SAW bipolar; EXP 2^(-12 ph), unipolar; RMP 0 -> 1
  * over the first half cycle, then 0 */
@@ -272,8 +281,13 @@ static float lfo_step(voice_t *v, int i, float spd, int mult, float fade, int wa
             l->held += fm_fabsf(d);
             if (l->held >= (mode == 3 ? 1.0f : 0.5f)) {
                 nph = l->ph + (d >= 0 ? 1.0f : -1.0f) * (fm_fabsf(d) - (l->held - (mode == 3 ? 1.0f : 0.5f)));
-                if (mode == 3)
+                if (mode == 3 && sph == 0.0f)
                     nph = d >= 0 ? 0.99999f : 0.0f;
+                else if (mode == 3) {                /* (0.17) a cycle from SPH ends just before SPH again */
+                    nph -= fm_floorf(nph);
+                    nph += d >= 0 ? -0.00001f : 0.00001f;
+                    nph -= fm_floorf(nph);
+                }
                 l->running = 0;
             }
         }
@@ -324,11 +338,11 @@ static void lfo_restart(voice_t *v, int i, int mode, float sph, float fade, int 
 }
 
 /* ------------------------------------------------------------ the voice's controls --- */
-static inline float pv(const voice_t *v, int p) { return (float)v->p[p] * P_INV[p]; }
-static inline float spanof(int p) { return P_HI[p] - P_LO[p]; }
+static inline __attribute__((always_inline)) float pv(const voice_t *v, int p) { return (float)v->p[p] * P_INV[p]; }
+static inline __attribute__((always_inline)) float spanof(int p) { return P_HI[p] - P_LO[p]; }
 /* [FIRMWARE] an LFO at full depth (DEP 64) moves its destination +-128 of the OS's parameter units: display units,
  * except pitch (semitones), the ratio offsets (1/64 ratio = 15.625 thousandths) and RATIO B (half an index) */
-static inline float lfo_unit(int d, int va)
+static inline __attribute__((always_inline)) float lfo_unit(int d, int va)
 {
     if (va) return 128.0f;                           /* [TONIC] VA: display units (TUNE2: semitones, as PITCH) */
     if (d >= D_OFSC && d <= D_OFSB2) return 2000.0f;
@@ -336,7 +350,7 @@ static inline float lfo_unit(int d, int va)
 }
 
 /* the value of a parameter with its modulation, clamped to the parameter's range (display units) */
-static inline float eff(const voice_t *v, const float *m, int p, int d)
+static inline __attribute__((always_inline)) float eff(const voice_t *v, const float *m, int p, int d)
 {
     return fm_clampf(v->ps[p] + m[d], P_LO[p], P_HI[p]);
 }
@@ -345,7 +359,7 @@ static inline float eff(const voice_t *v, const float *m, int p, int d)
  * units, with their modulation m), f0 the note's frequency. Pitch: PENV x envelope A on both oscillators, MENV x
  * envelope B and PITCH 2 on OSC2 (up to +48 semitones each, square law); DETN pulls them apart up to 50 cents;
  * DRFT a slow random wander up to 20 cents */
-static inline float vclamp(const voice_t *v, const float *m, int p, int d)
+static inline __attribute__((always_inline)) float vclamp(const voice_t *v, const float *m, int p, int d)
 {
     const pdesc_t *pd = param_desc(ENG_VA, p);
     return fm_clampf(v->ps[p] + m[d], (float)pd->lo / (float)pd->q, (float)pd->hi / (float)pd->q);
@@ -405,7 +419,7 @@ static const float DM_T60[NDM] = {0.9f, 0.45f, 0.5f, 0.2f, 0.18f, 0.045f, 0.3f, 
 static const float DM_GAIN[NDM] = {0.5f, 0.5f, 0.5f, 0.55f, 0.55f, 0.55f, 1.1f, 2.0f, 2.0f, 1.4f, 0.5f, 0.45f, 0.6f,
                                    0.5f, 1.0f, 0.4f, 0.6f, 1.0f, 1.5f, 1.0f, 0.5f, 0.5f, 0.6f, 0.5f, 0.55f, 0.5f, 1.9f,
                                    1.1f, 1.1f, 0.55f, 0.6f};
-static inline float drv(const voice_t *v, const float *m, int pad, int k)
+static inline __attribute__((always_inline)) float drv(const voice_t *v, const float *m, int pad, int k)
 {
     float x = v->ps[DRP[pad][k]] + (pad < 4 ? m[DRD[pad][k]] : m[D_P5TUN + (pad - 4) * 4 + k]) + m[D_KTUN + k];
     return k == DK_TUN ? fm_clampf(x, -64.0f, 63.0f) : fm_clampf(x, 0.0f, 127.0f);
@@ -419,9 +433,9 @@ static void svf_c(float *c, float hz, float q)
     c[2] = g * c[1];
     c[3] = k;
 }
-static inline float fpow2(float x) { return fm_exp2f(x); }
-static inline float kdec(float t60) { return fm_expf(-6.9078f * INV_SR / fm_maxf(t60, 0.001f)); }   /* per sample */
-static inline float ktau(float tau) { return fm_expf(-INV_SR / fm_maxf(tau, 0.0002f)); }
+static inline __attribute__((always_inline)) float fpow2(float x) { return fm_exp2f(x); }
+static inline __attribute__((always_inline)) float kdec(float t60) { return fm_expf(-6.9078f * INV_SR / fm_maxf(t60, 0.001f)); }   /* per sample */
+static inline __attribute__((always_inline)) float ktau(float tau) { return fm_expf(-INV_SR / fm_maxf(tau, 0.0002f)); }
 static void dr_control(voice_t *v, const float *m, float po)
 {
     int pad = v->dr_pad, md = v->dr_model;
@@ -545,6 +559,142 @@ static void dr_start(voice_t *v)
     v->dr_sa[0] = v->dr_sa[1] = v->dr_sb[0] = v->dr_sb[1] = 0.0f;
 }
 
+/* -------------------------------------------------------- the BRAIDS engine [0.14] --- */
+/* NVOICE + NFADE oscillators (the last the faders') and BR_NDL delay buffers, in the pool's BR_AREA; a delay buffer goes
+ * to a voice whose model needs one (the free one, the one whose voice no longer needs it, else the oldest's) */
+#define BR_NDL 2
+static uint8_t br_defer;                              /* (0.16) in the control phase: delay buffers given after it */
+static float ctl_m[2][ND];                            /* (0.16) the control step's modulation scratch, a core each */
+static uint8_t *br_mem, *br_dl[BR_NDL], *br_ws;
+static int8_t br_own[BR_NDL];
+static unsigned br_sz;
+static float br_ofs;                                  /* the pitch moved by Braids' 96 kHz against the engine's rate */
+static void br_setup(uint8_t *area)
+{
+    unsigned i, need;
+    br_sz = br_state_size();
+    need = (NVOICE + NFADE) * br_sz + BR_NDL * br_delay_size() + br_shaper_size();
+    br_mem = need <= BR_AREA ? area : 0;              /* (it never is short; if it were, the engine stays silent) */
+    if (!br_mem)
+        return;
+    for (i = 0; i < BR_NDL; i++) {
+        br_dl[i] = area + (NVOICE + NFADE) * br_sz + i * br_delay_size();
+        br_own[i] = -1;
+    }
+    for (i = 0; i < NVOICE + NFADE; i++)
+        br_init(br_mem + i * br_sz);
+    br_ws = area + (NVOICE + NFADE) * br_sz + BR_NDL * br_delay_size();
+    br_shaper_init(br_ws, 0x5A3C9Fu);                /* (one signature: sigmoid, skew and bumps of its own) */
+    br_ofs = 1536.0f * fm_log2f(96000.0f / SR);       /* 128 x 12 x log2(96 kHz / rate) */
+}
+static inline __attribute__((always_inline)) void *br_st(const voice_t *v) { return br_mem + v->br_i * br_sz; }
+static void br_slot(voice_t *v)                       /* the voice's model needs a delay buffer: one for it */
+{
+    int k, best = -1, vi = v->br_i;
+    if (v->br_slot < BR_NDL && br_own[v->br_slot] == vi)
+        return;
+    for (k = 0; k < BR_NDL && best < 0; k++) {
+        int o = br_own[k];
+        if (o < 0 || o >= NVOICE || !vc[o].on || vc[o].eng != ENG_BR || !br_needs_delay(vc[o].br_model))
+            best = k;
+    }
+    if (best < 0)                                    /* (all in use: the oldest note's; 0.17: all of them compared) */
+        for (k = 0; k < BR_NDL; k++)
+            if (best < 0 || vc[br_own[k]].age < vc[br_own[best]].age)
+                best = k;
+    if (best < 0)
+        return;
+    if (br_own[best] >= 0 && br_own[best] < NVOICE && br_own[best] != vi) {
+        br_set_delay(br_mem + br_own[best] * br_sz, 0);
+        vc[br_own[best]].br_slot = BR_NOSLOT;
+    }
+    br_own[best] = (int8_t)vi;
+    v->br_slot = (uint8_t)best;
+    __builtin_memset(br_dl[best], 0, br_delay_size());
+    br_set_delay(br_st(v), br_dl[best]);
+}
+static void br_control(voice_t *v, const float *m, float pitch)
+{
+    int md = (int)((float)v->p[P_RATB] + m[D_RATB] + 0.5f);   /* (MODEL: no glide through the models between) */
+    float tune = eff(v, m, P_HARM, D_HARM);
+    uint8_t was = v->br_model;
+    v->br_model = (uint8_t)(md < 0 ? 0 : md > BR_NMODEL - 1 ? BR_NMODEL - 1 : md);
+    if (v->br_model != was)
+        v->br_ask = 1;
+    v->br_pitch = (int16_t)fm_clampf((pitch + tune) * 128.0f + br_ofs, 0.0f, 32767.0f);
+    v->br_timb = (int16_t)(fm_clampf(eff(v, m, P_ALEV, D_ALEV), 0.0f, 127.0f) * 258.0f);
+    v->br_col = (int16_t)(fm_clampf(eff(v, m, P_BLEV, D_BLEV), 0.0f, 127.0f) * 258.0f);
+    {   /* (0.15) SYNC: Braids SYNC semitones over the master, the master at the note; SIGN; SUB an octave below it */
+        float sy = fm_clampf(eff(v, m, P_DTUN, D_DTUN), 0.0f, 48.0f), sg = fm_clampf(eff(v, m, P_FDBK, D_FDBK), 0.0f, 127.0f);
+        float hz = fm_minf(440.0f * fm_exp2f((pitch + tune - 69.0f) * (1.0f / 12.0f)), 0.45f * SR);
+        v->br_sync = sy > 0.01f;
+        v->br_pitch = (int16_t)fm_clampf((pitch + tune + sy) * 128.0f + br_ofs, 0.0f, 32767.0f);
+        v->br_minc = (uint32_t)(hz * INV_SR * 4294967296.0f);
+        v->br_sinc = hz * 0.5f * INV_SR;
+        v->br_sign = (uint16_t)(sg * sg * (65535.0f / (127.0f * 127.0f)));   /* (as the module: squared) */
+        v->br_sub = fm_clampf(eff(v, m, P_OFSC, D_OFSC), 0.0f, 127.0f) * (0.6f / 127.0f);
+    }
+    /* (0.17) a buffer is asked for once, at the note's start or a new model: a voice that lost its buffer to a newer
+     * note stays quiet to its next note instead of taking one back each block (which left all of them silent) */
+    if (br_mem && br_needs_delay(v->br_model) && v->br_ask &&
+        !(v->br_slot < BR_NDL && br_own[v->br_slot] == v->br_i)) {
+        v->br_ask = 0;
+        if (br_defer)                                /* (0.16: the control phase runs on both cores; the buffers are
+                                                      * shared, so given after it, in the voices' order) */
+            v->br_want = 1;
+        else
+            br_slot(v);
+    }
+}
+static void br_block(voice_t *v, float *x)            /* (from the flash: Braids' code is too big for the RAM) */
+{
+    int16_t b[CR];
+    int i;
+    if (!br_mem || (br_needs_delay(v->br_model) && (v->br_slot >= BR_NDL || br_own[v->br_slot] != v->br_i))) {
+        for (i = 0; i < CR; i++)
+            x[i] = 0.0f;
+        return;
+    }
+    {
+        uint8_t sy[CR];
+        if (v->br_sync) {                            /* (0.15) the master's resets, each at its 128th of a sample */
+            uint32_t ph = v->br_mph, inc = v->br_minc, q = inc >> 7 ? inc >> 7 : 1;
+            for (i = 0; i < CR; i++) {
+                uint32_t was = ph;
+                ph += inc;
+                sy[i] = ph < was ? (uint8_t)(ph / q > 127u ? 128u : ph / q + 1u) : 0;
+            }
+            v->br_mph = ph;
+        } else
+            v->br_mph += v->br_minc * CR;
+        br_render(br_st(v), v->br_model, v->br_pitch, v->br_timb, v->br_col, v->br_sync ? sy : 0, b, CR);
+    }
+    if (v->br_sign && br_ws)
+        br_shape(br_ws, b, CR, v->br_sign);
+    for (i = 0; i < CR; i++)
+        x[i] = (float)b[i] * (0.4f / 32768.0f);   /* (0.17: 6 dB down, as loud as FM and VA) */
+    if (v->br_sub > 0.0f) {                          /* (0.15) SUB: a sine an octave below the note */
+        float sp = v->br_sph, si = v->br_sinc, g = v->br_sub;
+        for (i = 0; i < CR; i++) {
+            x[i] += g * lks(sp);
+            sp += si;
+            if (sp >= 1.0f)
+                sp -= 1.0f;
+        }
+        v->br_sph = sp;
+    }
+}
+/* a stolen BRAIDS voice fades out with its own oscillator: a copy (without a delay buffer: those models go quiet) */
+void synth_fader(voice_t *fader, const voice_t *v, int f)
+{
+    if (v->eng != ENG_BR || !br_mem)
+        return;
+    __builtin_memcpy(br_mem + (NVOICE + f) * br_sz, br_st(v), br_sz);
+    fader->br_i = (uint8_t)(NVOICE + f);
+    fader->br_slot = BR_NOSLOT;
+    br_set_delay(br_mem + (NVOICE + f) * br_sz, 0);
+}
+
 /* a voice's engine changes: the union's state for the new one starts at zero [TONIC] */
 static void voice_engine(voice_t *v, int eng)
 {
@@ -552,9 +702,15 @@ static void voice_engine(voice_t *v, int eng)
     unsigned i;
     for (i = 0; i < offsetof(voice_t, amp_now) - offsetof(voice_t, ph); i++)
         b[i] = 0;
-    v->eng = (uint8_t)eng;
     if (eng == ENG_FM)
         v->harm_side = 9;
+    if (eng == ENG_BR && br_mem && v->br_i < NVOICE) {   /* (0.14) its oscillator from the start, no delay buffer */
+        br_init(br_st(v));
+        if (v->br_slot < BR_NDL && br_own[v->br_slot] == v->br_i)
+            br_own[v->br_slot] = -1;
+        v->br_slot = BR_NOSLOT;
+    }
+    v->eng = (uint8_t)eng;                           /* (0.17: last, its state complete first) */
 }
 
 /* the operator envelopes' ATK DEC DEL with their modulation m, at the note's first control step [0.9.2] */
@@ -569,18 +725,23 @@ static void op_relatch(voice_t *v, const float *m)
         v->eb.stage = 1;
     v->latch = 0;
 }
-static void voice_control(voice_t *v)
+static void voice_control(voice_t *v, int core)
 {
 #ifdef PROF_NO_CONTROL
     if (v->age) return;
 #endif
+    if (v->fresh) {                                  /* (0.17) started this block: voice_start did its step */
+        v->fresh = 0;
+        if (!v->wait)
+            return;
+    }
     if (v->wait) {                                   /* a strummed note not yet due: it waits as it was set up */
         v->wait--;
         return;
     }
     /* the modulation of each destination: zero between calls; what a call writes it sets back to zero at its end
-     * (cheaper than clearing all ND each block) */
-    static float m[ND];
+     * (cheaper than clearing all ND each block); one per core [0.16] */
+    float *m = ctl_m[core];
     uint8_t mw[NMS * NMSLOT + 3];
     int nmw = 0;
     int i, algo, ri, mult;
@@ -707,6 +868,10 @@ static void voice_control(voice_t *v)
         dr_control(v, m, pitch - (float)v->note);
         goto filters;
     }
+    if (eng == ENG_BR) {                             /* (0.14) the BRAIDS engine: its model, TIMBRE, COLOR */
+        br_control(v, m, pitch);
+        goto filters;
+    }
     if (va) {                                        /* the VA engine: its oscillators instead of the operators */
         openv_step(&v->ea, eff(v, m, P_AEND, D_AEND) * (1.0f / 128.0f), v->p[P_ATRG], v->gate);
         openv_step(&v->eb, eff(v, m, P_BEND, D_BEND) * (1.0f / 128.0f), v->p[P_BTRG], v->gate);
@@ -803,6 +968,8 @@ filters:
         float fc = fm_clampf(eff(v, m, P_FREQ, D_FREQ) + eff(v, m, P_FENV, D_FENV) * 2.0f * v->ef.lvl +
                              ((float)v->note - 48.0f) * (float)s->s[S_FKTRK] * 0.008813f, 0, 127);
         float rs = eff(v, m, P_RESO, D_RESO);
+        if (((uint8_t)v->p[P_FTYP] == 3) != (v->ftype == 3))   /* (0.17) LP4 <-> LP2 / HP: another structure, */
+            v->s1 = v->s2 = v->s3 = v->s4 = 0;                   /* its states from zero (no burst) */
         v->ftype = (uint8_t)v->p[P_FTYP];
         if (fm_fabsf(fc - v->c_fc) > 0.01f || rs != v->c_res || v->ftype != v->c_ftype) {
             float hz = fm_minf(cutoff_hz(fc), 0.45f * SR), g = fm_tanf(FM_PI * hz * INV_SR), q;
@@ -842,11 +1009,17 @@ filters:
     {   /* (0: bypassed; modulation reaches it at DRV 0 too) [0.9.2] */
         float dv = eff(v, m, P_DRV, D_DRV);
         v->drive_g = dv > 0.0f ? drive_gain(dv) : 0.0f;
+        v->drive_w = dv >= 8.0f ? 1.0f : dv * (1.0f / 8.0f);   /* (0.17) faded in over DRV 0 .. 8 */
     }
     {   /* (0.12) the insert effect: AMT drives it (each type its own range), TONE a lowpass on it from 100 Hz up
          * (127: open), MIX dry / wet. OFF: nothing computed, the samples as before */
         int ty = v->p[P_ITYP];
-        v->in_typ = (uint8_t)(ty > 0 && ty < NINS ? ty : 0);
+        {
+            uint8_t nt = (uint8_t)(ty > 0 && ty < NINS ? ty : 0);
+            if (!v->in_typ && nt)                    /* (0.17) switched on: the oversampling's lines from silence */
+                __builtin_memset(v->in_hx, 0, sizeof v->in_hx + sizeof v->in_hu + sizeof v->in_hd);
+            v->in_typ = nt;
+        }
         if (v->in_typ) {
             float a = eff(v, m, P_IAMT, D_IAMT) * (1.0f / 127.0f), tn = eff(v, m, P_ITON, D_ITON);
             v->in_mix = eff(v, m, P_IMIX, D_IMIX) * (1.0f / 127.0f);
@@ -934,16 +1107,16 @@ filters:
 
 /* ---------------------------------------------------------------------- the audio --- */
 /* a lookup in a 256-point table at a phase in 2^-32 cycles, linear between points */
-static inline float lku(const float *t, uint32_t ph)
+static inline __attribute__((always_inline)) float lku(const float *t, uint32_t ph)
 {
     uint32_t i = ph >> 24;
     float fr = (float)(int32_t)(ph & 0xFFFFFFu) * (1.0f / 16777216.0f);
     return t[i] + fr * (t[i + 1] - t[i]);
 }
 /* a modulation in cycles (|m| < 128) as a phase offset */
-static inline uint32_t pmod(float m) { return (uint32_t)(int32_t)(m * 16777216.0f) << 8; }
+static inline __attribute__((always_inline)) uint32_t pmod(float m) { return (uint32_t)(int32_t)(m * 16777216.0f) << 8; }
 /* a soft clip without a divide or an exp: cubic on [-1.5, 1.5], flat beyond */
-static inline float softc(float x)
+static inline __attribute__((always_inline)) float softc(float x)
 {
     if (x > 1.5f) return 1.0f;
     if (x < -1.5f) return -1.0f;
@@ -951,8 +1124,8 @@ static inline float softc(float x)
 }
 
 /* the drive [FIRMWARE, DSP]: u = 2 g x; y = f(f(f(u))) / 2, f(u) = u (2 - |u|), +-1 beyond */
-static inline float f_dr1(float u) { return u * (2.0f - fm_fabsf(u)); }   /* f_dr for |u| <= 1 */
-static inline float f_dr(float u)
+static inline __attribute__((always_inline)) float f_dr1(float u) { return u * (2.0f - fm_fabsf(u)); }   /* f_dr for |u| <= 1 */
+static inline __attribute__((always_inline)) float f_dr(float u)
 {
     if (u >= 1.0f) return 1.0f;
     if (u <= -1.0f) return -1.0f;
@@ -964,7 +1137,7 @@ static inline float f_dr(float u)
  * raw output or through its envelope (raw x env); its depth is always T_lev[level x env]; the feedback operator
  * feeds back its enveloped output, one sample late. */
 /* PolyBLEP: the correction of a unit step at phase 0, t in 0..1, dt the increment (idt its inverse) */
-static inline float blep(float t, float dt, float idt)
+static inline __attribute__((always_inline)) float blep(float t, float dt, float idt)
 {
     if (t < dt) {
         t *= idt;
@@ -977,7 +1150,7 @@ static inline float blep(float t, float dt, float idt)
     return 0.0f;
 }
 /* one oscillator over a block, the wave chosen once: phases ph[i] (0..1) given, out[i] = wave (added with gain g) */
-static void va_osc(int w, const float *ph, float dt, float pw, float g, float *out, int add)
+static ENG_RAMCODE void va_osc(int w, const float *ph, float dt, float pw, float g, float *out, int add)
 {
     float idt = 1.0f / fm_maxf(dt, 1e-6f), dc = 2.0f * pw - 1.0f;
     int i;
@@ -1018,12 +1191,14 @@ static void va_osc(int w, const float *ph, float dt, float pw, float g, float *o
 }
 /* the VA engine's samples [TONIC]: OSC1's phases (its wraps restart OSC2 with SYNC), OSC2, OSC1 (phase-modulated
  * by OSC2 with XMOD), the sub (a square an octave below OSC1), noise */
-static void va_block(voice_t *v, float *x)
+static ENG_RAMCODE void va_block(voice_t *v, float *x)
 {
     float p1[CR], p2[CR], o2[CR];
     float t1 = v->va_ph[0], t2 = v->va_ph[1], t3 = v->va_ph[2];
     const float d1 = v->va_inc[0], d2 = v->va_inc[1], d3 = v->va_inc[2], xm = v->va_xm, r21 = d2 / fm_maxf(d1, 1e-6f);
-    int i, need2 = v->va_w2 != VW_OFF && (v->va_g2 > 0.0f || xm > 0.0f);
+    int i, need2 = v->va_w2 != VW_OFF && (v->va_g2 > 0.0f || xm > 0.0f), nsy = 0;
+    uint8_t sy_j[4];
+    float sy_pre[4];
     if (v->va_sync)
         for (i = 0; i < CR; i++) {
             p1[i] = t1;
@@ -1033,6 +1208,10 @@ static void va_block(voice_t *v, float *x)
             if (t2 >= 1.0f) t2 -= 1.0f;
             if (t1 >= 1.0f) {
                 t1 -= 1.0f;
+                if (i + 1 < CR && nsy < 4) {         /* (0.17) where OSC2 was when OSC1 reset it: the step's height */
+                    sy_j[nsy] = (uint8_t)(i + 1);
+                    sy_pre[nsy++] = t2 - t1 * r21;
+                }
                 t2 = t1 * r21;                       /* hard sync: OSC2 restarts with OSC1 */
             }
         }
@@ -1045,8 +1224,27 @@ static void va_block(voice_t *v, float *x)
             t2 += d2;
             if (t2 >= 1.0f) t2 -= 1.0f;
         }
-    if (need2)
+    if (need2) {
         va_osc(v->va_w2, p2, d2, v->va_pw, 1.0f, o2, 0);
+        /* (0.17) hard sync's BLEP: va_osc corrected the reset as a full wrap; the real step is as high as OSC2 had
+         * come (SAW: 2 x its phase; SQR: 2 or nothing), and the sample before it gets its half too */
+        for (i = 0; i < nsy; i++) {
+            int j = sy_j[i];
+            float pre = sy_pre[i], a2 = p2[j] / fm_maxf(d2, 1e-6f), bp, k;
+            if (pre < 0.0f) pre += 1.0f;
+            if (pre >= 1.0f) pre -= 1.0f;
+            if (a2 > 1.0f) a2 = 1.0f;
+            bp = (1.0f - a2) * (1.0f - a2);          /* the post-step half, as va_osc took it (sign aside) */
+            if (v->va_w2 == VW_SAW) {
+                o2[j] -= (1.0f - pre) * bp;          /* (va_osc: y -= blep = -(1-a)^2 for a full 2) */
+                o2[j - 1] -= pre * a2 * a2;
+            } else if (v->va_w2 == VW_SQR) {
+                k = pre >= v->va_pw ? 1.0f : 0.0f;   /* (from -1 up to +1, or no step at all) */
+                o2[j] += (1.0f - k) * bp;
+                o2[j - 1] += k * a2 * a2;
+            }
+        }
+    }
     if (xm > 0.0f && need2)
         for (i = 0; i < CR; i++) {
             float t = p1[i] + xm * o2[i];
@@ -1097,9 +1295,9 @@ static void va_block(voice_t *v, float *x)
 /* the DRUM engine's samples [TONIC]: per model, a sine with a falling pitch (kicks, toms, congas, the zap), tones
  * and filtered noise (snares), pings (rim, clave), noise bursts (clap), six detuned squares through a bandpass and a
  * highpass (the 808's metal: hats, cymbal), two squares through a bandpass (cowbell), filtered noise */
-static inline float dnoise(uint32_t *s) { *s = *s * 1664525u + 1013904223u; return (float)(int32_t)*s * (1.0f / 2147483648.0f); }
+static inline __attribute__((always_inline)) float dnoise(uint32_t *s) { *s = *s * 1664525u + 1013904223u; return (float)(int32_t)*s * (1.0f / 2147483648.0f); }
 /* one sample through a TPT SVF (c: a1 a2 a3 k, st: its two states): the lowpass; band and high through pointers */
-static inline float svf(const float *c, float *st, float x, float *band, float *high)
+static inline __attribute__((always_inline)) float svf(const float *c, float *st, float x, float *band, float *high)
 {
     float v3 = x - st[1], v1 = c[0] * st[0] + c[1] * v3, v2 = st[1] + c[1] * st[0] + c[2] * v3;
     st[0] = 2.0f * v1 - st[0];
@@ -1108,10 +1306,10 @@ static inline float svf(const float *c, float *st, float x, float *band, float *
     *high = x - c[3] * v1 - v2;
     return v2;
 }
-static inline float wrap1(float p) { return p >= 1.0f ? p - 1.0f : p; }
-static inline float sq(float p) { return p < 0.5f ? 1.0f : -1.0f; }
+static inline __attribute__((always_inline)) float wrap1(float p) { return p >= 1.0f ? p - 1.0f : p; }
+static inline __attribute__((always_inline)) float sq(float p) { return p < 0.5f ? 1.0f : -1.0f; }
 static const float HH_R[6] = {1.0f, 1.4827f, 1.8003f, 2.5460f, 2.6303f, 3.8967f};   /* the 808's six: 205 .. 800 Hz */
-static void dr_block(voice_t *v, float *x)
+static ENG_RAMCODE void dr_block(voice_t *v, float *x)
 {
     float env = v->dr_env, ek = v->dr_ek, ne = v->dr_ne, nk = v->dr_nk, pe = v->dr_pe, pk = v->dr_pk;
     float f0 = v->dr_f0, sw = v->dr_sw, tx = v->dr_x, g = v->dr_g, p0 = v->dr_ph[0], p1 = v->dr_ph[1];
@@ -1319,7 +1517,7 @@ static void dr_block(voice_t *v, float *x)
 }
 
 /* lku of a HARM blend that is not in its table yet: the table's two points as the blend writes them */
-static inline float lkh(const int16_t *t0, float a, float b, uint32_t ph)
+static inline __attribute__((always_inline)) float lkh(const int16_t *t0, float a, float b, uint32_t ph)
 {
     uint32_t i = ph >> 24;
     float fr = (float)(int32_t)(ph & 0xFFFFFFu) * (1.0f / 16777216.0f);
@@ -1329,7 +1527,7 @@ static inline float lkh(const int16_t *t0, float a, float b, uint32_t ph)
 }
 /* the operators' block. mode 0: the HARM shape from the voice's table; 1 / 2: the shape (on A and B1 / on C) blended
  * from its two tables at each lookup, the table's values exactly (while HARM moves: cheaper than the table) */
-static inline __attribute__((always_inline)) void fm_block(voice_t *v, float *x, const int mode)
+static inline __attribute__((always_inline)) __attribute__((always_inline)) void fm_block(voice_t *v, float *x, const int mode)
 {
     uint32_t phC = v->ph[OC], phA = v->ph[OA], phB1 = v->ph[OB1], phB2 = v->ph[OB2];
     const uint32_t iC = v->inc[OC], iA = v->inc[OA], iB1 = v->inc[OB1], iB2 = v->inc[OB2];
@@ -1597,12 +1795,19 @@ static inline __attribute__((always_inline)) void fm_block(voice_t *v, float *x,
     v->wy_now = v->wy_tgt;
 }
 
+/* (0.17) the insert's 2x halfband (15 taps, Kaiser 6: -1.8 dB at 17.6 kHz, -31 dB from 31 kHz, -62 dB from 35 kHz):
+ * its odd taps from the centre out (the centre 0.5, the even ones 0); in RAM, as the code that reads it. The scratch:
+ * a core each */
+#define HB_N 4                    /* its side taps (15 taps in all) */
+#define HB_D (2 * HB_N - 1)       /* its delay at the base rate, both halfbands together */
+static float HB[HB_N] = {0.300794105f, -0.062709914f, 0.012712380f, -0.000676007f};
+static float ins_scr[2][HB_D + CR + 2 * HB_D + 2 * CR];
 /* (apart: voice_block's own frame and registers stay as the other engines need them) */
-static __attribute__((noinline)) void fm_block0(voice_t *v, float *x) { fm_block(v, x, 0); }
-static __attribute__((noinline)) void fm_block1(voice_t *v, float *x) { fm_block(v, x, 1); }
-static __attribute__((noinline)) void fm_block2(voice_t *v, float *x) { fm_block(v, x, 2); }
+static __attribute__((noinline)) ENG_RAMCODE void fm_block0(voice_t *v, float *x) { fm_block(v, x, 0); }
+static __attribute__((noinline)) ENG_RAMCODE void fm_block1(voice_t *v, float *x) { fm_block(v, x, 1); }
+static __attribute__((noinline)) ENG_RAMCODE void fm_block2(voice_t *v, float *x) { fm_block(v, x, 2); }
 
-void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *srv)
+ENG_RAMCODE void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *srv)
 {
     float x[CR];
     if (v->wait)                                     /* (not sounding yet) */
@@ -1614,6 +1819,8 @@ void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *
         va_block(v, x);
     else if (v->eng == ENG_DR)
         dr_block(v, x);
+    else if (v->eng == ENG_BR)
+        ENG_FAR(br_block)(v, x);                     /* (0.14: its code in the flash) */
     else {
         harm_t *h = &harm_w[v->wti];
         if (h->pend && v->harm_side != 0) {
@@ -1647,8 +1854,10 @@ void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *
             if (ph >= 1.0f) {
                 float y = x[i];
                 ph -= 1.0f;
-                if (drv)
-                    y = 0.5f * f_dr1(f_dr1(f_dr(y * g2)));
+                if (drv) {
+                    float yd = 0.5f * f_dr1(f_dr1(f_dr(y * g2)));
+                    y = v->drive_w >= 1.0f ? yd : y + v->drive_w * (yd - y);
+                }
                 if (brr)
                     y = fm_floorf(y * iq + 0.5f) * q;
                 h = y;
@@ -1661,9 +1870,17 @@ void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *
         if (v->drive_g > 0.0f) {
             int i;
             float g2 = 2.0f * v->drive_g;
-            for (i = 0; i < CR; i++)                 /* (after the first stage |u| <= 1: no clamps needed, the same
+            if (v->drive_w >= 1.0f)
+                for (i = 0; i < CR; i++)             /* (after the first stage |u| <= 1: no clamps needed, the same
                                                       * values, +-1 included) */
-                x[i] = 0.5f * f_dr1(f_dr1(f_dr(x[i] * g2)));
+                    x[i] = 0.5f * f_dr1(f_dr1(f_dr(x[i] * g2)));
+            else {                                   /* (0.17) DRV's first steps: blended, no level step */
+                float dw = v->drive_w;
+                for (i = 0; i < CR; i++) {
+                    float yd = 0.5f * f_dr1(f_dr1(f_dr(x[i] * g2)));
+                    x[i] = x[i] + dw * (yd - x[i]);
+                }
+            }
         }
         if (v->lf_q > 0.0f) {
             int i;
@@ -1719,30 +1936,36 @@ void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *
     /* (0.12) the insert effect: the wet signal a type at a time, then the DC blocker, TONE and MIX where they are on */
     if (v->in_typ) {
         int i, ty = v->in_typ;
-        float g = v->in_g, c = v->in_c, tg = v->in_tg, mx = v->in_mix, w[CR];
-        switch (ty) {
-        case INS_OVER: for (i = 0; i < CR; i++) w[i] = softc(g * x[i]) * c; break;
-        case INS_HARD:
-            for (i = 0; i < CR; i++) {
-                float u = g * x[i];
-                w[i] = (u > 1.0f ? 1.0f : u < -1.0f ? -1.0f : u) * c;
+        float g = v->in_g, c = v->in_c, tg = v->in_tg, mx = v->in_mix, w[CR], xd[CR];
+        const float *dry = x;
+        if (ty == INS_CRUSH || ty == INS_OVER || eng.ins_lq) {   /* CRUSH: at the base rate (its aliasing is the point);
+                                                      * OVER: smooth enough there (46 dB under its harmonics on a high
+                                                      * note); INSHQ OFF: all of them */
+          if (ty != INS_CRUSH) {
+            switch (ty) {
+            case INS_OVER: for (i = 0; i < CR; i++) w[i] = softc(g * x[i]) * c; break;
+            case INS_HARD:
+                for (i = 0; i < CR; i++) {
+                    float t = g * x[i];
+                    w[i] = (t > 1.0f ? 1.0f : t < -1.0f ? -1.0f : t) * c;
+                }
+                break;
+            case INS_FUZZ: {
+                float bias = v->in_b, sb = softc(bias);
+                for (i = 0; i < CR; i++)
+                    w[i] = (softc(g * x[i] + bias) - sb) * c;
+                break;
             }
-            break;
-        case INS_FUZZ: {
-            float bias = v->in_b, sb = softc(bias);
-            for (i = 0; i < CR; i++)
-                w[i] = (softc(g * x[i] + bias) - sb) * c;
-            break;
-        }
-        case INS_RECT: for (i = 0; i < CR; i++) w[i] = softc(g * fm_fabsf(x[i])) * c; break;
-        case INS_FOLD:
-            for (i = 0; i < CR; i++) {
-                float u = g * x[i] * 0.25f + 0.25f;
-                u -= fm_floorf(u);
-                w[i] = 4.0f * fm_fabsf(u - 0.5f) - 1.0f;
+            case INS_RECT: for (i = 0; i < CR; i++) w[i] = softc(g * fm_fabsf(x[i])) * c; break;
+            default:                                 /* FOLD */
+                for (i = 0; i < CR; i++) {
+                    float t = g * x[i] * 0.25f + 0.25f;
+                    t -= fm_floorf(t);
+                    w[i] = 1.0f - 4.0f * fm_fabsf(t - 0.5f);
+                }
+                break;
             }
-            break;
-        default: {                                   /* CRUSH */
+          } else {
             float h = v->in_hold, q = v->in_q, iq = 1.0f / q;
             int n = v->in_n, len = v->in_len;
             for (i = 0; i < CR; i++) {
@@ -1755,8 +1978,68 @@ void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *
             }
             v->in_hold = h;
             v->in_n = (uint8_t)(n < 0 ? 0 : n);
-            break;
-        }
+          }
+        } else {
+            /* (0.17) the shapers at twice the rate: up through a 15-tap halfband, shaped, down through it again;
+             * HB_D samples late in all, so the dry signal waits as long (MIX without a comb). The scratch is the
+             * core's own (both cores render voices) */
+            char here;
+            float *sc = ins_scr[(uintptr_t)&here - eng_c1_stack_lo < eng_c1_stack_hi - eng_c1_stack_lo];
+            float *xe = sc, *ue = sc + HB_D + CR, *u = ue + 2 * HB_D;
+            int j;
+            for (i = 0; i < HB_D; i++)
+                xe[i] = v->in_hx[i];
+            for (i = 0; i < CR; i++)
+                xe[HB_D + i] = x[i];
+            for (i = 0; i < CR; i++) {
+                const float *b = xe + HB_D + i;      /* (b[0] is x[i]) */
+                float e = 0.0f;
+                for (j = 0; j < HB_N; j++)
+                    e += HB[j] * (b[j - (HB_N - 1)] + b[-HB_N - j]);
+                u[2 * i] = 2.0f * e;
+                u[2 * i + 1] = b[-(HB_N - 1)];
+            }
+            switch (ty) {
+            case INS_OVER: for (i = 0; i < 2 * CR; i++) u[i] = softc(g * u[i]) * c; break;
+            case INS_HARD:
+                for (i = 0; i < 2 * CR; i++) {
+                    float t = g * u[i];
+                    u[i] = (t > 1.0f ? 1.0f : t < -1.0f ? -1.0f : t) * c;
+                }
+                break;
+            case INS_FUZZ: {
+                float bias = v->in_b, sb = softc(bias);
+                for (i = 0; i < 2 * CR; i++)
+                    u[i] = (softc(g * u[i] + bias) - sb) * c;
+                break;
+            }
+            case INS_RECT: for (i = 0; i < 2 * CR; i++) u[i] = softc(g * fm_fabsf(u[i])) * c; break;
+            default:                                 /* FOLD */
+                for (i = 0; i < 2 * CR; i++) {
+                    float t = g * u[i] * 0.25f + 0.25f;
+                    t -= fm_floorf(t);
+                    u[i] = 1.0f - 4.0f * fm_fabsf(t - 0.5f);   /* (0.17: not inverted; the dry and the wet add) */
+                }
+                break;
+            }
+            for (i = 0; i < 2 * HB_D; i++)
+                ue[i] = v->in_hu[i];
+            for (i = 0; i < CR; i++) {
+                const float *b = ue + 2 * i + 2 * HB_D;   /* (b[0] is u[2i]) */
+                float e = 0.5f * b[-HB_D];
+                for (j = 0; j < HB_N; j++)
+                    e += HB[j] * (b[-HB_D + 1 + 2 * j] + b[-HB_D - 1 - 2 * j]);
+                w[i] = e;
+            }
+            for (i = 0; i < HB_D; i++)
+                v->in_hx[i] = xe[CR + i];
+            for (i = 0; i < 2 * HB_D; i++)
+                v->in_hu[i] = ue[2 * CR + i];
+            for (i = 0; i < CR; i++)                 /* the dry line: HB_D samples */
+                xd[i] = i < HB_D ? v->in_hd[i] : x[i - HB_D];
+            for (i = 0; i < HB_D; i++)
+                v->in_hd[i] = x[CR - HB_D + i];
+            dry = xd;
         }
         if (ty == INS_FUZZ || ty == INS_RECT) {      /* (their DC away) */
             float dc = v->in_dc;
@@ -1777,9 +2060,10 @@ void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *
         if (mx >= 1.0f)
             for (i = 0; i < CR; i++)
                 x[i] = w[i];
-        else
+        else if (mx > 0.0f)
             for (i = 0; i < CR; i++)
-                x[i] = x[i] + mx * (w[i] - x[i]);
+                x[i] = dry[i] + mx * (w[i] - dry[i]);
+        /* (MIX 0: the dry note as it is, not delayed) */
     }
     /* amp, pan, sends */
     {
@@ -1811,7 +2095,7 @@ void voice_block(voice_t *v, float *dl, float *dr, float *sc, float *sd, float *
 }
 
 /* ------------------------------------------------------------------ note on / off --- */
-static inline int locked(const voice_t *v, int p) { return (v->locked[p >> 5] >> (p & 31)) & 1u; }
+static inline __attribute__((always_inline)) int locked(const voice_t *v, int p) { return (v->locked[p >> 5] >> (p & 31)) & 1u; }
 
 /* start (or retrigger) a voice. retrig: the voice was sounding the same track (mono, reuse, legato): the
  * envelopes follow their RESET settings. */
@@ -1848,6 +2132,7 @@ void voice_start(voice_t *v, int trk, int note, int vel, const sound_t *s, const
         }
         v->ea.lvl = v->eb.lvl = v->ef.lvl = v->eamp.lvl = v->em.lvl = 0;
         v->in_lp = v->in_dc = v->in_hold = 0;
+        __builtin_memset(v->in_hx, 0, sizeof v->in_hx + sizeof v->in_hu + sizeof v->in_hd);   /* (0.17) */
         v->in_n = 0;
         v->s1 = v->s2 = v->s3 = v->s4 = v->bw_hp = v->bw_lp = v->bw_lpp = 0;
         v->lf_ph = 1.0f;                             /* LO-FI: the first sample is taken at once */
@@ -1909,6 +2194,12 @@ void voice_start(voice_t *v, int trk, int note, int vel, const sound_t *s, const
         v->pitch_from = v->pitch;
         dr_start(v);
     }
+    if (s->s[S_ENGINE] == ENG_BR && br_mem && !legato) {   /* (0.14) BRAIDS: the struck and plucked models excited; */
+        br_strike(br_st(v));
+        v->br_ask = 1;                               /* (0.17) its delay buffer asked for now */
+        v->br_mph = 0;                               /* (0.15) the master and the sub from the start */
+        v->br_sph = 0.0f;
+    }
     if (s->s[S_ENGINE] == ENG_VA && v->p[P_PHRT])    /* VA: RST ON starts the oscillators at 0 */
         v->va_ph[0] = v->va_ph[1] = v->va_ph[2] = 0;
     if (v->p[P_PHRT])                                /* [FIRMWARE] with a phase reset the filter starts clear too */
@@ -1960,7 +2251,9 @@ void voice_start(voice_t *v, int trk, int note, int vel, const sound_t *s, const
         }
     }
     ts[trk].last_note = (int8_t)note;
-    voice_control(v);                                /* targets now: the first block starts on them */
+    v->fresh = 0;
+    voice_control(v, 0);                             /* targets now: the first block starts on them */
+    v->fresh = !retrig;                              /* (0.17) and the block's control step skips it once */
     if (v->eng == ENG_FM) {
         v->idx_now[0] = v->idx_tgt[0];
         v->idx_now[1] = v->idx_tgt[1];
@@ -1981,9 +2274,28 @@ void voice_kill(voice_t *v) { v->stolen = 1; }
 void synth_control(void)
 {
     int i;
+    br_defer = 1;
     for (i = 0; i < NVOICE; i++)
         if (vc[i].on)
-            voice_control(&vc[i]);
+            voice_control(&vc[i], 0);
+    synth_control_end();
+}
+/* (0.16) the control phase on two cores: br_defer set while it runs (core 0 sets it before, clears it in _end) */
+void synth_control_voice(voice_t *v, int core)
+{
+    br_defer = 1;
+    voice_control(v, core);
+}
+void synth_control_end(void)
+{
+    int i;
+    for (i = 0; i < NVOICE; i++)
+        if (vc[i].br_want) {
+            vc[i].br_want = 0;
+            if (br_mem && vc[i].eng == ENG_BR)
+                br_slot(&vc[i]);
+        }
+    br_defer = 0;
 }
 
 /* a knob turned: the track's voices follow, except where the voice has the parameter locked */
