@@ -222,6 +222,10 @@ void fx_clear(void);
 void fx_duck(float g);
 void fx_throw(float t);             /* the returns' gain this block (sidechain ducking) */
 void fx_freeze(int on);            /* FREEZE [TONIC 0.7]: the reverb takes no new input */
+/* (0.23) PERFORM's second bank (PFB_*), around fx_block: the shimmer's feed into the reverb's send before it, the
+ * delay line borrowed for the captures and their sound after it (bpm the tempo, gt the sequencer's tick or -1) */
+void pfb_pre(const float *dl, const float *dr, float *sr, int n, unsigned on);
+int pfb_post(float *dl, float *dr, int n, unsigned on, float bpm, float gt);   /* 1: still busy */
 
 /* the sequencer (seq.c), at control rate */
 void seq_block(void);

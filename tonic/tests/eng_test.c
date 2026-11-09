@@ -1098,8 +1098,9 @@ static void t_cpu(void)
     /* a regression guard: the device binary at this load measured 45 % of a 240 MHz core in fm1-emu (2026-10-23,
      * docs/VALIDATION.md); this host figure was 2103 then */
     /* (0.14: 2564 -> 2673, the reverb's half floats: 13 conversions a sample; 0.21: 2800, 0.20 itself measured
-     * 2750 .. 2760 here from run to run) */
-    check(ips < 2800.0, "CPU regression guard", "%.0f host instr / sample (worst case; 2414 = 48 %% in the ISS)", ips);
+     * 2750 .. 2760 here from run to run; 0.23: 2850, one binary measured 2785 .. 2827 while fm1-emu's
+     * figures stayed the same to the percent) */
+    check(ips < 2850.0, "CPU regression guard", "%.0f host instr / sample (worst case; 2414 = 48 %% in the ISS)", ips);
     printf("     voices busy %d\n", engine_voices_busy(-1));
 #endif
 }
@@ -1484,6 +1485,201 @@ static void t_pfx(void)
     }
 }
 
+/* (0.23) PERFORM's second bank */
+static float rms_lr(uint32_t from, uint32_t len)
+{
+    double s = 0;
+    uint32_t i;
+    for (i = from; i < from + len && i < wav_n; i++)
+        s += 0.5 * (wav_l[i] * wav_l[i] + wav_r[i] * wav_r[i]);
+    return (float)sqrt(s / len);
+}
+static void t_pfxb(void)
+{
+    {   /* OCT+ / OCT-: a held A3 an octave up / down (the window filled first: 46 ms), back when let go */
+        float f0, fu, fd, f1;
+        reset();
+        wav_start(3.0f);
+        engine_note_on(0, 57, 100);
+        render(0.3f, 1);
+        f0 = pitch_of((uint32_t)(0.1f * SR), (uint32_t)(0.2f * SR));
+        eng.pfxb = 1u << PFB_OCTU;
+        render(0.5f, 1);
+        fu = pitch_of((uint32_t)(0.5f * SR), (uint32_t)(0.25f * SR));
+        eng.pfxb = 1u << PFB_OCTD;
+        render(0.5f, 1);
+        fd = pitch_of((uint32_t)(1.0f * SR), (uint32_t)(0.25f * SR));
+        eng.pfxb = 0;
+        render(0.5f, 1);
+        f1 = pitch_of((uint32_t)(1.45f * SR), (uint32_t)(0.25f * SR));
+        engine_note_off(0, 57);
+        wav_save("pfxb_oct");
+        check(fabsf(fu / f0 - 2.0f) < 0.06f && fabsf(fd / f0 - 0.5f) < 0.03f && fabsf(f1 - f0) < 1.0f, "OCT+ OCT-",
+              "%.1f Hz: up %.1f, down %.1f, after %.1f", f0, fu, fd, f1);
+    }
+    {   /* GATE: a 1/16 chop (closed halves quiet); STUT: the first 1/32 again, its last quarter quiet */
+        const uint32_t six = 5512 / 2;               /* a sixteenth's half at 120 BPM, samples (a 1/32) */
+        float on, off, son, soff;
+        int k;
+        reset();
+        wav_start(3.0f);
+        engine_note_on(0, 60, 100);
+        render(0.2f, 1);
+        eng.pfxb = 1u << PFB_GATE;
+        render(1.0f, 1);
+        on = off = 0;
+        for (k = 0; k < 8; k++) {                    /* (stopped: the chop from the press) */
+            uint32_t st = (uint32_t)(0.2f * SR) + 16384u + (uint32_t)k * 2u * six;
+            on += rms_lr(st + 300, six - 600);
+            off += rms_lr(st + six + 300, six - 600);
+        }
+        eng.pfxb = 0;
+        render(0.1f, 1);
+        eng.pfxb = 1u << PFB_STUT;
+        render(1.0f, 1);
+        {   /* the repeats' rhythm: a 1/32 slice whose last quarter is quiet, wherever the slices fall */
+            uint32_t L = 2756, a0 = (uint32_t)(1.3f * SR) + 2u * 2756u, ph;   /* (past the first slice: live) */
+            float lo = 1e9f, hi = 0;
+            for (ph = 0; ph < L; ph += 64) {
+                float r = 0;
+                for (k = 0; k < 8; k++)
+                    r += rms_lr(a0 + ph + (uint32_t)k * L, 300);
+                if (r < lo) lo = r;
+                if (r > hi) hi = r;
+            }
+            son = hi;
+            soff = lo;
+        }
+        eng.pfxb = 0;
+        render(0.3f, 1);
+        engine_note_off(0, 60);
+        wav_save("pfxb_gate_stut");
+        check(off < on * 0.05f && soff < son * 0.05f, "GATE, STUT", "gate open %.3f closed %.4f; stutter %.3f / %.4f",
+              on, off, son, soff);
+    }
+    {   /* STUT held long (past the ring's length): the slice kept, the last repeats alike sample for sample */
+        uint32_t L = 2756, e, i;
+        float d = 0, pk = 0;
+        reset();
+        wav_start(6.0f);
+        engine_note_on(0, 60, 100);
+        render(0.2f, 1);
+        eng.pfxb = 1u << PFB_STUT;
+        render(5.0f, 1);
+        e = wav_n - 3000u;
+        for (i = e - 2u * L; i < e - L; i++) {
+            d = fmaxf(d, fabsf(wav_l[i] - wav_l[i + L]));
+            pk = fmaxf(pk, fabsf(wav_l[i]));
+        }
+        eng.pfxb = 0;
+        engine_note_off(0, 60);
+        render(0.3f, 0);
+        check(pk > 0.05f && d < 1e-4f, "STUT held 5 s", "the last two repeats differ by %.6f (peak %.3f)", d, pk);
+    }
+    {   /* DUB: the echoes go on after the note and the key; the delay's own after any capture: the line given back
+         * clean (no echo before a new send), then echoing again */
+        float t0, t1, quiet, echo;
+        int k;
+        for (k = 0; k < 2; k++) {
+            reset();
+            fx_clear();
+            pat.fx[P_DVOL - P_CDEP] = 110;
+            wav_start(3.0f);
+            if (k) eng.pfxb = 1u << PFB_DUB;
+            engine_note_on(0, 60, 110);
+            render(0.15f, 1);
+            engine_note_off(0, 60);
+            render(0.3f, 1);
+            eng.pfxb = 0;
+            render(1.5f, 1);
+            if (k) t1 = rms_lr((uint32_t)(1.4f * SR), (uint32_t)(0.4f * SR));
+            else t0 = rms_lr((uint32_t)(1.4f * SR), (uint32_t)(0.4f * SR));
+        }
+        reset();
+        fx_clear();
+        pat.snd[0].p[P_DEL] = 508;
+        wav_start(4.0f);
+        engine_note_on(0, 60, 110);
+        render(0.1f, 1);
+        engine_note_off(0, 60);
+        eng.pfxb = 1u << PFB_REV;                    /* a capture with the delay's echoes in the line */
+        render(0.6f, 1);
+        eng.pfxb = 0;
+        pat.snd[0].p[P_DEL] = 0;
+        render(0.3f, 1);                             /* (given back) */
+        quiet = rms_lr(wav_n - (uint32_t)(0.1f * SR), (uint32_t)(0.1f * SR));
+        pat.snd[0].p[P_DEL] = 508;
+        engine_sound_changed(0);
+        engine_note_on(0, 60, 110);
+        render(0.1f, 1);
+        engine_note_off(0, 60);
+        render(1.0f, 1);
+        echo = rms_lr(wav_n - (uint32_t)(0.5f * SR), (uint32_t)(0.4f * SR));
+        wav_save("pfxb_dub_return");
+        check(t1 > t0 * 4.0f && quiet < 1e-4f && echo > 0.002f, "DUB, the delay given back",
+              "tail %.5f, dub %.5f; line clean %.6f, echoes again %.4f", t0, t1, quiet, echo);
+    }
+    {   /* REV: a note dying away (no sustain) comes back rising: each 1/8 (11025 samples) played backwards */
+        float a, b;
+        uint32_t s0;
+        reset();
+        pat.snd[0].p[P_ESUS] = 0;
+        pat.snd[0].p[P_EDEC] = 40;
+        wav_start(2.0f);
+        render(0.1f, 1);
+        s0 = wav_n;
+        eng.pfxb = 1u << PFB_REV;                    /* (the segments from here) */
+        engine_note_on(0, 60, 110);
+        render(0.5f, 1);
+        eng.pfxb = 0;
+        engine_note_off(0, 60);
+        render(0.3f, 1);
+        a = rms_lr(s0 + 11025u + 1000u, 3000);       /* the second segment: the first backwards */
+        b = rms_lr(s0 + 11025u + 7000u, 3000);
+        {
+            float c = rms_lr(s0 + 1000u, 3000), d = rms_lr(s0 + 7000u, 3000);   /* (the first segment: as it is) */
+            check(b > a * 1.5f && c > d * 1.5f && fabsf(a / d - 1.0f) < 0.3f && fabsf(b / c - 1.0f) < 0.3f,
+                  "REV backwards", "a dying note %.4f > %.4f, reversed %.4f < %.4f", c, d, a, b);
+        }
+    }
+    {   /* SHIM: the reverb's tail longer and brighter than without; REV, SCAT, WOW: sound, no blow-up */
+        float r0, r1, mx = 0;
+        int k;
+        uint32_t i;
+        for (k = 0; k < 2; k++) {
+            reset();
+            fx_clear();
+            pat.snd[0].p[P_REV] = 300;
+            wav_start(3.0f);
+            if (k) eng.pfxb = 1u << PFB_SHIM;
+            engine_note_on(0, 60, 110);
+            render(0.3f, 1);
+            engine_note_off(0, 60);
+            render(2.0f, 1);
+            eng.pfxb = 0;
+            if (k) r1 = rms_lr((uint32_t)(1.8f * SR), (uint32_t)(0.4f * SR));
+            else r0 = rms_lr((uint32_t)(1.8f * SR), (uint32_t)(0.4f * SR));
+            render(0.5f, 0);
+        }
+        reset();
+        wav_start(4.0f);
+        for (k = 0; k < 3; k++) {
+            static const int E[3] = {PFB_REV, PFB_SCAT, PFB_WOW};
+            engine_note_on(0, 48 + k * 5, 110);
+            eng.pfxb = 1u << E[k];
+            render(1.0f, 1);
+            engine_note_off(0, 48 + k * 5);
+        }
+        eng.pfxb = 0;
+        render(0.5f, 1);
+        for (i = 0; i < wav_n; i++)
+            if (!(fabsf(wav_l[i]) <= mx) && !(fabsf(wav_l[i]) > mx)) mx = 99.0f;   /* (NaN) */
+            else if (fabsf(wav_l[i]) > mx) mx = fabsf(wav_l[i]);
+        wav_save("pfxb_rev_scat_wow");
+        check(r1 > r0 * 1.5f && mx > 0.05f && mx < 1.01f, "SHIM; REV SCAT WOW", "tail %.4f, shimmer %.4f; peak %.3f", r0, r1, mx);
+    }
+}
+
 /* ------------------------------------------------------------------ 0.8: chords --- */
 static void t_chord08(void)
 {
@@ -1812,7 +2008,7 @@ int main(int argc, char **argv)
     static const struct { const char *name; void (*fn)(void); } T[] = {
         {"pitch", t_pitch}, {"fm", t_fm_levels}, {"algo", t_algorithms}, {"timing", t_timing},
         {"swing", t_swing}, {"cond", t_conditions}, {"plock", t_plock}, {"firmware", t_firmware}, {"pack", t_pack}, {"retrig", t_retrig}, {"lofi", t_lofi}, {"braids", t_braids}, {"ssaw", t_ssaw_ens}, {"drumctl", t_drum_ctl}, {"insert", t_insert}, {"menv", t_menv}, {"scale", t_scale}, {"pump", t_pump}, {"lfo", t_lfo}, {"duck", t_duck},
-        {"djf", t_djfilter}, {"va", t_va}, {"vacpu", t_va_cpu}, {"drum", t_drum}, {"drumcpu", t_drum_cpu}, {"golden", t_golden}, {"new06", t_new06}, {"pfx", t_pfx}, {"chord08", t_chord08}, {"mod09", t_mod09}, {"new06cpu", t_new06_cpu}, {"cpu", t_cpu}, {"cpuparts", t_cpu_parts},
+        {"djf", t_djfilter}, {"va", t_va}, {"vacpu", t_va_cpu}, {"drum", t_drum}, {"drumcpu", t_drum_cpu}, {"golden", t_golden}, {"new06", t_new06}, {"pfx", t_pfx}, {"pfxb", t_pfxb}, {"chord08", t_chord08}, {"mod09", t_mod09}, {"new06cpu", t_new06_cpu}, {"cpu", t_cpu}, {"cpuparts", t_cpu_parts},
     };
     unsigned i;
     int a;

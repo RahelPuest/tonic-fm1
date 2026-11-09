@@ -41,6 +41,7 @@ static struct {
     float c_ph, c_inc, c_depth, c_hp_g, c_hp_s, c_wid, c_del, c_rev, c_vol;
     /* delay */
     float d_time, d_time_tgt, d_fb, d_hp_g, d_lp_g, d_hp_s, d_lp_s, d_rev, d_vol, d_wid, d_gl, d_gr;
+    float d_rev0, d_vol0;         /* (0.23) as set; d_rev, d_vol: times fx_dg (the line lent to PERFORM) */
     int d_pp;
     /* reverb */
     float r_pre, r_dec, r_damp_g, r_shelf, r_hp_g, r_lp_g, r_hp_s, r_lp_s, r_vol;
@@ -60,6 +61,8 @@ static float fx_thr;
 void fx_throw(float t) { fx_thr = t; }   /* (0.18) THROW: the dry mix into the delay and the reverb (PERFORM K3) */
 
 static float fz_g = 1.0f, fz_tgt = 1.0f;   /* FREEZE: the reverb's input gain, its target */
+static float fx_dg = 1.0f;          /* (0.23) the delay's return and reverb send while its line is lent (0 lent) */
+static uint8_t fx_lend;             /* (0.23) the line lent to PERFORM's second bank: the delay neither reads nor writes */
 void fx_freeze(int on) { fz_tgt = on ? 0.0f : 1.0f; }
 static int16_t fxp_last[NFXP];      /* the values the coefficients were made from (fx_params) */
 static float fxp_bpm = -1.0f;       /* -1: none yet */
@@ -148,8 +151,8 @@ void fx_params(const int16_t *fx, float bpm)
     f.d_fb = FX(P_DFB) * (1.0f / 127.0f);
     f.d_hp_g = onepole_a(knob_hz(FX(P_DHPF) * 0.75f), SR);
     f.d_lp_g = onepole_a(knob_hz(FX(P_DLPF)), SR);
-    f.d_rev = FX(P_DREV) * (1.0f / 127.0f);
-    f.d_vol = FX(P_DVOL) * (1.0f / 100.0f);
+    f.d_rev0 = FX(P_DREV) * (1.0f / 127.0f);
+    f.d_vol0 = FX(P_DVOL) * (1.0f / 100.0f);
     f.d_wid = FX(P_DWID) * (1.0f / 64.0f);
     f.d_pp = fx[P_DPP - P_CDEP] != 0;
     if (f.d_pp)                                      /* ping-pong reads twice TIME back: within the line [0.9.2] */
@@ -179,6 +182,8 @@ void fx_params(const int16_t *fx, float bpm)
     f.movd = FX(P_MOVD) * (1.0f / 127.0f);
     f.pvol = 1.6384f * vol_gain(FX(P_PVOL));        /* [FIRMWARE] 1.6384 (PVOL / 128)^2: unity at 100 */
 djf:
+    f.d_rev = f.d_rev0 * fx_dg;                      /* (0.23: 1 but while PERFORM borrows the line) */
+    f.d_vol = f.d_vol0 * fx_dg;
     /* the DJ filter [TONIC]: FILT -64 lowpass at 78 Hz .. 0 off .. +63 highpass at 7.7 kHz, Q 1; the knob glides
      * (~7 ms) and the coefficients follow it a block at a time */
     f.mf_tgt = FX(P_MFLT);
@@ -383,7 +388,9 @@ ENG_RAMCODE void fx_block(float *dl, float *dr, const float *sc, const float *sd
         if (fx_thr > 0.0f)
             din += fx_thr * 0.5f * (dl[i] + dr[i]);
         f.d_time += (f.d_time_tgt - f.d_time) * 0.0004f;   /* time changes glide (~50 ms) */
-        {
+        if (fx_lend)                                 /* (0.23) the line lent to PERFORM */
+            dout_l = dout_r = 0.0f;
+        else {
             float y = dl_read(f.d_time), fbk;
             /* the feedback path: HPF, LPF, a soft limit */
             f.d_lp_s += f.d_lp_g * (y - f.d_lp_s);
@@ -499,4 +506,287 @@ ENG_RAMCODE void fx_block(float *dl, float *dr, const float *sc, const float *sd
     f.mf_ic1[1] = fm_flush(f.mf_ic1[1]);
     f.mf_ic2[0] = fm_flush(f.mf_ic2[0]);
     f.mf_ic2[1] = fm_flush(f.mf_ic2[1]);
+}
+
+/* ------------------------------------------------- PERFORM's second bank (0.23) --- */
+/* After mono2k's PERFORM (ideas only). The captures borrow the delay line while one is held: the delay's return fades
+ * out over eight blocks, the line then holds the master as it sounds (stereo frames of two half floats; its last
+ * PB_WS halves the shimmer's mono ring), the effect plays from it, crossfaded in and out in 5 ms; when none is held
+ * and none sounds, the line is cleared a piece a block and the delay comes back, fading in. GATE and DUB need no line */
+#define PB_WS 4096u                /* the shimmer's ring (mono halves) */
+#define PB_WIN 2048u               /* OCT's window (frames): two taps half a window apart */
+#define PB_F 88u                   /* the edges' fades (2 ms) */
+#define PB_X (1.0f / 220.0f)       /* the crossfade's step (5 ms) */
+static struct {
+    uint8_t lend;                  /* 0 the delay's, 1 fading it out, 2 lent, 3 clearing, 4 fading it in */
+    int8_t cur;                    /* the capture sounding (PFB_*), -1 none */
+    float mix;                     /* its share of the output */
+    uint32_t n, w, cap;            /* the ring's frames, the next written, frames written since it was lent */
+    uint32_t t, s0, seg;           /* since the capture began, the frame it began at, its segment */
+    uint32_t clr, rng;
+    uint8_t sl[4], md[4];          /* SCAT: the beat's slices, where each comes from and how */
+    float d, wph, fph;             /* OCT: the taps' delay; WOW: the wobble's and the flutter's phase */
+    float gph, gg;                 /* GATE: its phase (stopped), its gain */
+    float sg, sd;                  /* SHIM: the feed's gain, the shift's delay */
+    uint32_t sw;                   /* the shimmer's ring, the next written */
+    float shim[CR];                /* the last block's output an octave up: this block's feed */
+} pb = {.cur = -1, .gg = 1.0f};
+
+static inline float pb_half(uint32_t i) { return rv_f(dl_buf[i]); }
+static void pb_frame(uint32_t fr, float *l, float *r)  /* frame fr of the ring (any count: wrapped) */
+{
+    fr %= pb.n;
+    *l = pb_half(2u * fr);
+    *r = pb_half(2u * fr + 1u);
+}
+static void pb_back(float back, float *l, float *r)    /* back frames (fractional, >= 1) behind the write point */
+{
+    float pos = (float)pb.w - back, fr, l2, r2;
+    uint32_t a;
+    while (pos < 0.0f)
+        pos += (float)pb.n;
+    a = (uint32_t)pos;
+    fr = pos - (float)a;
+    pb_frame(a, l, r);
+    pb_frame(a + 1u, &l2, &r2);
+    *l += fr * (l2 - *l);
+    *r += fr * (r2 - *r);
+}
+static float pb_edge(uint32_t p, uint32_t len)          /* a slice's fade in and out */
+{
+    uint32_t e = p < len - 1u - p ? p : len - 1u - p;
+    return e >= PB_F ? 1.0f : (float)e * (1.0f / (float)PB_F);
+}
+static uint32_t pb_rand(void)
+{
+    pb.rng ^= pb.rng << 13;
+    pb.rng ^= pb.rng >> 17;
+    pb.rng ^= pb.rng << 5;
+    return pb.rng;
+}
+/* frames of a note value (1/q of a whole note) at the tempo, halved until k of them fit the ring */
+static uint32_t pb_len(float bpm, float q, uint32_t k)
+{
+    uint32_t n = (uint32_t)(240.0f / fm_maxf(bpm, 20.0f) / q * (float)SR);
+    while (n > 64u && k * n + 64u > pb.n)
+        n >>= 1;
+    return n < 64u ? 64u : n;
+}
+static int pb_want(unsigned on)                         /* the capture to sound: the first of these held */
+{
+    static const int8_t ORD[6] = {PFB_STUT, PFB_SCAT, PFB_REV, PFB_OCTU, PFB_OCTD, PFB_WOW};
+    int i;
+    for (i = 0; i < 6; i++)
+        if (on >> ORD[i] & 1u) {
+            if ((ORD[i] == PFB_OCTU || ORD[i] == PFB_OCTD) && pb.cap < PB_WIN + 4u)
+                return -1;                           /* (its window not yet full) */
+            if (ORD[i] == PFB_WOW && pb.cap < 1200u)
+                return -1;
+            return ORD[i];
+        }
+    return -1;
+}
+/* one sample of the capture k: x the live sound (written already), t its time */
+static void pb_wet(int k, float xl, float xr, float *ol, float *orr)
+{
+    uint32_t t = pb.t, s = pb.seg;
+    float l = xl, r = xr, e = 1.0f;
+    switch (k) {
+    case PFB_REV: {                                  /* the last segment backwards (the first: as it is) */
+        uint32_t q = t / s, p = t % s;
+        if (q) {
+            pb_frame(pb.s0 + q * s - 1u - p, &l, &r);
+            e = pb_edge(p, s);
+        }
+        break;
+    }
+    case PFB_STUT: {                                 /* the first slice again, three quarters of each sounding */
+        uint32_t q = t / s, p = t % s, on = s - s / 4u;
+        if (q) {
+            pb_frame(pb.s0 + p, &l, &r);
+            e = p < on ? pb_edge(p, on) : 0.0f;
+        }
+        break;
+    }
+    case PFB_SCAT: {                                 /* the beat after the press (recorded, then kept), its
+                                                      * sixteenths anywhere every beat, some backwards */
+        uint32_t q = t / s, p = t % s, sl = s / 4u, i = p / sl, pp = p % sl, o;
+        if (!p && q) {                               /* a new beat: its four slices' sources */
+            int j;
+            for (j = 0; j < 4; j++) {
+                uint32_t r0 = pb_rand();
+                pb.sl[j] = (uint8_t)(r0 & 3u);
+                pb.md[j] = (uint8_t)((r0 >> 8) % 8u < 5u ? 0 : (r0 >> 8) % 8u < 7u ? 1 : 2);
+            }
+        }
+        if (q && i < 4u) {
+            o = pb.md[i] == 1 ? sl - 1u - pp : pb.md[i] == 2 ? pp % (sl / 2u) : pp;
+            pb_frame(pb.s0 + pb.sl[i] * sl + o, &l, &r);
+            e = pb.md[i] == 2 ? pb_edge(pp % (sl / 2u), sl / 2u) : pb_edge(pp, sl);
+        }
+        break;
+    }
+    case PFB_OCTU: case PFB_OCTD: {                  /* two taps sliding through a window, crossfaded */
+        float d2, w1, la, ra, lb, rb;
+        pb.d += k == PFB_OCTU ? -1.0f : 0.5f;
+        if (pb.d < 0.0f) pb.d += (float)PB_WIN;
+        if (pb.d >= (float)PB_WIN) pb.d -= (float)PB_WIN;
+        d2 = pb.d + 0.5f * (float)PB_WIN;
+        if (d2 >= (float)PB_WIN) d2 -= (float)PB_WIN;
+        w1 = 1.0f - fm_fabsf(2.0f * pb.d * (1.0f / (float)PB_WIN) - 1.0f);
+        pb_back(1.0f + pb.d, &la, &ra);
+        pb_back(1.0f + d2, &lb, &rb);
+        l = la * w1 + lb * (1.0f - w1);
+        r = ra * w1 + rb * (1.0f - w1);
+        break;
+    }
+    case PFB_WOW: {                                  /* 10 ms back, swaying 4 ms at 0.6 Hz and 0.3 ms at 6.5 Hz */
+        pb.wph += 0.6f * INV_SR;
+        if (pb.wph >= 1.0f) pb.wph -= 1.0f;
+        pb.fph += 6.5f * INV_SR;
+        if (pb.fph >= 1.0f) pb.fph -= 1.0f;
+        pb_back(1.0f + 441.0f + 176.0f * lks(pb.wph) + 13.0f * lks(pb.fph), &l, &r);
+        break;
+    }
+    default:
+        break;
+    }
+    *ol = l * e;
+    *orr = r * e;
+}
+
+void pfb_pre(const float *dl, const float *dr, float *sr, int n, unsigned on)
+{
+    int i;
+    float step = 1.0f / 8.0f;
+    (void)dl; (void)dr;
+    if (on & PFB_BUF) {                              /* the line wanted */
+        if (pb.lend == 0 || pb.lend == 4)
+            pb.lend = 1;
+        else if (pb.lend == 3)                       /* (still lent, being cleared: lent again) */
+            pb.lend = 2;
+    } else if (pb.lend == 2 && pb.cur < 0 && pb.mix <= 0.0f && pb.sg <= 0.0f) {
+        pb.lend = 3;
+        pb.clr = 0;
+    }
+    if (pb.lend == 1) {                              /* the delay's return out, then the line taken */
+        fx_dg = fm_maxf(fx_dg - step, 0.0f);
+        if (fx_dg <= 0.0f) {
+            fx_lend = 1;
+            pb.lend = 2;
+            pb.n = (dl_n - PB_WS) / 2u;
+            pb.w = pb.cap = pb.sw = 0;
+            pb.d = pb.sd = 0.0f;
+        }
+    } else if (pb.lend == 3) {                       /* cleared a piece a block, then the delay's again */
+        uint32_t e = pb.clr + 4096u < dl_n ? pb.clr + 4096u : dl_n;
+        for (; pb.clr < e; pb.clr++)
+            dl_buf[pb.clr] = 0;
+        if (pb.clr >= dl_n) {
+            fx_lend = 0;
+            f.d_hp_s = f.d_lp_s = 0.0f;
+            pb.lend = 4;
+        }
+    } else if (pb.lend == 4) {
+        fx_dg = fm_minf(fx_dg + step, 1.0f);
+        if (fx_dg >= 1.0f)
+            pb.lend = 0;
+    }
+    /* SHIM: the output an octave up into the reverb's send (the last block's: a block late in a long tail) */
+    if (pb.lend == 2 && (on >> PFB_SHIM & 1u))
+        pb.sg = fm_minf(pb.sg + 1.0f / 16.0f, 1.0f);
+    else
+        pb.sg = fm_maxf(pb.sg - 1.0f / 16.0f, 0.0f);
+    if (pb.sg > 0.0f)
+        for (i = 0; i < n; i++)
+            sr[i] += pb.sg * pb.shim[i];
+}
+
+int pfb_post(float *dl, float *dr, int n, unsigned on, float bpm, float gt)
+{
+    int i;
+    if (pb.lend == 2) {
+        int want = pb_want(on);
+        for (i = 0; i < n; i++) {
+            float xl = dl[i], xr = dr[i], wl, wr;
+            if (!((pb.cur == PFB_SCAT || pb.cur == PFB_STUT) && pb.t >= pb.seg)) {   /* the live sound into the ring
+                                                              * first (STUT's slice and SCAT's beat kept) */
+                uint32_t a = 2u * pb.w;
+                dl_buf[a] = rv_q(fm_clampf(xl, -4.0f, 4.0f));
+                dl_buf[a + 1u] = rv_q(fm_clampf(xr, -4.0f, 4.0f));
+                pb.w = pb.w + 1u >= pb.n ? 0 : pb.w + 1u;
+                if (pb.cap < 0x7FFFFFFFu)
+                    pb.cap++;
+            }
+            if (want != pb.cur) {                    /* another capture: the one sounding out first */
+                if (pb.cur >= 0 && pb.mix > 0.0f)
+                    pb.mix = fm_maxf(pb.mix - PB_X, 0.0f);
+                if (pb.cur < 0 || pb.mix <= 0.0f) {
+                    if (pb.cur == PFB_SCAT || pb.cur == PFB_STUT)   /* (the ring stood: the windows fill again) */
+                        pb.cap = 0;
+                    pb.cur = (int8_t)want;
+                    pb.t = 0;
+                    pb.s0 = pb.w ? pb.w - 1u : pb.n - 1u;
+                    pb.d = 0.0f;
+                    pb.wph = pb.fph = 0.0f;
+                    pb.rng = 0x9E3779B9u ^ (uint32_t)pb.cap;
+                    pb.seg = pb.cur == PFB_STUT ? pb_len(bpm, 32.0f, 1u) : pb.cur == PFB_SCAT ? pb_len(bpm, 4.0f, 1u)
+                                                                                              : pb_len(bpm, 8.0f, 2u);
+                }
+            } else if (pb.cur >= 0)
+                pb.mix = fm_minf(pb.mix + PB_X, 1.0f);
+            if (pb.cur >= 0) {
+                pb_wet(pb.cur, xl, xr, &wl, &wr);
+                pb.t++;
+                dl[i] = xl + pb.mix * (wl - xl);
+                dr[i] = xr + pb.mix * (wr - xr);
+            }
+        }
+        if (pb.cur >= 0 && want < 0 && pb.mix <= 0.0f) {
+            if (pb.cur == PFB_SCAT || pb.cur == PFB_STUT)
+                pb.cap = 0;
+            pb.cur = -1;
+        }
+    } else {
+        pb.cur = -1;
+        pb.mix = 0.0f;
+    }
+    if ((on >> PFB_GATE & 1u) || pb.gg < 1.0f) {     /* GATE: a 1/16 chop, half of each open (in time when playing) */
+        float tps = fm_maxf(bpm, 20.0f) * (96.0f / 60.0f) * INV_SR;   /* ticks a sample */
+        for (i = 0; i < n; i++) {
+            float ph, tgt;
+            if (gt >= 0.0f)
+                ph = (gt + (float)i * tps) * (1.0f / 24.0f);
+            else {
+                pb.gph += tps * (1.0f / 24.0f);
+                ph = pb.gph;
+            }
+            ph -= fm_floorf(ph);
+            tgt = !(on >> PFB_GATE & 1u) || ph < 0.5f ? 1.0f : 0.0f;
+            pb.gg += (tgt - pb.gg) * 0.015f;         /* (~1.5 ms) */
+            if (!(on >> PFB_GATE & 1u) && pb.gg > 0.999f)
+                pb.gg = 1.0f;
+            dl[i] *= pb.gg;
+            dr[i] *= pb.gg;
+        }
+    } else
+        pb.gph = 0.0f;
+    if (pb.lend == 2 && ((on >> PFB_SHIM & 1u) || pb.sg > 0.0f)) {   /* SHIM: the output into its ring, up an octave */
+        for (i = 0; i < n; i++) {
+            uint32_t base = dl_n - PB_WS, d2i;
+            float m = 0.5f * (dl[i] + dr[i]), d2, w1, a, b;
+            dl_buf[base + pb.sw] = rv_q(fm_clampf(m, -4.0f, 4.0f));
+            pb.sw = (pb.sw + 1u) & (PB_WS - 1u);
+            pb.sd -= 1.0f;
+            if (pb.sd < 0.0f) pb.sd += (float)PB_WS;
+            d2 = pb.sd + 0.5f * (float)PB_WS;
+            if (d2 >= (float)PB_WS) d2 -= (float)PB_WS;
+            w1 = 1.0f - fm_fabsf(2.0f * pb.sd * (1.0f / (float)PB_WS) - 1.0f);
+            a = pb_half(base + ((pb.sw - 2u - (uint32_t)pb.sd) & (PB_WS - 1u)));
+            d2i = (uint32_t)d2;
+            b = pb_half(base + ((pb.sw - 2u - d2i) & (PB_WS - 1u)));
+            pb.shim[i] = soft(0.55f * (a * w1 + b * (1.0f - w1)));
+        }
+    }
+    return pb.lend != 0 || pb.cur >= 0 || pb.gg < 1.0f || pb.sg > 0.0f;
 }

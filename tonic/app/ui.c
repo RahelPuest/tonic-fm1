@@ -60,6 +60,8 @@ static struct {
     uint8_t ntap;
     int8_t roll_lo;               /* the piano roll: the lowest note shown (-1 AUTO), the zoom (16 << z steps) */
     uint16_t pfx_keys;            /* the momentary effects held (bit: effect; 0.18: on the black keys) [TONIC 0.7] */
+    uint16_t pfxb_keys;           /* (0.23) the second bank's held */
+    uint8_t pbank;                /* (0.23) PERFORM's bank on the black keys: 0 A, 1 B (OCT+ / OCT-) */
     uint8_t euc[NTRK][NPAD + 1][NEU_];   /* the euclidean generator [TONIC 0.6, 0.8]: EU_* a track's (its last slot) or
                                           * a kit pad's (not saved: the trigs it wrote are) */
     uint32_t euc_seed;                /* its dice (a kit's ghosts and chances: rolled at each write) */
@@ -1340,8 +1342,11 @@ static void buttons(uint32_t b)
                 ui.ov = OV_NONE;
         } else if (ui.ov == OV_TOOLS) {              /* TOOLS: the step page */
             ui.spage = (uint8_t)clamp(ui.spage + d, 0, page_count() - 1);
+        } else if (ui.ov == OV_PERF && (d > 0 ? !ui.pbank : ui.pbank)) {
+            ui.pbank = d > 0;                        /* (0.23) OCT+ the second bank, OCT- the first */
+            app_say("PERFORM", ui.pbank ? "BANK B" : "BANK A");
         } else if (ui.ov == OV_PERF && set.perf_page && d < 0 && ui.hold_btn != B_FX) {
-            ui.ov = OV_NONE;                         /* (0.20) PERF PAGE: OCT- closes it */
+            ui.ov = OV_NONE;                         /* (0.20) PERF PAGE: OCT- closes it (in bank A) */
         } else if (ui.ov == OV_MUTE || ui.ov == OV_PERF) {
         } else if (ui.grp == G_SAVE && ui.confirm) {
             ui.confirm = 0;
@@ -1433,6 +1438,21 @@ static void pfx_key(int e, int down)
     } else {
         ui.pfx_keys &= (uint16_t)~(1u << e);
         eng.pfx &= (uint16_t)~(1u << e);
+    }
+    ui.redraw = 1;
+}
+/* (0.23) the second bank (OCT+ on the PERFORM screen) */
+static const char *const PFB_NAME[NPFB] = {"REVERSE", "STUTTER", "SCATTER", "OCTAVE DOWN", "OCTAVE UP", "WOW",
+                                           "GATE 1/16", "DUB THROW", "SHIMMER"};
+static void pfxb_key(int e, int down)
+{
+    if (down) {
+        ui.pfxb_keys |= (uint16_t)(1u << e);
+        eng.pfxb |= (uint16_t)(1u << e);
+        app_say("EFFECT", PFB_NAME[e]);
+    } else {
+        ui.pfxb_keys &= (uint16_t)~(1u << e);
+        eng.pfxb &= (uint16_t)~(1u << e);
     }
     ui.redraw = 1;
 }
@@ -1566,7 +1586,9 @@ static int ov_key(int k, int down)
     case OV_PERF:                                    /* black 1-9 the effects, 10 FILL held, 11 FILL next pass */
         if (bl < 0)
             return 0;                                /* (white keys: the keyboard, as ever) */
-        if (bl < NPFX)
+        if (bl < NPFX && ui.pbank)
+            pfxb_key(bl, down);
+        else if (bl < NPFX)
             pfx_key(bl, down);
         else if (bl == 9)
             eng.fill = down ? 1 : 0;
@@ -1642,8 +1664,12 @@ static void keys(uint32_t k)
         int w = key_white[i], bl = key_black[i];
         if (!((press | rel) & bit))
             continue;
-        if ((rel & bit) && bl >= 0 && bl < NPFX && (ui.pfx_keys >> bl & 1u)) {   /* a momentary effect ends, wherever */
-            pfx_key(bl, 0);
+        if ((rel & bit) && bl >= 0 && bl < NPFX && ((ui.pfx_keys | ui.pfxb_keys) >> bl & 1u)) {   /* a momentary
+                                                                     * effect ends, wherever (0.23: of either bank) */
+            if (ui.pfx_keys >> bl & 1u)
+                pfx_key(bl, 0);
+            if (ui.pfxb_keys >> bl & 1u)
+                pfxb_key(bl, 0);
             ui.key_how[i] = KH_NONE;
             continue;
         }
@@ -1923,7 +1949,7 @@ static void leds(void)
         mid_b |= 1u << B_SAVE;
     if (ui.ov == OV_PERF) {                          /* (0.18) the effects' keys */
         for (i = 0; i < 11; i++)
-            if ((i < NPFX && (ui.pfx_keys >> i & 1u)) || (i == 9 && eng.fill))
+            if ((i < NPFX && ((ui.pbank ? ui.pfxb_keys : ui.pfx_keys) >> i & 1u)) || (i == 9 && eng.fill))
                 keys |= 1u << BK[i];
             else
                 dim_k |= 1u << BK[i];

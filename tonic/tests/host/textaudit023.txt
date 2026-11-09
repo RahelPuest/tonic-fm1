@@ -1,0 +1,6 @@
+# (0.23, after mono2k) the text audit: every page of every engine, each knob through its values (with the pop-up), the
+# held buttons' screens, the menu, the save page, the preset list and the widest messages: no two texts touching, no
+# text across or against a frame, none on a filled box, no inverted text off its box, none cut by the screen's edge
+wait 1500
+textaudit
+fitcheck

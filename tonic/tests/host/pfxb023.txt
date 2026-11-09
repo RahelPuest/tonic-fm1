@@ -1,0 +1,58 @@
+# (0.23) PERFORM's second bank: FX held, OCT+ bank B (REV STUT SCAT OCT- OCT+ WOW GATE DUB SHIM on black 1-9), OCT-
+# bank A again; a bank-B key let go after FX or after OCT- still ends its effect; the bank stays for the next time
+wait 1500
+tap PLAY
+wait 300
+expect playing 1
+press FX
+wait 400
+expect perf 1
+expect pbank 0
+tap OCT+
+wait 30
+expect pbank 1
+key b1 down
+wait 30
+expect pfxb 2
+expect pfx 0
+key b6 down
+wait 30
+expect pfxb 66
+wait 1300
+shot pfxb.png
+key b6 up
+wait 30
+expect pfxb 2
+tap OCT-
+wait 30
+expect pbank 0
+key b1 up
+wait 30
+expect pfxb 0
+key b1 down
+wait 30
+expect pfx 2
+expect pfxb 0
+key b1 up
+wait 30
+expect pfx 0
+tap OCT+
+wait 30
+key b0 down
+wait 30
+release FX
+wait 100
+expect perf 0
+expect pfxb 1
+key b0 up
+wait 30
+expect pfxb 0
+press FX
+wait 400
+expect pbank 1
+tap OCT-
+wait 30
+release FX
+wait 30
+tap PLAY
+wait 300

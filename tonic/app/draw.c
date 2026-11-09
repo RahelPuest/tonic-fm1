@@ -54,9 +54,42 @@ static const uint16_t THEMES[NTHEME][NK] = {
 static const uint8_t K_TRK[4] = {K_T1, K_T2, K_T3, K_T4};
 
 /* ------------------------------------------------------------------ the picture --- */
+#ifdef PLAT_HOST
+/* (0.23, after mono2k's text audit) the host's check of the screen: each text's ink box, the frames, the filled boxes
+ * and the clears, as they are drawn; ta_check finds two texts that touch, a text across a frame or touching its line,
+ * a text on a filled box, inverted text off its box, a text cut by the screen's edge (app.c: textaudit) */
+enum { TA_TEXT, TA_FRAME, TA_FILL };
+typedef struct { uint8_t kind, t, on; int16_t x0, y0, x1, y1; char s[24]; } ta_t;
+#define TA_N 400
+static ta_t ta[TA_N];
+static int ta_n;
+static struct { int on, x0, y0, x1, y1, cut; } ta_bb;
+static void ta_text_begin(void) { ta_bb.on = 1; ta_bb.x0 = ta_bb.y0 = 9999; ta_bb.x1 = ta_bb.y1 = -1; ta_bb.cut = 0; }
+static void ta_add(int kind, int x0, int y0, int x1, int y1, int t, int on, const char *str);
+static void ta_text_end(const char *str, int on);
+#define TA_BEGIN() ta_text_begin()
+#define TA_END(str, on) ta_text_end(str, on)
+#define TA_RECT(kind, x, y, w, h, t) ta_add(kind, x, y, (x) + (w) - 1, (y) + (h) - 1, t, 1, "")
+#else
+#define TA_BEGIN() ((void)0)
+#define TA_END(str, on) ((void)0)
+#define TA_RECT(kind, x, y, w, h, t) ((void)0)
+#endif
 /* a pixel of the full picture; an "on" pixel gives its cell the ink */
 static inline void h_px(int x, int y, int on)
 {
+#ifdef PLAT_HOST
+    if (ta_bb.on) {
+        if ((unsigned)x >= HW || (unsigned)y >= HW)
+            ta_bb.cut = 1;
+        else {
+            if (x < ta_bb.x0) ta_bb.x0 = x;
+            if (x > ta_bb.x1) ta_bb.x1 = x;
+            if (y < ta_bb.y0) ta_bb.y0 = y;
+            if (y > ta_bb.y1) ta_bb.y1 = y;
+        }
+    }
+#endif
     if ((unsigned)x >= HW || (unsigned)y >= HW)
         return;
     if (on) {
@@ -101,7 +134,11 @@ static void o_dot(float x, float y)
 
 /* the layout's primitives (units of 2 x 2 pixels): fills are whole units, lines and frames one pixel thin */
 static void o_px(int x, int y, int on) { h_rect(2 * x, 2 * y, 2, 2, on); }
-static void o_rect(int x, int y, int w, int h, int on) { h_rect(2 * x, 2 * y, 2 * w, 2 * h, on); }
+static void o_rect(int x, int y, int w, int h, int on)
+{
+    TA_RECT(on ? TA_FILL : 255, 2 * x, 2 * y, 2 * w, 2 * h, 0);
+    h_rect(2 * x, 2 * y, 2 * w, 2 * h, on);
+}
 static void o_hline(int x, int y, int w, int dotted)
 {
     int i;
@@ -123,23 +160,25 @@ static void o_vline(int x, int y, int h, int dotted)
 static void o_frame(int x, int y, int w, int h)      /* one pixel thin, the corners rounded */
 {
     int X = 2 * x, Y = 2 * y, W = 2 * w, H = 2 * h, i;
+    TA_RECT(TA_FRAME, X, Y, W, H, 1);
     for (i = 2; i < W - 2; i++) { h_px(X + i, Y, 1); h_px(X + i, Y + H - 1, 1); }
     for (i = 2; i < H - 2; i++) { h_px(X, Y + i, 1); h_px(X + W - 1, Y + i, 1); }
     h_px(X + 1, Y + 1, 1); h_px(X + W - 2, Y + 1, 1); h_px(X + 1, Y + H - 2, 1); h_px(X + W - 2, Y + H - 2, 1);
 }
-static void o_thick(int x, int y, int w, int h)      /* (0.22) one frame, three pixels thick, the corners cut */
+static void o_thick(int x, int y, int w, int h)      /* (0.22) one frame, thick (0.23: two pixels), the corners cut */
 {
     int X = 2 * x, Y = 2 * y, W = 2 * w, H = 2 * h;
-    h_rect(X + 2, Y, W - 4, 3, 1);
-    h_rect(X + 2, Y + H - 3, W - 4, 3, 1);
-    h_rect(X, Y + 2, 3, H - 4, 1);
-    h_rect(X + W - 3, Y + 2, 3, H - 4, 1);
-    h_rect(X + 1, Y + 1, 2, 2, 1); h_rect(X + W - 3, Y + 1, 2, 2, 1);
-    h_rect(X + 1, Y + H - 3, 2, 2, 1); h_rect(X + W - 3, Y + H - 3, 2, 2, 1);
+    TA_RECT(TA_FRAME, X, Y, W, H, 2);
+    h_rect(X + 2, Y, W - 4, 2, 1);
+    h_rect(X + 2, Y + H - 2, W - 4, 2, 1);
+    h_rect(X, Y + 2, 2, H - 4, 1);
+    h_rect(X + W - 2, Y + 2, 2, H - 4, 1);
+    h_px(X + 1, Y + 1, 1); h_px(X + W - 2, Y + 1, 1); h_px(X + 1, Y + H - 2, 1); h_px(X + W - 2, Y + H - 2, 1);
 }
 static void o_box(int x, int y, int w, int h)        /* filled, the corners rounded */
 {
     int X = 2 * x, Y = 2 * y, W = 2 * w, H = 2 * h;
+    TA_RECT(TA_FILL, X, Y, W, H, 0);
     h_rect(X + 2, Y, W - 4, H, 1);
     h_rect(X, Y + 2, W, H - 4, 1);
     h_rect(X + 1, Y + 1, 1, H - 2, 1);
@@ -153,22 +192,29 @@ static int o_glyph_i(int ch)
     return ch < 32 || ch > 95 ? '?' - 32 : ch - 32;
 }
 /* S: 4 units a character (the glyph 5 x 9 pixels, thin); returns the end x */
-static int o_ts(int x, int y, const char *s, int on)
+static int o_ts_px(int X, int y, const char *s, int on)   /* (0.23) at a pixel across: X; returns the end pixel */
 {
+    const char *s0 = s;
+    TA_BEGIN();
     for (; *s; s++) {                                /* (0.22) a '.' takes half a cell: 10.50 fits where 10.5 did */
         const uint8_t *g = OF_S9[o_glyph_i((uint8_t)*s)];
         int r, c, dot = *s == '.';
         for (r = 0; r < 9; r++)
             for (c = 0; c < 5; c++)
                 if (g[r] >> (4 - c) & 1u)
-                    h_px(2 * x + c - dot, 2 * y + r, on);
-        x += dot ? 2 : 4;
+                    h_px(X + c - dot, 2 * y + r, on);
+        X += dot ? 4 : 8;
     }
-    return x;
+    TA_END(s0, on);
+    (void)s0;
+    return X;
 }
+static int o_ts(int x, int y, const char *s, int on) { return o_ts_px(2 * x, y, s, on) / 2; }
 /* M: 6 units a character (the glyph 10 x 14 pixels, smoothed); k = 2: 12 units (20 x 28) */
 static int o_tm(int x, int y, const char *s, int on, int k)
 {
+    const char *s0 = s;
+    TA_BEGIN();
     for (; *s; s++, x += 6 * k) {
         int gi = o_glyph_i((uint8_t)*s), r, c;
         if (k >= 2) {
@@ -185,6 +231,8 @@ static int o_tm(int x, int y, const char *s, int on, int k)
                         h_px(2 * x + c, 2 * y + r, on);
         }
     }
+    TA_END(s0, on);
+    (void)s0;
     return x;
 }
 static int o_ws(const char *s)
@@ -201,7 +249,89 @@ static void o_clear(void)
     memset(hb, 0, sizeof hb);
     memset(hc, 0x11, sizeof hc);
     o_ink = K_FG;
+#ifdef PLAT_HOST
+    ta_n = 0;
+#endif
 }
+
+#ifdef PLAT_HOST
+/* (0.23) the audit's records: a clear takes what it covers away (a window over the page hides it); a text without ink
+ * (spaces) is none */
+static int ta_meet(const ta_t *a, int x0, int y0, int x1, int y1)
+{
+    return a->x0 <= x1 && x0 <= a->x1 && a->y0 <= y1 && y0 <= a->y1;
+}
+static void ta_add(int kind, int x0, int y0, int x1, int y1, int t, int on, const char *str)
+{
+    int i, k;
+    if (kind == 255) {
+        for (i = k = 0; i < ta_n; i++)               /* (a box partly covered still holds the text beside it) */
+            if (ta[i].kind == TA_FILL ? !(ta[i].x0 >= x0 && ta[i].x1 <= x1 && ta[i].y0 >= y0 && ta[i].y1 <= y1)
+                                      : !ta_meet(&ta[i], x0, y0, x1, y1))
+                ta[k++] = ta[i];
+        ta_n = k;
+        return;
+    }
+    if (ta_n >= TA_N || x1 < x0 || y1 < y0)
+        return;
+    ta[ta_n].kind = (uint8_t)kind;
+    ta[ta_n].t = (uint8_t)t;
+    ta[ta_n].on = (uint8_t)on;
+    ta[ta_n].x0 = (int16_t)x0; ta[ta_n].y0 = (int16_t)y0; ta[ta_n].x1 = (int16_t)x1; ta[ta_n].y1 = (int16_t)y1;
+    for (i = 0; i < 23 && str[i]; i++)
+        ta[ta_n].s[i] = str[i];
+    ta[ta_n].s[i] = 0;
+    ta_n++;
+}
+static void ta_text_end(const char *str, int on)
+{
+    ta_bb.on = 0;
+    if (ta_bb.cut)
+        ta_add(TA_TEXT, ta_bb.x1 >= 0 ? ta_bb.x0 : 0, ta_bb.y1 >= 0 ? ta_bb.y0 : 0, ta_bb.x1 >= 0 ? ta_bb.x1 : 0,
+               ta_bb.y1 >= 0 ? ta_bb.y1 : 0, 1, on, str);   /* (t 1: cut) */
+    else if (ta_bb.x1 >= 0)
+        ta_add(TA_TEXT, ta_bb.x0, ta_bb.y0, ta_bb.x1, ta_bb.y1, 0, on, str);
+}
+/* the problems on the screen as drawn: each through say(what, a, b) */
+static int ta_check(void (*say)(const char *what, const ta_t *a, const ta_t *b))
+{
+    int i, j, n = 0;
+    for (i = 0; i < ta_n; i++) {
+        const ta_t *a = &ta[i];
+        if (a->kind != TA_TEXT)
+            continue;
+        if (a->t) { say("cut by the screen's edge", a, 0); n++; }
+        for (j = 0; j < ta_n; j++) {
+            const ta_t *b = &ta[j];
+            if (j == i)
+                continue;
+            if (b->kind == TA_TEXT && j > i && ta_meet(a, b->x0 - 1, b->y0 - 1, b->x1 + 1, b->y1 + 1)) {
+                say(ta_meet(a, b->x0, b->y0, b->x1, b->y1) ? "texts overlap" : "texts touch", a, b);
+                n++;
+            } else if (b->kind == TA_FRAME && ta_meet(a, b->x0, b->y0, b->x1, b->y1)) {
+                int t = b->t;
+                if (!(a->x0 >= b->x0 + t && a->x1 <= b->x1 - t && a->y0 >= b->y0 + t && a->y1 <= b->y1 - t)) {
+                    say("text across a frame", a, b);
+                    n++;
+                } else if (!(a->x0 > b->x0 + t && a->x1 < b->x1 - t && a->y0 > b->y0 + t && a->y1 < b->y1 - t)) {
+                    say("text touches a frame", a, b);
+                    n++;
+                }
+            } else if (b->kind == TA_FILL && j < i && a->on && ta_meet(a, b->x0, b->y0, b->x1, b->y1)) {
+                say("text on a filled box", a, b);
+                n++;
+            }
+        }
+        if (!a->on) {                                /* inverted: on a box drawn before it */
+            for (j = 0; j < i; j++)
+                if (ta[j].kind == TA_FILL && a->x0 >= ta[j].x0 && a->x1 <= ta[j].x1 && a->y0 >= ta[j].y0 && a->y1 <= ta[j].y1)
+                    break;
+            if (j == i) { say("inverted text off its box", a, 0); n++; }
+        }
+    }
+    return n;
+}
+#endif
 
 /* the picture to the LCD in ten bands of 24 rows: a band goes only when its pixels or colours changed */
 static void o_send(void)
@@ -909,25 +1039,15 @@ static void o_slot(const item_t *it, int x, int y, int w, int active)
     item_fmt(it, val, v);
     if (it->kind == IK_SET && id >= S_DM1 && id <= S_DM8)   /* a kit's model: its flavour (the name has the rest) */
         tx_cpy(v, DM_VAR[val % NDM]);
-    o_fitv(v, w - 4);
-    /* (0.21) the row the knobs edit: its boxes framed in the accent (not filled; 0.22 one thick frame); a locked value
-     * in the accent */
-    o_ink = active ? K_ACC : K_DIM;
-    if (active)
-        o_thick(x, y + 2, w - 2, 11);
-    else
-        o_frame(x, y + 2, w - 2, 11);
-    o_ink = lk ? K_ACC : K_FG;
+    o_fitv(v, w - 5);                                /* (0.23: within the thick frame, a pixel clear of it) */
     {
-        char full[24];
-        int i;
+        char full[24], a[12], b[12];
+        int i, n, stack = 0;
         item_fmt(it, val, full);
         for (i = 0; full[i] && full[i] != '/'; i++)
             ;
-        if (full[i] == '/' && o_ws(full) > w - 4 && i < 12) {   /* (0.22) B1/B2 too wide: their trailing zeros off,
+        if (full[i] == '/' && o_ws(full) > w - 5 && i < 12) {   /* (0.22) B1/B2 too wide: their trailing zeros off,
                                                                   * else one over the other, at full resolution */
-            char a[12], b[12];
-            int n;
             tx_cpy(a, full);
             a[i] = 0;
             tx_cpy(b, full + i + 1);
@@ -936,25 +1056,37 @@ static void o_slot(const item_t *it, int x, int y, int w, int active)
             tx_cpy(full, a);
             tx_cat(full, "/");
             tx_cat(full, b);
-            if (o_ws(full) <= w - 4)
-                o_ts_c(x, w - 2, y + 5, full, 1);
-            else {
-                for (n = 0; n < 2; n++) {
-                    const char *t = n ? b : a;
-                    int X = 2 * x + (2 * (w - 2) - (o_ws(t) * 2)) / 2, k2;
-                    for (k2 = 0; t[k2]; k2++) {
-                        const uint8_t *g = OF_S9[o_glyph_i((uint8_t)t[k2])];
-                        int rr, cc, dot = t[k2] == '.';
-                        for (rr = 0; rr < 8; rr++)
-                            for (cc = 0; cc < 5; cc++)
-                                if (g[rr] >> (4 - cc) & 1u)
-                                    h_px(X + cc - dot, 2 * y + 7 + n * 8 + rr, 1);
-                        X += dot ? 4 : 8;
-                    }
+            if (o_ws(full) <= w - 5)
+                tx_cpy(v, full);
+            else
+                stack = 1;
+        }
+        /* (0.21) the row the knobs edit: its boxes framed in the accent (not filled; 0.22 one thick frame); a locked
+         * value in the accent; (0.23) two values one over the other in a frame a unit taller */
+        o_ink = active ? K_ACC : K_DIM;
+        if (active)
+            o_thick(x, y + 2, w - 2, 11 + stack);
+        else
+            o_frame(x, y + 2, w - 2, 11 + stack);
+        o_ink = lk ? K_ACC : K_FG;
+        if (stack)
+            for (n = 0; n < 2; n++) {
+                const char *t = n ? b : a;
+                int X = 2 * x + (2 * (w - 2) - (2 * o_ws(t) - 1)) / 2, k2;
+                TA_BEGIN();
+                for (k2 = 0; t[k2]; k2++) {
+                    const uint8_t *g = OF_S9[o_glyph_i((uint8_t)t[k2])];
+                    int rr, cc, dot = t[k2] == '.';
+                    for (rr = 0; rr < 8; rr++)
+                        for (cc = 0; cc < 5; cc++)
+                            if (g[rr] >> (4 - cc) & 1u)
+                                h_px(X + cc - dot, 2 * y + 7 + n * 9 + rr, 1);
+                    X += dot ? 4 : 8;
                 }
+                TA_END(t, 1);
             }
-        } else
-            o_ts_c(x, w - 2, y + 5, v, 1);
+        else
+            o_ts_px(2 * x + (2 * (w - 2) - (2 * o_ws(v) - 1)) / 2, y + 5, v, 1);   /* (0.23: centred to the pixel) */
     }
     o_ink = active ? K_ACC : K_FG;
     if (rg.hi - rg.lo >= 8 && rg.fmt != F_LIST) {
@@ -1044,6 +1176,8 @@ static int roll_len_steps(const trig_t *g)          /* the note's length in 1/96
 /* text at full-resolution coordinates (the roll's labels) */
 static void h_ts(int X, int Y, const char *s, int on)
 {
+    const char *s0 = s;
+    TA_BEGIN();
     for (; *s; s++, X += 6) {
         const uint8_t *g = OF_S9[o_glyph_i((uint8_t)*s)];
         int r, c;
@@ -1052,6 +1186,8 @@ static void h_ts(int X, int Y, const char *s, int on)
                 if (g[r] >> (4 - c) & 1u)
                     h_px(X + c, Y + r, on);
     }
+    TA_END(s0, on);
+    (void)s0;
 }
 static int roll_black(int nt) { int k = nt % 12; return k == 1 || k == 3 || k == 6 || k == 8 || k == 10; }
 static int roll_val(int t, int st, int p)                   /* a trig parameter of a step: its lock, else the track's */
@@ -1653,15 +1789,18 @@ static void o_bar(int y, const char *n, int v, int lo, int hi, const char *val) 
 }
 static void o_perf(void)                             /* FX held */
 {
-    static const char *const FN[11] = {"1/4", "1/8", "1/16", "1/32", "HALF", "TAPE", "LP", "HP", "FRZ", "FILL", "FIL+"};
+    static const char *const FN[2][11] = {{"1/4", "1/8", "1/16", "1/32", "HALF", "TAPE", "LP", "HP", "FRZ", "FILL", "FIL+"},
+                                          {"REV", "STUT", "SCAT", "OCT-", "OCT+", "WOW", "GATE", "DUB", "SHIM", "FILL",
+                                           "FIL+"}};   /* (0.23: the second bank, OCT+) */
     char b[12];
-    int i, lk, v;
-    o_header("PERFORM", "");
-    o_ts(0, 12, "BLACK KEYS: EFFECTS WHILE HELD", 1);
+    int i, lk, v, bk = ui.pbank != 0;
+    o_header("PERFORM", bk ? "BANK B" : "BANK A");
+    o_ts(0, 12, "BLACK KEYS HELD  OCT: BANK A/B", 1);
     for (i = 0; i < 11; i++) {
-        int on = (i < NPFX && (ui.pfx_keys >> i & 1u)) || (i == 9 && eng.fill == 1) || (i == 10 && eng.fill_cue);
-        o_ink = i < 4 ? K_FG : i < NPFX ? K_ACC : K_FG;
-        o_kbox((i % 6) * 20, 20 + (i / 6) * 11, 19, FN[i], on, 0);
+        int on = (i < NPFX && ((bk ? ui.pfxb_keys : ui.pfx_keys) >> i & 1u)) || (i == 9 && eng.fill == 1) ||
+                 (i == 10 && eng.fill_cue);
+        o_ink = i < (bk ? 3 : 4) ? K_FG : i < NPFX ? K_ACC : K_FG;
+        o_kbox((i % 6) * 20, 20 + (i / 6) * 11, 19, FN[bk][i], on, 0);
     }
     o_ink = K_ACC;
     {
@@ -2090,8 +2229,6 @@ static void o_plist(void)
             first = top + i == 0 || vis[top + i - 1] < NFACTORY;
         }
         b[16] = 0;
-        if (k == loaded)                             /* the track's sound now */
-            o_ts(x + 1, y + 1, ">", !sel);
         if (first && i)                              /* a group starts: a dotted line above it */
             o_hline(x + 1, y - 1, w - 2, 1);
         if (sel) {
@@ -2102,11 +2239,14 @@ static void o_plist(void)
             o_ts(x + 5, y + 1, b, 1);
             if (first) o_ts(x + w - 3 - o_ws(g), y + 1, g, 1);
         }
+        if (k == loaded)                             /* the track's sound now (0.23: over its row's box, not under) */
+            o_ts(x + 1, y + 1, ">", !sel);
     }
     o_hline(x + 1, y0 + 11 + rows * 8, w - 2, 0);
     o_ts(x + 3, y0 + 13 + rows * 8, "OCT+ LOAD  OCT- BACK", 1);
 }
 
+static void ui_paint(uint32_t now, int touch);
 static void ui_draw(void)
 {
     uint32_t now = plat_ms();
@@ -2126,6 +2266,16 @@ static void ui_draw(void)
     if (!ui.redraw && (uint8_t)step == drawn_step && now - last < 100u)
         return;
     last = now;
+    ui_paint(now, touch);
+    if (ui.msg_until && now < ui.msg_until)
+        msg_up = 1;
+    o_send();
+    drawn_step = (uint8_t)step;
+    ui.redraw = 0;
+}
+/* the screen into the picture (ui_draw; the host's text audit) */
+static void ui_paint(uint32_t now, int touch)
+{
     o_clear();
     if (ui.ov == OV_PERF)                            /* (0.18) a held button's screen, the whole screen */
         o_perf();
@@ -2155,11 +2305,6 @@ static void ui_draw(void)
         o_popup();
     if (ui.plist_on)
         o_plist();
-    if (ui.msg_until && now < ui.msg_until) {
+    if (ui.msg_until && now < ui.msg_until)
         o_msg();
-        msg_up = 1;
-    }
-    o_send();
-    drawn_step = (uint8_t)step;
-    ui.redraw = 0;
 }

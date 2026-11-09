@@ -11,6 +11,7 @@ void (*eng_midi_out)(uint8_t st, uint8_t d1, uint8_t d2);
 uint8_t eng_midi_chan[NTRK] = {16, 16, 16, 16};
 uint8_t eng_midi_only;
 void (*eng_clock_cb)(int what);
+volatile uint32_t eng_ofs;
 
 static voice_t fader[NFADE];                         /* (0.17) stolen voices fading out, three at once */
 static void midi_pend_add(int trk, int note, uint32_t nid);             /* a stolen voice fades out here while its voice starts the new note */
@@ -838,13 +839,17 @@ void engine_init(void *pool, uint32_t pool_bytes)
 
 void engine_panic(void) { qput(Q_PANIC, 0, 0, 0); }
 
-/* overload: the oldest released voice goes (or, with none released, the oldest) */
+/* overload: (0.23, after mono2k's CPU guard) the voice heard least goes, faded in ~3 ms: its amp (envelope x level) x
+ * its track's level, a released one counted at half (a muted track's voices first); among equals the oldest. The
+ * screen names the dearest track (its voices' measured render time), the one to lighten */
 /* (0.21, after Hortator's plan to degrade before shedding) an overload first puts the inserts at the base rate for
  * three seconds (eng.ins_lq bit 1, as INSHQ OFF does); only an overload while they are there costs a voice */
 static uint32_t ins_shed_n;
 void engine_shed(void)
 {
-    int i, best = -1, rel = 0;
+    int i, best = -1;
+    float hb = 0.0f;
+    uint32_t tc[NTRK] = {0};
     if (!eng.ins_lq) {
         for (i = 0; i < NVOICE; i++)
             if (vc[i].on && vc[i].in_typ && vc[i].in_typ != INS_CRUSH && vc[i].in_typ != INS_OVER)
@@ -856,15 +861,22 @@ void engine_shed(void)
         }
     }
     for (i = 0; i < NVOICE; i++)
-        if (vc[i].on) {
-            int r = !vc[i].gate;
-            if (best < 0 || (r && !rel) || (r == rel && vc[i].age < vc[best].age)) {
+        if (vc[i].on && !vc[i].stolen) {
+            int t = vc[i].trk & (NTRK - 1);
+            float h = fm_fabsf(vc[i].amp_now) * ts[t].level * (vc[i].gate ? 1.0f : 0.5f);
+            tc[t] += vc[i].cost ? vc[i].cost : 400u;
+            if (best < 0 || h < hb || (h == hb && vc[i].age < vc[best].age)) {
                 best = i;
-                rel = r;
+                hb = h;
             }
         }
-    if (best >= 0)
-        voice_kill(&vc[best]);
+    if (best < 0)
+        return;
+    voice_kill(&vc[best]);
+    for (i = 1, eng.shed_trk = 0; i < NTRK; i++)
+        if (tc[i] > tc[eng.shed_trk])
+            eng.shed_trk = (uint8_t)i;
+    eng.shed_n++;
 }
 
 /* ------------------------------------------------------------------------ render --- */
@@ -1020,12 +1032,15 @@ typedef struct {
     float dl[CR], dr[CR], sc[CR], sd[CR], sr[CR];
     int16_t fx[NFXP];
     float bpm, duck, tape, g, thr;
+    float gt;                                    /* (0.23) the sequencer's tick (GATE in time), -1 stopped */
+    uint16_t pfb;                                /* (0.23) PERFORM's second bank held */
     int16_t cp[4];
     uint8_t has_fx, freeze, click, met, click_vol;
     uint32_t cnt;
     int32_t *lr;
 } fxjob_t;
 static fxjob_t fj[2];
+static uint8_t pfb_busy;                             /* (0.23) the second bank still sounding or giving the line back */
 static void post_block(fxjob_t *j)
 {
     float *dl = j->dl, *dr = j->dr;
@@ -1036,7 +1051,11 @@ static void post_block(fxjob_t *j)
         fx_duck(j->duck);
     }
     fx_throw(j->thr);                                /* (0.18) THROW */
+    if (j->pfb || pfb_busy)                          /* (0.23) PERFORM's second bank: the shimmer's feed */
+        pfb_pre(dl, dr, j->sr, CR, j->pfb);
     ENG_FAR(fx_block)(dl, dr, j->sc, j->sd, j->sr, CR);
+    if (j->pfb || pfb_busy)                          /* and the captures, the gate */
+        pfb_busy = (uint8_t)pfb_post(dl, dr, CR, j->pfb, j->bpm, j->gt);
     if (j->cp[0] > 0) {   /* the master compressor [TONIC 0.6]: a peak detector a block, the gain in dB; AMT moves
                          * the threshold (0 .. -30 dB) and the ratio (1:1 .. 6:1) together, half the reduction a
                          * 0 dB peak would get comes back as make-up; ATK 0.5 .. 32 ms, REL 20 ms .. 1.3 s; MIX
@@ -1139,6 +1158,7 @@ void engine_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
     while (done < n) {
         fxjob_t *j = &fj[cur];
         int i, t;
+        eng_ofs = done;                              /* (0.23) where in the render a MIDI message is due */
         j->has_fx = 0;
         clock_in_transport();                        /* (0.19) MIDI clock's Start / Stop */
         q_drain();
@@ -1186,6 +1206,19 @@ void engine_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
                     fx[P_RGAI - P_CDEP] = 127;
                 }
                 j->freeze = (uint8_t)(pf >> PFX_FREEZE & 1u);
+                /* (0.23) the second bank's DUB: a throw into the delay, its feedback up and its band narrowed; SHIM:
+                 * the reverb long and heard */
+                if (eng.pfxb >> PFB_DUB & 1u) {
+                    fx[P_DFB - P_CDEP] = (int16_t)(fx[P_DFB - P_CDEP] > 165 ? fx[P_DFB - P_CDEP] : 165);
+                    fx[P_DHPF - P_CDEP] = (int16_t)(fx[P_DHPF - P_CDEP] > 56 ? fx[P_DHPF - P_CDEP] : 56);
+                    fx[P_DLPF - P_CDEP] = (int16_t)(fx[P_DLPF - P_CDEP] < 84 ? fx[P_DLPF - P_CDEP] : 84);
+                    fx[P_DVOL - P_CDEP] = (int16_t)(fx[P_DVOL - P_CDEP] > 100 ? fx[P_DVOL - P_CDEP] : 100);
+                }
+                if (eng.pfxb >> PFB_SHIM & 1u) {
+                    fx[P_RDEC - P_CDEP] = (int16_t)(fx[P_RDEC - P_CDEP] > 116 ? fx[P_RDEC - P_CDEP] : 116);
+                    fx[P_RVOL - P_CDEP] = (int16_t)(fx[P_RVOL - P_CDEP] > 100 ? fx[P_RVOL - P_CDEP] : 100);
+                    fx[P_RGAI - P_CDEP] = (int16_t)(fx[P_RGAI - P_CDEP] > 96 ? fx[P_RGAI - P_CDEP] : 96);
+                }
             }
             for (i = 0; i < NFXP; i++)                   /* (0.17) the effects' settings for this block's effects */
                 j->fx[i] = fx[i];
@@ -1253,7 +1286,9 @@ void engine_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
         j->met = eng.metronome;
         j->click_vol = eng.click_vol;
         j->tape = tape_s;
-        j->thr = eng.thr;                            /* (0.18) THROW */
+        j->thr = eng.pfxb >> PFB_DUB & 1u ? fm_maxf(eng.thr, 0.8f) : eng.thr;   /* (0.18) THROW (0.23: DUB's) */
+        j->pfb = eng.pfxb;
+        j->gt = eng.playing ? seq_gtick() : -1.0f;
         j->g = g;
         j->lr = lr + 2u * done;
         j->cnt = n - done < CR ? n - done : CR;

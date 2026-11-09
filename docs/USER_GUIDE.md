@@ -174,7 +174,8 @@ Since 0.18 a button held for 0.4 s (or with a key or knob) opens its own screen,
 always did:
 
 - **FX held, PERFORM:** black keys 1–9 the momentary effects (ROLL 1/4 … 1/32, HALFTIME, TAPE STOP, LP / HP SWEEP,
-  FREEZE), 10 **FILL** while held, 11 FILL for the next pass; K1 the **DJ filter**, K2 **ducking depth**, K3 **THROW**
+  FREEZE; 0.23: **OCT+** the second bank, REVERSE, STUTTER, SCATTER, OCT− / OCT+, WOW, GATE, DUB, SHIMMER, **OCT−**
+  back), 10 **FILL** while held, 11 FILL for the next pass; K1 the **DJ filter**, K2 **ducking depth**, K3 **THROW**
   (the dry mix into delay and reverb), K4 master overdrive. The white keys still play.
 - **SAVE held, PATTERNS:** white keys the bank's patterns (several in turn: a **chain**); black 1 / 2 bank A / B,
   3 **temporary save**, 4 **reload**, 5 restart, 6 **tap tempo**; K1 CHNG; OCT transposes the pattern.
@@ -208,3 +209,5 @@ auto channel plays the active track. CC numbers follow the Digitone's for the so
 notes go out on each track's MIDI channel (GLO > MIDI), and MIDI clock in and out can be switched on (GLO > GLOBAL).
 **EXT** (GLO > MIDI; MIDI TRK before 0.9.1) makes the active track a MIDI track: its trigs, chords, locks of NOTE/VEL/LEN, conditions,
 micro timing and arpeggios play an external instrument over USB-MIDI, and no internal voice.
+Since 0.23 notes and clock go out when their sound reaches the FM-1's output, not when the block is computed (that
+was 6–12 ms early): external instruments and a Hortator following the clock play together with TONIC's sound.

@@ -147,9 +147,12 @@ void app_init(void)
 #endif
 }
 
+static void mo_render(uint32_t n, int begin);
 void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
 {
+    mo_render(n, 1);
     engine_render(lr, n, master_q12);
+    mo_render(n, 0);
 #ifdef TONIC_CPU1TEST
     c1t_audio();                                     /* (the CPU1 test: core 1 in the audio block) */
 #endif
@@ -178,6 +181,17 @@ void app_frame(void)
         app_say("LAST START FAILED", b);
         boot_skipped = -1;
     }
+    {   /* (0.23) an overload took a voice: CPU FULL and the dearest track (at most every 2 s) */
+        static uint16_t shed_seen;
+        static uint32_t shed_t;
+        if (eng.shed_n != shed_seen && plat_ms() - shed_t > 2000u) {
+            char b[16] = "T1 HEAVIEST";
+            shed_seen = eng.shed_n;
+            shed_t = plat_ms();
+            b[1] = (char)('1' + (eng.shed_trk & 3));
+            app_say("CPU FULL", b);
+        }
+    }
     ui_input();
     midi_poll();
     pattern_cue_poll();
@@ -200,10 +214,161 @@ void app_input_only(void)
 }
 
 #ifdef PLAT_HOST
+/* (0.23) the text audit (after mono2k's): every page of every engine, each knob's values through its range (the pop-up
+ * too), the held buttons' screens, the menu, the save page, the preset list; each problem once, with where it was */
+static char ta_where[48];
+static uint32_t ta_seen[1024];
+static int ta_nseen, ta_bad;
+static void ta_say(const char *what, const ta_t *a, const ta_t *b)
+{
+    char line[160];
+    uint32_t h = 2166136261u;
+    int i;
+    snprintf(line, sizeof line, "%s: '%s'%s%s%s", what, a->s, b ? " / " : "", b ? (b->kind == TA_TEXT ? "'" : "") : "",
+             b ? (b->kind == TA_TEXT ? b->s : b->kind == TA_FRAME ? "frame" : "box") : "");
+    if (b && b->kind == TA_TEXT)
+        strncat(line, "'", sizeof line - strlen(line) - 1);
+    for (i = 0; line[i]; i++)                        /* (once each, wherever it shows) */
+        h = (h ^ (uint8_t)line[i]) * 16777619u;
+    for (i = 0; i < ta_nseen; i++)
+        if (ta_seen[i] == h)
+            return;
+    if (ta_nseen < 1024)
+        ta_seen[ta_nseen++] = h;
+    ta_bad++;
+    printf("  FAIL audit %s: %s\n", ta_where, line);
+    if (getenv("TA_XY"))
+        printf("      at %d,%d-%d,%d%s%d,%d-%d,%d\n", a->x0, a->y0, a->x1, a->y1, b ? " / " : "", b ? b->x0 : 0,
+               b ? b->y0 : 0, b ? b->x1 : 0, b ? b->y1 : 0);
+}
+static void ta_shot(const char *where)
+{
+    tx_cpy(ta_where, where);
+    ui_paint(plat_ms(), plat_ms() - ui.touch_t < 1500u);
+    ta_check(ta_say);
+}
+static void text_audit(void)
+{
+    int e, g, r, k, i;
+    uint8_t ov = ui.ov, grp = ui.grp, zoom = set.no_zoom, row[NG];
+    char w[48];
+    for (g = 0; g < NG; g++)
+        row[g] = ui.row[g];
+    ta_nseen = ta_bad = 0;
+    set.no_zoom = 0;
+    ui.ov = OV_NONE;
+    for (e = 0; e < NENG; e++) {
+        sound_set_engine(tsnd(), e);
+        for (g = 0; g < G_HOME; g++) {
+            if (e && g != G_SYN && g != G_LFO)       /* (the engines differ on SYN and in LFO's destinations) */
+                continue;
+            ui.grp = (uint8_t)g;
+            for (r = 0; r < grp_n(g); r++) {
+                const row_t *rw = &grp_rows(g)[r];
+                ui.row[g] = (uint8_t)r;
+                ui.touch_t = plat_ms() - 5000u;
+                snprintf(w, sizeof w, "%s %s", L_ENGINE[e], rw->title);
+                ta_shot(w);
+                for (k = 0; k < 4; k++) {
+                    const item_t *it = &rw->it[k];
+                    range_t rg;
+                    int lk, was, span, v, n;
+                    if (it->kind == IK_NONE || (it->kind == IK_SET && it->id == S_ENGINE))
+                        continue;
+                    rg = item_range(it);
+                    was = item_get(it, &lk);
+                    span = rg.hi - rg.lo;
+                    n = rg.fmt == F_LIST || span <= 48 ? span : 48;
+                    for (i = 0; i <= n; i++) {
+                        v = n ? rg.lo + (int)((long)span * i / n) : rg.lo;
+                        item_set_raw(it, v);
+                        ui.touch_k = (uint8_t)k;
+                        ui.touch_t = plat_ms();
+                        snprintf(w, sizeof w, "%s %s %s", L_ENGINE[e], rw->title, item_name(it));
+                        ta_shot(w);
+                    }
+                    item_set_raw(it, was);
+                }
+            }
+        }
+    }
+    sound_set_engine(tsnd(), ENG_FM);
+    ui.touch_t = plat_ms() - 5000u;
+    for (ui.ov = OV_MENU; ui.ov <= OV_ENG; ui.ov++) {   /* the held buttons' screens, the menu */
+        static const char *const OVN[] = {"", "MENU", "PERFORM", "PATTERNS", "MUTE", "TOOLS", "ENGINE"};
+        if (ui.ov == OV_MENU) {
+            uint8_t mi = ui.menu_i;
+            for (ui.menu_i = 0; ui.menu_i < NMENU; ui.menu_i++) {
+                const item_t *it = &MENU_IT[ui.menu_i];
+                range_t rg = item_range(it);
+                int lk, was = item_get(it, &lk), v;
+                for (v = rg.lo; v <= rg.hi; v++) {
+                    item_set_raw(it, v);
+                    ta_shot("MENU");
+                }
+                item_set_raw(it, was);
+            }
+            ui.menu_i = mi;
+        } else if (ui.ov == OV_ENG) {
+            uint8_t ei = ui.eng_i;
+            for (ui.eng_i = 0; ui.eng_i < NENG; ui.eng_i++)
+                ta_shot("ENGINE");
+            ui.eng_i = ei;
+        } else if (ui.ov == OV_PERF) {               /* (both banks) */
+            uint8_t pbk = ui.pbank;
+            for (ui.pbank = 0; ui.pbank < 2; ui.pbank++)
+                ta_shot(OVN[ui.ov]);
+            ui.pbank = pbk;
+        } else
+            ta_shot(OVN[ui.ov]);
+    }
+    ui.ov = OV_NONE;
+    ui.grp = G_HOME;
+    ta_shot("HOME");
+    ui.grp = G_SAVE;
+    {
+        int8_t sr = ui.save_row;
+        for (ui.save_row = 0; ui.save_row < 10; ui.save_row++)
+            ta_shot("SAVE");
+        ui.save_row = sr;
+    }
+    ui.grp = G_SYN;                                  /* the preset list: every sound under the cursor */
+    ui.plist_on = 1;
+    {
+        int pi = ui.plist_i;
+        for (i = 0; i < NFACTORY; i++) {
+            ui.plist_i = (uint8_t)i;
+            ta_shot("PRESETS");
+        }
+        ui.plist_i = (uint8_t)pi;
+    }
+    ui.plist_on = 0;
+    {   /* the messages with the widest texts */
+        static const char *const M[][2] = {{"CPU FULL", "T4 HEAVIEST"}, {"LAST START FAILED", "B16 LEFT"},
+                                           {"ENGINE", "BRAIDS"}, {"PATTERN", "FULL"}};
+        for (i = 0; i < (int)(sizeof M / sizeof M[0]); i++) {
+            app_say(M[i][0], M[i][1]);
+            ta_shot("MESSAGE");
+        }
+        ui.msg_until = 0;
+    }
+    ui.ov = ov;
+    ui.grp = grp;
+    set.no_zoom = zoom;
+    for (g = 0; g < NG; g++)
+        ui.row[g] = row[g];
+    ui.redraw = 1;
+    printf("  textaudit: %d problems\n", ta_bad);
+}
+
 /* the host simulator's own commands: sound N loads factory sound N on the active track */
 int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, const char *d)
 {
     (void)b; (void)c; (void)d;
+    if (!strcmp(cmd, "textaudit")) {
+        text_audit();
+        return 1;
+    }
     if (!strcmp(cmd, "fitcheck")) {                  /* (0.22) every page's names and values against their slot */
         int e, g, r, k, bad = 0;
         for (e = 0; e < NENG; e++) {
@@ -231,7 +396,7 @@ int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, c
                             int i, num = 1;
                             item_fmt(it, x, v);
                             tx_cpy(f, v);
-                            o_fitv(f, pitch - 4);
+                            o_fitv(f, pitch - 5);
                             if (!strcmp(f, v) || strchr(v, '/'))   /* (B1/B2: one over the other) */
                                 continue;
                             for (i = 0; v[i]; i++)
@@ -280,10 +445,13 @@ int app_expect(const char *what, int *got)
     else if (!strcmp(what, "plisti")) *got = ui.plist_i;
     else if (!strcmp(what, "perf")) *got = ui.ov == OV_PERF;
     else if (!strcmp(what, "ov")) *got = ui.ov;
+    else if (!strcmp(what, "mtxq")) *got = (int)(mtx_w - mtx_r);   /* (0.23) MIDI out waiting for its sample */
     else if (!strcmp(what, "theme")) *got = set.theme;
     else if (!strcmp(what, "solo")) *got = eng.solo;
     else if (!strcmp(what, "step")) *got = engine_step(ui.trk);   /* (0.19) the active track's playing step */
     else if (!strcmp(what, "pfx")) *got = eng.pfx;
+    else if (!strcmp(what, "pfxb")) *got = eng.pfxb;   /* (0.23) the second bank held */
+    else if (!strcmp(what, "pbank")) *got = ui.pbank;
     else if (!strcmp(what, "playing")) *got = eng.playing;
     else if (!strcmp(what, "live")) *got = eng.rec_live;
     else if (!strcmp(what, "dirty")) *got = store_unsaved();

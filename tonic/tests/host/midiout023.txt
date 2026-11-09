@@ -1,0 +1,28 @@
+# (0.23) MIDI out in time with the sound: T1 as a MIDI track (GLO > SYSTEM K3 EXT); PLAY: the demo's kick on step 1
+# is made by the render, waits for its sample (a block on: the output is one block behind the render) and goes out
+# then, from the 1 kHz tick
+wait 1500
+tap GLO
+wait 30
+spin SELECT 1
+wait 30
+expect row 1
+spin K3 1
+wait 30
+out
+expect midi_out 0
+press PLAY
+wait 6
+expect mtxq 1
+expect midi_out 0
+wait 3
+expect mtxq 1
+expect midi_out 0
+wait 6
+expect mtxq 0
+expect midi_out 1
+expect_out USB 90 30 70
+release PLAY
+wait 30
+tap PLAY
+wait 100

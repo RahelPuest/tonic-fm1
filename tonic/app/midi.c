@@ -60,10 +60,12 @@ static int midi_track(int ch)
 #define MRX 128
 static uint32_t mrx[MRX];
 static volatile uint32_t mrx_w, mrx_r;
+static void mo_tick(void);
 void app_tick(void)
 {
     uint32_t pkt;
     int port, n = 0;
+    mo_tick();                                       /* (0.23) MIDI out as the sound reaches it */
     while (n++ < 32 && plat_midi_in(&pkt, &port)) {
         uint32_t st = (pkt >> 8) & 0xFFu;
         if (st == 0xF8 || st == 0xFA || st == 0xFB || st == 0xFC) {
@@ -136,15 +138,64 @@ static void midi_poll(void)
     }
 }
 
+/* (0.23, after mono2k) MIDI out in time with the sound: a message the render makes is due when the output reaches its
+ * sample, not when the block is computed (a block and a half ahead: 5.8 to 11.6 ms early). It waits in a ring with
+ * its sample and the 1 kHz tick sends it then (within a millisecond); one from the main loop (PLAY's Start) is due
+ * with the next block's first sample. The output's place: the block that started playing when the render began,
+ * and the ticks since */
+#define MTX 128
+static struct { uint32_t pkt, at; } mtx[MTX];
+static volatile uint32_t mtx_w, mtx_r;
+static volatile uint32_t mo_total;                   /* the samples rendered */
+static volatile uint32_t mo_base;                    /* the render's first sample, while it runs (and since) */
+static volatile uint32_t mo_ticks;                   /* the ticks since the last render began */
+static volatile uint8_t mo_in;                       /* the render runs */
+static void mo_render(uint32_t n, int begin)        /* app_render: around the engine's */
+{
+    if (begin) {
+        mo_base = mo_total;
+        mo_ticks = 0;
+        mo_in = 1;
+    } else {
+        mo_total += n;
+        mo_in = 0;
+    }
+}
+static void mo_send(uint32_t pkt)
+{
+    uint32_t f = mo_in ? 0 : plat_lock(), at = mo_in ? mo_base + eng_ofs : mo_total;
+    if (mtx_w - mtx_r >= MTX)                        /* (full: at once, as before) */
+        plat_midi_send(pkt, TO_USB);
+    else {
+        mtx[mtx_w % MTX].pkt = pkt;
+        mtx[mtx_w % MTX].at = at;
+        __asm__ volatile("" ::: "memory");
+        mtx_w++;
+    }
+    if (!mo_in)
+        plat_unlock(f);
+}
+static void mo_tick(void)                            /* app_tick: what is due by now */
+{
+    uint32_t pos = mo_base - APP_BLOCK + (mo_ticks * 441u) / 10u;
+    if (mo_ticks < 1000u)
+        mo_ticks++;
+    while (mtx_r != mtx_w && (int32_t)(pos - mtx[mtx_r % MTX].at) >= 0) {
+        plat_midi_send(mtx[mtx_r % MTX].pkt, TO_USB);
+        __asm__ volatile("" ::: "memory");
+        mtx_r++;
+    }
+}
+
 /* the engine's notes out (in the render) */
 static void midi_out_cb(uint8_t st, uint8_t d1, uint8_t d2)
 {
     uint32_t cin = (uint32_t)(st >> 4);
-    plat_midi_send(cin | (uint32_t)st << 8 | (uint32_t)d1 << 16 | (uint32_t)d2 << 24, TO_USB);
+    mo_send(cin | (uint32_t)st << 8 | (uint32_t)d1 << 16 | (uint32_t)d2 << 24);
 }
 static void clock_out_cb(int what)
 {
     static const uint8_t B[3] = {0xF8, 0xFA, 0xFC};
     if (set.clock_out)
-        plat_midi_send(0x0Fu | (uint32_t)B[what] << 8, TO_USB);
+        mo_send(0x0Fu | (uint32_t)B[what] << 8);
 }

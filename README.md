@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.22" src="https://img.shields.io/badge/version-0.22-orange">
+  <img alt="Version 0.23" src="https://img.shields.io/badge/version-0.23-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -57,6 +57,10 @@ FM-1's flash.
   voices, keys, song) on SEQ, SETUP and portamento with the engine on EDIT; a quieter screen with the edited values
   boxed and the full parameter name on every turn; a MENU for the screen and the knobs (pop-up, acceleration, PERFORM
   as a page).
+- **After mono2k** (0.23, ideas from Sequencist's Monomachine-style FM-1 firmware): a second PERFORM bank (OCT+:
+  REVERSE, STUTTER, SCATTER, OCTAVE down / up, WOW, a 1/16 GATE, a DUB throw, SHIMMER), MIDI notes and clock sent when
+  their sound reaches the output (no longer 6-12 ms ahead), an overload that takes the voice heard least and names the
+  heaviest track, and a text audit in the host tests that checks every screen for crowded or cut text.
 - **The engine screen and Hortator's pages** (0.22): hold EDIT for six big engine boxes (white 1–6), the LFOs and
   GLO laid out as Hortator's (LFO 1 on K1 K2, LFO 2 on K3 K4; GLOBAL / SYSTEM / GLOBAL), one thick frame on the edited
   row, every name and value fitting its box.
@@ -105,7 +109,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.22.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.23.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.

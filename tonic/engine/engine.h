@@ -22,12 +22,22 @@ typedef struct {
     volatile uint8_t mute_q;      /* (0.18) mute_next waits for the bar's first step (MUTE screen, NEXT BAR) */
     float thr;                    /* (0.18) THROW: the dry mix into the delay and the reverb, 0..1 (not saved) */
     volatile uint16_t pfx;        /* the momentary performance effects held (PFX_*) [TONIC 0.7] */
+    volatile uint16_t pfxb;       /* (0.23) the second bank's held (PFB_*) */
+    volatile uint16_t shed_n;     /* (0.23) the voices an overload took so far (the screen says CPU FULL) */
+    volatile uint8_t shed_trk;    /* (0.23) and the dearest track then */
 } eng_state_t;
 /* the momentary performance effects [TONIC 0.7]: while held. ROLL: the sequencer repeats the current 1/4 .. 1/32 (the
  * shortest held wins) and goes on in time when it ends; HALF: the sequencer at half speed; TAPE: tempo and pitch slow to
  * a stop (and come back up when it ends); LP / HP: the DJ filter sweeps closed; FREEZE: the reverb holds its tail, no
  * new input */
 enum { PFX_ROLL4, PFX_ROLL8, PFX_ROLL16, PFX_ROLL32, PFX_HALF, PFX_TAPE, PFX_LP, PFX_HP, PFX_FREEZE, NPFX };
+/* (0.23, after mono2k's PERFORM) the second bank, OCT+ on the PERFORM screen: REV each 1/8 played backwards (an 1/8
+ * late), STUT the first 1/32 again and again, SCAT the last beat's sixteenths shuffled (some backwards), OCT- / OCT+
+ * an octave down / up, WOW the tape's wobble, GATE a 1/16 chop, DUB a throw into the delay with its feedback up, SHIM
+ * the reverb fed an octave up. The captures (all but GATE and DUB) borrow the delay line while held: its echoes stop
+ * meanwhile and come back after */
+enum { PFB_REV, PFB_STUT, PFB_SCAT, PFB_OCTD, PFB_OCTU, PFB_WOW, PFB_GATE, PFB_DUB, PFB_SHIM, NPFB };
+#define PFB_BUF (0x1FFu & ~(1u << PFB_GATE | 1u << PFB_DUB))   /* the ones that borrow the line */
 extern float eng_speed;           /* the sequencer's speed (1: normal; HALF, TAPE) */
 extern float eng_pitch;           /* semitones added to every voice (TAPE) */
 extern eng_state_t eng;
@@ -127,5 +137,6 @@ int engine_filter_view(int trk, float *fc, float *res);
 extern void (*eng_midi_out)(uint8_t st, uint8_t d1, uint8_t d2);
 extern uint8_t eng_midi_chan[NTRK];                  /* 0..15, 16 = off */
 extern uint8_t eng_midi_only;                        /* bit t: track t is a MIDI track (no internal voices) */
+extern volatile uint32_t eng_ofs;                  /* (0.23) the sample in the render's call the sequencer is at */
 extern void (*eng_clock_cb)(int what);               /* MIDI clock out: 0 a clock (24 a quarter), 1 start, 2 stop */
 void engine_shed(void);                              /* the render ran late: end the oldest released voice */

@@ -127,7 +127,7 @@ TONIC draws the Digitone's screen layout at the LCD's full resolution and in col
 - **Header:** the pattern, then a bar in the active track's colour with its sound and the row number.
 - **Tabs:** under the header, the pages of the button you pressed (for example SYN1 · SYN1 2 · SYN2 · SYN2 2); the page shown is highlighted. When there are too many for one line, < and > show that more are there.
 - **Left column:** meters for T1–T4 in their colours and the master (M: green, yellow, red near full scale). The active track's number is highlighted.
-- **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **value boxes framed in the accent colour** (0.22: one thick frame, not filled; the other row's frames thin and dim). A locked value is written in the accent colour.
+- **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **value boxes framed in the accent colour** (0.22: one thick frame, not filled; the other row's frames thin and dim). A locked value is written in the accent colour. (0.23) A value sits a pixel clear of its frame, centred to the pixel: a number too wide drops its trailing zeros, then rounds its last decimal (100.25 shows 100.3 in the box, the pop-up says 100.25); B1/B2 that do not fit stand one over the other in a box a little taller.
 - **Moving pictures:**
   - A dot runs along the envelopes (operator A and B, filter, amp) where the track's sound is now.
   - (0.21) The LFO rows are pictures, as the envelopes are: the first row draws a bar of the LFO (as many cycles as SPD × MULT make in a bar, FADE as its outline growing or shrinking), the second one cycle of the wave from SPH, as tall as DEP (dotted at full height to show its shape), with a dot where the sound's LFO is and the MODE at the corner. Turn a knob of the row and its values come back for a moment.
@@ -867,7 +867,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 
 | Held | Screen | White keys | Black keys | Knobs |
 | --- | --- | --- | --- | --- |
-| **FX** | PERFORM | play the active track | 1–9 momentary effects (below), 10 FILL while held, 11 FILL for the next pass | K1 DJ filter, K2 ducking depth, K3 THROW, K4 master overdrive; SELECT tempo |
+| **FX** | PERFORM | play the active track | 1–9 momentary effects (below; 0.23: OCT+ the second bank, OCT− the first), 10 FILL while held, 11 FILL for the next pass | K1 DJ filter, K2 ducking depth, K3 THROW, K4 master overdrive; SELECT tempo |
 | **SAVE** | PATTERNS | the bank's 16 patterns (several in a row: a chain) | 1 bank A, 2 bank B, 3 temporary save, 4 reload, 5 restart, 6 tap tempo | K1 CHNG (how the change comes); PRESETS pattern; SELECT tempo; OCT transposes the pattern |
 | **GLO** | MUTE | 1–4 mute T1–T4 | 1–4 solo T1–T4, 10 mutes at once, 11 mutes at the next bar | SELECT tempo |
 | **SEQ** | TOOLS | the page's steps (as in grid recording) | 1 COPY PAGE, 2 PASTE PAGE, 3 CLEAR PAGE, 4 COPY TRACK, 5 PASTE TRACK, 6 CLEAR TRACK (press twice), 7 / 8 SHIFT left / right, 9 DUPLICATE, 10 REVERSE, 11 UNDO | OCT the step page |
@@ -905,6 +905,25 @@ On PERFORM (**FX held**), **press a black key 1–9**: its effect lasts as long 
 | 9 | FREEZE | The reverb holds its tail for ever and takes nothing new in: hit a chord, freeze, play on top of the frozen cloud. |
 
 The effects act on the sequencer and the master; MIDI notes going out follow the sequencer (ROLL and HALFTIME change them too; MIDI clock out slows with HALFTIME and TAPE). Nothing is saved: the pattern is as it was.
+
+### The second bank (TONIC 0.23)
+
+On PERFORM, **OCT+** puts the second bank on black keys 1–9 and **OCT−** the first again (with PERF PAGE, OCT− in the first bank closes the screen). The header says BANK A or BANK B, and the bank stays for the next time. The ideas come from mono2k's PERFORM (Sequencist's Monomachine-style firmware for the FM-1); the code is TONIC's own. These effects work on the whole sound as you hear it, the effects' returns included, and each fades in and out in 5 ms.
+
+![The second bank](img/pfxb.png "FX held, OCT+: REV STUT SCAT OCT- OCT+ WOW GATE DUB SHIM")
+
+| Key | Effect | What it does |
+| --- | --- | --- |
+| 1 | REVERSE | Each eighth note is played backwards, an eighth late: the first eighth after the press plays as it is while it is recorded, then it comes back reversed while the next one records (below 38 BPM a sixteenth). |
+| 2 | STUTTER | The first 1/32 after the press, again and again for as long as you hold the key, each repeat three quarters long: a machine-gun repeat of the whole mix (ROLL repeats the sequencer instead, so its tails go on). |
+| 3 | SCATTER | The beat after the press is recorded while it plays as it is; then its four sixteenths come in a new order every beat, some backwards, some halved and doubled, for as long as you hold the key (below 75 BPM an eighth instead of the beat). |
+| 4, 5 | OCT− / OCT+ | The whole sound an octave down / up (a pitch shifter with two crossfaded taps; it starts 46 ms after the press, once its window is full). |
+| 6 | WOW | A worn tape: the pitch sways slowly (0.6 Hz, about ±30 cents) with a fast flutter on top. |
+| 7 | GATE | A 1/16 chop: half of each sixteenth open, half closed. While playing it sits on the sequencer's sixteenths. |
+| 8 | DUB | A dub throw: the dry mix into the delay (and reverb), the delay's feedback raised (FDBK at least 165) and its band narrowed (HPF 56, LPF 84). Let go: the echoes ring out on the pattern's own feedback. |
+| 9 | SHIMMER | The reverb fed with the sound an octave up and its decay long (DEC at least 116): each pass of the tail climbs another octave. |
+
+**The delay line on loan.** Every effect of the second bank but GATE and DUB records the sound into the delay's memory, since the FM-1 has no RAM left for a buffer of its own. While one of them is held, the delay's echoes fade out (in 6 ms) and the delay is silent. When no effect of the bank sounds any more, the line is cleared and the delay fades back in (about 25 ms). DUB uses the delay itself, so it does nothing while a recording effect is held. These effects record only from the moment of the press, so REVERSE and SCATTER start with a stretch played as it is. mono2k's SPIN, which spins back the moments before the press, needs a recording of the past and is not in TONIC; WOW is there instead.
 
 ## 21. GLO: tempo, clock, velocity, MIDI
 
@@ -962,6 +981,7 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
   - 94 mutes a track, 95 sets its level, and program change picks a pattern.
   - Mod wheel, breath, aftertouch and pitch bend go to the modulation pages.
 - **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when SYNC is ON (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
+- **In time with the sound (0.23, after mono2k).** The sound is computed a block ahead of what you hear: a block (5.8 ms) is made while the one before plays. Before 0.23 a note or a clock went out when its block was computed, 6 to 12 ms before you heard it. Now each waits for the moment its own sample reaches the FM-1's output and goes out then, within a millisecond (the FM-1's 1 kHz timer sends it). An external synth, a drum machine or Hortator following the clock now plays with TONIC's own sound, not ahead of it. Through USB audio into a computer, the computer's own latency still adds to the sound.
 - **MIDI tracks:** GLO > SYSTEM > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.
 - **Clock in:** with CLK MIDI, TONIC follows the incoming clock, start, continue and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average. Since 0.19 the clocks are taken the moment they arrive (in the FM-1's 1 kHz timer, not with the screen), so it follows within about a millisecond; the first clock after Start is step 1, and Start and Stop go on to TONIC's own clock out.
 
@@ -1062,6 +1082,7 @@ The full comparison is in `docs/FEATURES.md`; the research behind the curves is 
 | The pattern doesn't change | Changes happen at the pattern's end (or CHLEN). Check MLEN and CHLEN in SEQ > TRACK, and SEQ > SONG > CHNG. |
 | A trig doesn't play | A condition or PROB (hold the step and look at COND), a mute, or the track's length. |
 | The FM-1 won't start TONIC | After a failed start (a crash or a hang in the first 30 s) TONIC starts once more on an empty pattern slot and says **LAST START FAILED / A01 LEFT** (the pattern it left out stays as it is: go back to it on purpose). After two failed starts SAFE MODE comes up; install again from there (section 2). |
+| **CPU FULL / T3 HEAVIEST** | (0.23) The sound took more than the FM-1's time. TONIC first runs the inserts at the base rate for 3 s; if that is not enough, it fades out the voice heard least (its envelope times its track's level; a released voice counts half, a muted track's first), not the oldest. The message names the track whose voices cost the most: lighten that one (fewer chord notes or voices, no 2x insert, a lighter model). It shows at most every 2 s. |
 | CPU instead of CPU2 on HOME | The second core was given up (it did not answer in time, or crashed); TONIC runs on one core until the FM-1 is switched off and on. |
 | Back to stock | Section 2 and `docs/INSTALL.md`. |
 
