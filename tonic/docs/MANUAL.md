@@ -101,9 +101,9 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 | **PRESETS** knob | The track's sound: a list (factory sounds, then the user library; SCL: by group), OCT+ loads. On HOME: the pattern. With a step held: a sound lock. In step recording: the active step. On SAVE: the slot. |
 | **MASTER** | The output volume. |
 | **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID (with EUC ACC), and everything that is the track's own: TRACK (length, speed, transpose, quantize), VOICE, KEYS (the keyboard scale), SONG. Held: TOOLS. |
-| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; a kit: a page a pad, LEVEL, KIT; BRAIDS, SSAW, ENS: their page); then the sound's SETUP (play mode, key scaling, octave) and PORTA, with every engine but the kit. Held: the preset list, playing each sound as you move. |
+| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; a kit: a page a pad, LEVEL; BRAIDS, SSAW, ENS: their page); then the sound's SETUP (play mode, key scaling, octave) and PORTA, with every engine but the kit. Held: the engine screen (0.22: FM, VA, DRUM, BRAIDS, SSAW, ENS on white 1–6). |
 | **ENV** | FLTR, FLTR 2, AMP, AMP 2, LOFI, INSRT. Held + a knob: all four tracks. |
-| **LFO** | LFO1, LFO2, MENV, then the modulation pages (VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND). Held + a knob: all four tracks. |
+| **LFO** | (0.22, as Hortator's: LFO 1 on K1 K2, LFO 2 on K3 K4) LFO, TRIG, DEST, MENV, then the modulation pages (VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND). Held + a knob: all four tracks. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER, DUCK, PUMP, COMP. Held: PERFORM. |
 | **ARP** | The arpeggiator, CHORD, SCALE (the sound's scale). Held + a knob: all four tracks. |
 | **GLO** | Only what is the whole project's or the device's (as on Hortator): GLOBAL (tempo, swing, metronome, clock in and out, live quantize, velocity, mute timing) and MIDI. Held: MUTE. |
@@ -127,7 +127,7 @@ TONIC draws the Digitone's screen layout at the LCD's full resolution and in col
 - **Header:** the pattern, then a bar in the active track's colour with its sound and the row number.
 - **Tabs:** under the header, the pages of the button you pressed (for example SYN1 · SYN1 2 · SYN2 · SYN2 2); the page shown is highlighted. When there are too many for one line, < and > show that more are there.
 - **Left column:** meters for T1–T4 in their colours and the master (M: green, yellow, red near full scale). The active track's number is highlighted.
-- **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **value boxes framed in the accent colour** (0.21: a double frame, not filled; the other row's frames dim). A locked value is written in the accent colour.
+- **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **value boxes framed in the accent colour** (0.22: one thick frame, not filled; the other row's frames thin and dim). A locked value is written in the accent colour.
 - **Moving pictures:**
   - A dot runs along the envelopes (operator A and B, filter, amp) where the track's sound is now.
   - (0.21) The LFO rows are pictures, as the envelopes are: the first row draws a bar of the LFO (as many cycles as SPD × MULT make in a bar, FADE as its outline growing or shrinking), the second one cycle of the wave from SPH, as tall as DEP (dotted at full height to show its shape), with a dot where the sound's LFO is and the MODE at the corner. Turn a knob of the row and its values come back for a moment.
@@ -161,7 +161,7 @@ Scales: CHROM, MAJOR, MINOR, DORIA (Dorian), PHRYG, LYDIA, MIXO, LOCRI, PENTA (m
 3. **EDIT > SYN2:** the two operator envelopes. They shape how the timbre moves.
 4. **ENV:** the filters, the amp envelope, drive, pan, volume and the effect sends.
 5. **LFO:** movement, as vibrato, wobble or filter sweeps.
-6. To use the **VA engine** instead of FM, go to EDIT, the last row (SYN2 2), and set K4 **ENGINE** to VA. The SYN pages become the oscillator pages (section 8). **ENGINE DRUM** makes the track a drum kit, or load one of the KITS presets.
+6. To use another **engine** than FM, **hold EDIT**: the engine screen shows the six (FM, VA, DRUM, BRAIDS, SSAW, ENS). Press white key 1–6, or turn a knob to the one you want and press OCT+; OCT− or EDIT closes it unchanged. The SYN pages become that engine's (section 8). DRUM makes the track a drum kit, or load one of the KITS presets.
 7. Keep it with **SAVE > SOUND > LIBRARY** (32 user slots, chosen with PRESETS) or **SOUND > POOL** (for sound locks).
 
 Holding a page button gives two shortcuts:
@@ -223,7 +223,7 @@ Envelope **A** drives operator A. Envelope **B** drives B1 and B2. On the screen
 
 ### The VA engine
 
-A sound's **ENGINE** (EDIT, SYN2 2, K4) is **FM**, **VA**, **DRUM**, **BRDS**, **SSAW** or **ENS**. With VA, two oscillators, a sub-oscillator and noise replace the four operators. Everything after them is the same as for FM: overdrive, LO-FI, the filters, the amp, the LFOs and the effects.
+A sound's **ENGINE** (EDIT held: the engine screen, white 1–6; 0.22, before on SYN2 2's K4) is **FM**, **VA**, **DRUM**, **BRDS**, **SSAW** or **ENS**. With VA, two oscillators, a sub-oscillator and noise replace the four operators. Everything after them is the same as for FM: overdrive, LO-FI, the filters, the amp, the LFOs and the effects.
 
 Switching ENGINE sets the SYN pages to that engine's defaults. The FLTR, AMP and LFO settings stay, and undo takes a switch back. The pages are titled OSC, OSC 2, ENV and ENV 2, and the left column shows the two waves, the sub and the noise.
 
@@ -259,7 +259,7 @@ The LFOs and the modulation pages reach the VA parameters under their VA names (
 
 ### The DRUM engine
 
-With **ENGINE DRUM** a track becomes a **kit of eight pads**, each a synthesized drum (no samples): kicks, snares, hats, toms and percussion in the manner of the classic drum machines. One track holds a whole drum set, so the other three stay free for bass, chords and leads. Load a kit from the **KITS** presets (808, 909, FM, ELECTRO, TECHNO, LOFI, PERC, TRAP) or switch ENGINE (EDIT, SYN2 2, K4) to DRUM for the default kit.
+With **ENGINE DRUM** a track becomes a **kit of eight pads**, each a synthesized drum (no samples): kicks, snares, hats, toms and percussion in the manner of the classic drum machines. One track holds a whole drum set, so the other three stay free for bass, chords and leads. Load a kit from the **KITS** presets (808, 909, FM, ELECTRO, TECHNO, LOFI, PERC, TRAP) or pick DRUM on the engine screen (EDIT held, white 3) for the default kit.
 
 **Playing.** The white keys are the pads: keys 1–8 are pads 1–8, keys 9–16 the same pads again (a black key plays the white key to its left). OCT does not move them. The notes behind the pads are C4, D4, E4, F4, G4, A4, B4 and C5, also over MIDI. Track transpose and the keyboard's scale and chord settings leave a kit alone.
 
@@ -270,7 +270,6 @@ With **ENGINE DRUM** a track becomes a **kit of eight pads**, each a synthesized
 | A page a pad (the tabs show it: 1 BD, 2 SD …) | 1 | MODEL | TUNE | DEC | TONE |
 | | 2 | CTL A | CTL B | PAN | LEV |
 | LEVEL | pads 1–4, pads 5–8 | level | level | level | level |
-| KIT | | | | | ENGINE |
 
 ![A drum kit's pad page](img/drum_kit.png "EDIT under DRUM: pad 1's page (MODEL TUNE DEC TONE / BEND TICK PAN LEV); the kit on the left, lit as its pads sound")
 ![The kit's levels](img/drum_levels.png "LEVEL: the eight pads' levels, named by pad and model")
@@ -344,7 +343,7 @@ Each pad has its own page (since 0.12.1). Playing a pad on the keys, or picking 
   - The filter and LO-FI act on the whole kit.
 - Parameter locks work per pad. Lock 2 SD's TUNE on one step and only the snare there changes.
 - Retrig (TRIG page) gives snare rolls and hat ratchets.
-- Every pad is an LFO and modulation destination (1 TUNE … 8 LEV), and the whole kit too (ALL TUNE, ALL DEC, ALL TONE, ALL LEV). PITCH moves the whole kit.
+- Every pad is an LFO and modulation destination (1 TUNE … 8 LEV), and the whole kit too (* TUN, * DEC, * TON, * LEV; 0.22, ALL TUNE … before). PITCH moves the whole kit.
 
 **Picking the pad.** The **picked pad** is the one the grid places, EUCLID writes and NOTE shows. The screen shows it beside the mode at the bottom right (e.g. GRID 4 CH). Pick it in any of these ways:
 - In grid recording: hold **black key 8** and press **white key 1–8**.
@@ -374,7 +373,7 @@ ENGINE **BRDS** turns the sound into **Braids**, the macro oscillator Emilie Gil
 | COLR | 0–127 | COLOR: its second. |
 | TUNE | ±24 semitones, quarter steps | The sound's tuning. |
 
-The second row has only ENGINE (K4). (0.21: SYNC, SIGN and SUB of 0.15 are gone; a sound made with them plays without.)
+(0.21: SYNC, SIGN and SUB of 0.15 are gone; a sound made with them plays without. 0.22: the page has the full width, the model's name in its box.)
 
 | Family | Models |
 | --- | --- |
@@ -495,19 +494,28 @@ Since 0.17 OVER, HARD, FUZZ, RECT and FOLD run at twice the rate (a halfband fil
 
 ## 10. LFO1 and LFO2
 
-Each voice has two LFOs. LFO2 can also modulate LFO1.
+Each voice has two LFOs. LFO2 can also modulate LFO1. Since 0.22 the pages are laid out as Hortator's: **LFO 1 always on K1 K2, LFO 2 on K3 K4**, so the two sit side by side.
 
-![The LFO page](img/lfo.png "LFO > LFO1: speed, multiplier, fade, destination; the wave drawn below")
+![The LFO page](img/lfo.png "LFO: WAVE SPD of LFO 1 and 2, each drawn above its knobs / MULT SPH")
+
+| Page | K1 | K2 | K3 | K4 |
+| --- | --- | --- | --- | --- |
+| LFO (row 1) | LFO 1 WAVE | LFO 1 SPD | LFO 2 WAVE | LFO 2 SPD |
+| LFO (row 2) | LFO 1 MULT | LFO 1 SPH | LFO 2 MULT | LFO 2 SPH |
+| TRIG | LFO 1 MODE | LFO 1 FADE | LFO 2 MODE | LFO 2 FADE |
+| DEST | LFO 1 DEST | LFO 1 DEP | LFO 2 DEST | LFO 2 DEP |
+
+The first row is drawn: each LFO over its two knobs, a bar of it (as many cycles as it runs in one), its fade, and a dot where the sound's LFO is. Under the steps, L1 and L2 show both LFOs' values now.
 
 | Param | Range | What it does |
 | --- | --- | --- |
+| WAVE | TRI, SIN, SQR, SAW, EXP, RMP, RND | Waveform. |
 | SPD | −64…+63 | Speed (negative: backwards). The rate is SPD × MULT. |
 | MULT | 1…2K, .1….2K | Multiplier. Plain values are synced to the tempo; dotted values run at a fixed 120 BPM. |
-| FADE | −64…+63 | Negative: fades in; positive: fades out. |
-| DEST | list | What it moves (below). |
-| WAVE | TRI, SIN, SQR, SAW, EXP, RMP, RND | Waveform. |
 | SPH | 0–127 | Start phase. |
 | MODE | FRE, TRG, HLD, ONE, HLF | Free running; restarted by each note; held at note-on; one cycle; half a cycle. |
+| FADE | −64…+63 | Negative: fades in; positive: fades out. |
+| DEST | list | What it moves (below). |
 | DEP | −64.00…+63.94 | Depth, in 1/16 steps near zero. DEP 1.00 on PITCH is ±2 semitones. |
 
 ### MENV: the modulation envelope (TONIC 0.12)
@@ -525,7 +533,7 @@ A third modulator: an envelope, started by every note, that goes to any destinat
 
 Ideas: a pitch blip at the start (DEST PITCH, short DEC), FM index that falls (HARM or A LEV), the insert's drive that swells (I AMT), the reverb send that opens with the release.
 
-**Destinations:** ALGO, RAT C, RAT A, RAT B, HARM, DTUN, FDBK, MIX, A/B envelope parameters, PITCH, PIT AB2 (pitch of A and B2), RAT ALL, AB LEV, AB ATK/DEC/END/DEL, ratio offsets, FREQ, RESO, F ENV, filter envelope, BASE, WIDTH, amp envelope, DRIVE, PAN, VOL, REV, DEL, CHR. LFO2 also reaches LFO1's SPD, MULT, FADE, WAVE, SPH, MODE and DEP. From 0.9 also: **SRR** and **BRR** (LO-FI), and on a DRUM kit every pad (1 TUNE … 8 LEV) and the whole kit (**ALL TUNE, ALL DEC, ALL TONE, ALL LEV**). From 0.12 the insert effect: **I AMT, I TONE, I MIX**. LFO1's DEST skips LFO1's own parameters. The modulation pages (VELOCITY, MOD WHEEL, AFTERTOUCH, BREATH, PITCH BEND) reach every destination, LFO1's parameters too: the mod wheel on LFO1's DEP is the classic vibrato.
+**Destinations:** ALGO, RAT C, RAT A, RAT B, HARM, DTUN, FDBK, MIX, A/B envelope parameters, PITCH, P.AB2 (pitch of A and B2), R.ALL, ABLEV, ABATK/ABDEC/ABEND/ABDEL (0.22: the names as short as a box), ratio offsets, FREQ, RESO, F ENV, filter envelope, BASE, WIDTH, amp envelope, DRIVE, PAN, VOL, REV, DEL, CHR. LFO2 also reaches LFO1's SPD, MULT, FADE, WAVE, SPH, MODE and DEP. From 0.9 also: **SRR** and **BRR** (LO-FI), and on a DRUM kit every pad (1 TUNE … 8 LEV) and the whole kit (**ALL TUNE, ALL DEC, ALL TONE, ALL LEV**). From 0.12 the insert effect: **I AMT, I TONE, I MIX**. LFO1's DEST skips LFO1's own parameters. The modulation pages (VELOCITY, MOD WHEEL, AFTERTOUCH, BREATH, PITCH BEND) reach every destination, LFO1's parameters too: the mod wheel on LFO1's DEP is the classic vibrato.
 
 ## 11. Sequencing: grid recording
 
@@ -849,7 +857,7 @@ These are TONIC's own, not on the 2018 Digitone.
 
 Both pages draw the curve the settings make, one division long (a quarter with a track as the source), with a dotted line at the place in it now and a bar at the right for how far the mix is down now. **Four on the floor:** DUCK 1/4, DPTH 80–110, REL 60–90, KEEP the kick's track.
 
-Every value can be locked per step. A trick: make the source a **MIDI track** (GLO > MIDI > EXT) with kick trigs and no instrument behind it. It ducks the pads without making a sound of its own.
+Every value can be locked per step. A trick: make the source a **MIDI track** (GLO > SYSTEM > EXT) with kick trigs and no instrument behind it. It ducks the pads without making a sound of its own.
 
 **DJ filter (FX > MIXER > FILT):** one knob on the whole mix, after the master overdrive. Below 0 it is a lowpass (down to 78 Hz at −64); above 0, a highpass (up to 7.7 kHz at +63); 0 is off. It glides, so sweeps are smooth. On the PERFORM (FX held) it is K1.
 
@@ -863,7 +871,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 | **SAVE** | PATTERNS | the bank's 16 patterns (several in a row: a chain) | 1 bank A, 2 bank B, 3 temporary save, 4 reload, 5 restart, 6 tap tempo | K1 CHNG (how the change comes); PRESETS pattern; SELECT tempo; OCT transposes the pattern |
 | **GLO** | MUTE | 1–4 mute T1–T4 | 1–4 solo T1–T4, 10 mutes at once, 11 mutes at the next bar | SELECT tempo |
 | **SEQ** | TOOLS | the page's steps (as in grid recording) | 1 COPY PAGE, 2 PASTE PAGE, 3 CLEAR PAGE, 4 COPY TRACK, 5 PASTE TRACK, 6 CLEAR TRACK (press twice), 7 / 8 SHIFT left / right, 9 DUPLICATE, 10 REVERSE, 11 UNDO | OCT the step page |
-| **EDIT** | the preset list | | | PRESETS or K1 move; each sound plays as you move (audition); OCT+ keeps it, OCT− or EDIT puts the track's own sound back |
+| **EDIT** | the engine screen (0.22; it stays) | the engines 1–6 | | a knob moves the cursor, OCT+ takes it; OCT− or EDIT closes |
 | **HOME** | MENU (it stays) | | | SELECT the row, a knob its value; OCT− or HOME closes |
 | **REC** | a FILL while held | | | |
 | **ENV, LFO, ARP** | (no screen) CONTROL ALL | | | a knob: that parameter on all four tracks; REC randomizes the row, OCT− defaults, SCL reverts |
@@ -873,6 +881,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 ![MUTE](img/mute.png "GLO held: the tracks heard or muted, solo")
 ![TOOLS](img/tools.png "SEQ held: the step tools, the page's steps")
 ![The MENU](img/menu.png "HOME held: the device's settings")
+![The engine screen](img/engines.png "EDIT held: the six engines on white 1-6; the track's filled, the cursor framed")
 
 - **PERFORM's knobs** stay where you leave them on every page. **THROW** sends the dry mix into the delay and the reverb (a dub throw); it is not saved, turn it back to 0 to stop. K1, K2 and K4 are the pattern's own DJ filter, ducking depth and overdrive (FX > MIXER and DUCK), saved with it.
 - **PATTERNS:** a pattern key cues the pattern (as SEQ > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
@@ -901,8 +910,10 @@ The effects act on the sequencer and the master; MIDI notes going out follow the
 
 | Page | Parameters |
 | --- | --- |
-| **GLOBAL** | BPM (30–300), SWING (50–80 %), TEMPO (PROJ: one tempo for the project / PTRN: each pattern its own), METRO (metronome on / off); CKIN, CKOUT (MIDI clock in / out), QUANT (live recording quantized), VEL (FIXED / KEYS); FIXVL (the fixed velocity), MUTE (at once / NEXT BAR). |
-| **MIDI** | CH T1–CH T4 (each track's out channel); AUTO (the auto channel: it plays the active track), TRKCH (channels 1–4 play tracks 1–4), EXT (the active track plays only over MIDI, an external track). |
+| **GLOBAL** | (0.22, as Hortator's GLOBAL 1/7) BPM (30–300), SWG (swing, 50–80 %), CLK (INT: its own clock / MIDI: following MIDI clock), CH (the channel that plays the active track; OFF). |
+| **SYSTEM** | (as Hortator's SYSTEM 2/7) SYNC (MIDI clock out OFF / ON), ROUT (SEL: only CH plays, the active track / TRK: channels 1–4 also play tracks 1–4), EXT (the active track plays only over MIDI, an external track), TEMPO (PROJ: one tempo for the project / PTRN: each pattern its own). |
+| **GLOBAL** | (as Hortator's GLOBAL 3/7) MUTE (NOW / NEXT BAR), METRO (metronome off / on), VEL (FIXED / KEYS), QUANT (live recording quantized); FIXVL (the fixed velocity). |
+| **MIDI** | CH T1–CH T4 (each track's out channel). |
 
 Since 0.20 GLO holds only what is the whole project's or the device's, as on Hortator. The rest went to where it belongs:
 
@@ -912,8 +923,8 @@ Since 0.20 GLO holds only what is the whole project's or the device's, as on Hor
 | **SEQ > VOICE** | STEAL (CYCLE, TRACK, LO, HI: which voice goes when all are busy), REUSE (a repeated note takes its own voice again), VOICE (voices reserved for the track, up to 12; DYN shares), UNISN (unison: 1–4 voices a note); SPRD (unison detune and width), LAYER (the track's notes also play other tracks' sounds). |
 | **SEQ > KEYS** | SCALE (CHROM, MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENT+, PENT−, HMIN, WHOLE), ROOT, FOLD, KCHRD (the keys play chords, recorded as notes; section 6; not the sound's CHORD, section 17). |
 | **SEQ > SONG** | ROW, PTN, REPT, MUTE; SONG, ROWS, END, CHNG (the pattern change). See section 16. |
-| **EDIT > SETUP** | PLAY (POLY, POLY M (one LFO for all voices), MONO, LEGATO), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
-| **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGATO), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages (FM, VA, BRAIDS). |
+| **EDIT > SETUP** | PLAY (POLY, POLYM (one LFO for all voices), MONO, LEGAT (legato)), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
+| **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages (FM, VA, BRAIDS). |
 | **LFO > VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND** | Four destinations each, with a depth of ±128. Velocity, mod wheel, aftertouch, breath and pitch bend (from MIDI) move any listed parameter. |
 | **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ (section 20). |
 
@@ -946,13 +957,13 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
 
 - **USB MIDI in and out.** The FM-1's TRS jack is MIDI in only; there is no DIN out.
 - **In:**
-  - Notes on channels 1–4 play tracks 1–4 (with TRKCH on); the AUTO channel plays the active track. Program change 0–31 selects a pattern (32 and up are ignored).
+  - Notes on channels 1–4 play tracks 1–4 (with ROUT TRK); the CH channel plays the active track. Program change 0–31 selects a pattern (32 and up are ignored).
   - CC numbers follow the Digitone's for the sound parameters (CC MSB): for example 90 ALGO, 23 FREQ, 24 RESO, 7 VOL, 74 filter TYPE, 29 LFO1 DEP.
   - 94 mutes a track, 95 sets its level, and program change picks a pattern.
   - Mod wheel, breath, aftertouch and pitch bend go to the modulation pages.
-- **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when CKOUT is on (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
-- **MIDI tracks:** GLO > MIDI > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.
-- **Clock in:** with CKIN on, TONIC follows the incoming clock, start, continue and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average. Since 0.19 the clocks are taken the moment they arrive (in the FM-1's 1 kHz timer, not with the screen), so it follows within about a millisecond; the first clock after Start is step 1, and Start and Stop go on to TONIC's own clock out.
+- **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when SYNC is ON (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
+- **MIDI tracks:** GLO > SYSTEM > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.
+- **Clock in:** with CLK MIDI, TONIC follows the incoming clock, start, continue and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average. Since 0.19 the clocks are taken the moment they arrive (in the FM-1's 1 kHz timer, not with the screen), so it follows within about a millisecond; the first clock after Start is step 1, and Start and Stop go on to TONIC's own clock out.
 
 ### Two FM-1s in time: TONIC and Hortator (0.19)
 
@@ -960,8 +971,8 @@ The FM-1's TRS jack is a MIDI input only and both FM-1s are USB devices, so two 
 
 | Leader | Follower |
 | --- | --- |
-| **TONIC**: GLO > GLOBAL (row 2) **CKOUT ON**, PLAY on TONIC | **Hortator**: GLO 1/7 **CLK USB** |
-| **Hortator**: SYSTEM 2/7 **SYNC USB**, PLAY on Hortator | **TONIC**: GLO > GLOBAL (row 2) **CKIN ON** |
+| **TONIC**: GLO > SYSTEM **SYNC ON**, PLAY on TONIC | **Hortator**: GLO 1/7 **CLK USB** |
+| **Hortator**: SYSTEM 2/7 **SYNC USB**, PLAY on Hortator | **TONIC**: GLO > GLOBAL **CLK MIDI** |
 
 Both send Start, 24 clocks a quarter note with the first on step 1, and Stop; a PLAY always starts from the top (no Song Position). Routed through a computer, the clock comes a few milliseconds late on the follower: shift it in the router, or start the follower's pattern with a small micro timing. A USB-MIDI host box adds well under a millisecond.
 
@@ -992,7 +1003,7 @@ Both send Start, 24 clocks a quarter note with the first on step 1, and Stop; a 
 | Step held + black 6/7 | Micro timing. |
 | Black 6/7, no step held (grid) | Shift the track. |
 | Black 1–4 + white key (grid) | Track length. |
-| FX / SAVE / GLO / SEQ / EDIT / HOME held | PERFORM / patterns / MUTE / TOOLS / preset list / MENU (section 20). |
+| FX / SAVE / GLO / SEQ / EDIT / HOME held | PERFORM / patterns / MUTE / TOOLS / engine screen / MENU (section 20). |
 | REC held | FILL while held. |
 | PRESETS, then OCT+ / OCT− | Load the sound under the list's cursor / close the list. |
 | SAVE held + OCT | Transpose the pattern. |
@@ -1041,7 +1052,7 @@ The full comparison is in `docs/FEATURES.md`; the research behind the curves is 
 
 | Problem | Try |
 | --- | --- |
-| No sound | MASTER up? Track muted or another soloed (GLO held)? Track level (HOME, K1–K4)? Is the track a MIDI track (GLO > MIDI > EXT)? |
+| No sound | MASTER up? Track muted or another soloed (GLO held)? Track level (HOME, K1–K4)? Is the track a MIDI track (GLO > SYSTEM > EXT)? |
 | Garbled sound names in the library | Banks saved by older builds are read in their own layout; a slot that does not read as a sound shows as empty and is skipped. |
 | A sound is a plain sine | LEV A and LEV B (SYN2) are 0. FM needs them up. |
 | A kit's drums are cut short | The AMP envelope's REL is low: it gates the kit by the note length. REL INF (127) lets each pad ring. |

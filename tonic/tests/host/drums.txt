@@ -18,19 +18,20 @@ expect ntrig 0
 tap EDIT
 wait 30
 expect group 1
-spin SELECT 6
+press EDIT
+wait 500
+release EDIT
 wait 30
-expect row 6
-spin K4 2
+expect ov 6
+tapkey w2
 wait 50
+expect ov 0
 expect engine 2
-expect row 18
+expect row 0
 # a kit's defaults: amp envelope open, the pads' models
 expect p41 127
 expect p40 127
 shot drum_engine.png
-spin SELECT 1
-wait 30
 expect row 0
 tapkey w0
 wait 60
@@ -163,21 +164,36 @@ expect track 0
 expect engine 2
 expect nnote0 2
 expect note4 60
-# ---- ENGINE stays on K4: DRUM back to VA and FM with the same knob, the ENGINE row each time
+# ---- (0.22) the engine screen: DRUM back to VA, DRUM again, FM; each time the engine's first page
 tap EDIT
 wait 30
-spin SELECT -1
+press EDIT
+wait 500
+release EDIT
 wait 30
-expect row 18
-spin K4 -1
+expect ov 6
+tapkey w1
 wait 50
+expect ov 0
 expect engine 1
-expect row 6
-spin K4 1
+expect row 0
+press EDIT
+wait 500
+release EDIT
+wait 30
+expect ov 6
+tapkey w2
 wait 50
+expect ov 0
 expect engine 2
-expect row 18
-spin K4 -2
+expect row 0
+press EDIT
+wait 500
+release EDIT
+wait 30
+expect ov 6
+tapkey w0
 wait 50
+expect ov 0
 expect engine 0
-expect row 6
+expect row 0

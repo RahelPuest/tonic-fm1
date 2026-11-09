@@ -26,15 +26,15 @@ const char *const DEST_NAME[ND] = {
     "NONE",
     "ALGO", "RAT C", "RAT A", "RAT B", "HARM", "DTUN", "FDBK", "MIX",
     "A ATK", "A DEC", "A END", "A LEV", "B ATK", "B DEC", "B END", "B LEV", "A DEL", "B DEL",
-    "PITCH", "PIT AB2", "RAT ALL", "AB LEV", "AB ATK", "AB DEC", "AB END", "AB DEL",
-    "OFS C", "OFS A", "OFS B1", "OFS B2",
+    "PITCH", "P.AB2", "R.ALL", "ABLEV", "ABATK", "ABDEC", "ABEND", "ABDEL",
+    "OFS C", "OFS A", "OFSB1", "OFSB2",
     "FREQ", "RESO", "F ENV", "F ATK", "F DEC", "F SUS", "F REL", "BASE", "WIDTH", "F DEL",
     "ATK", "DEC", "SUS", "REL", "DRIVE", "PAN", "VOL", "REV", "DEL", "CHR",
-    "L1 SPD", "L1 MUL", "L1 FADE", "L1 WAVE", "L1 SPH", "L1 MODE", "L1 DEP",
+    "L1SPD", "L1MUL", "L1FAD", "L1WAV", "L1SPH", "L1MOD", "L1DEP",
     "SRR", "BRR",
     "---", "---", "---", "---", "---", "---", "---", "---", "---", "---", "---", "---", "---", "---", "---", "---",
     "---", "---", "---", "---",
-    "I AMT", "I TONE", "I MIX",
+    "I AMT", "I TON", "I MIX",
 };
 const uint8_t DEST_PARAM[ND] = {
     P_NONE,
@@ -56,9 +56,9 @@ const uint8_t DEST_PARAM[ND] = {
 const char *dest_name(int engine, int d)
 {
     static const struct { uint8_t d; const char *n; } VAN[] = {
-        {D_ALGO, "WAV1"}, {D_RATC, "WAV2"}, {D_RATA, "FOLD"}, {D_RATB, "SUB"}, {D_HARM, "TUNE 2"}, {D_DTUN, "DETN"},
-        {D_FDBK, "PW"}, {D_MIX, "MIX"}, {D_ALEV, "PENV"}, {D_BLEV, "MENV"}, {D_PITCHAB2, "PITCH 2"},
-        {D_RATALL, "RING"}, {D_ABLEV, "P+M ENV"}, {D_OFSC, "SYNC"}, {D_OFSA, "NOIS"}, {D_OFSB1, "XMOD"},
+        {D_ALGO, "WAV1"}, {D_RATC, "WAV2"}, {D_RATA, "FOLD"}, {D_RATB, "SUB"}, {D_HARM, "TUNE2"}, {D_DTUN, "DETN"},
+        {D_FDBK, "PW"}, {D_MIX, "MIX"}, {D_ALEV, "PENV"}, {D_BLEV, "MENV"}, {D_PITCHAB2, "PIT 2"},
+        {D_RATALL, "RING"}, {D_ABLEV, "P+M"}, {D_OFSC, "SYNC"}, {D_OFSA, "NOIS"}, {D_OFSB1, "XMOD"},
         {D_OFSB2, "DRFT"}};
     unsigned i;
     if (d < 0 || d >= ND)
@@ -78,23 +78,23 @@ const char *dest_name(int engine, int d)
                "---";
     if (engine == ENG_DR && d >= D_ALGO && d <= D_OFSB2 && d != D_PITCH) {   /* DRUM: pads 1-4, else unused */
         static const struct { uint8_t d; const char *n; } DRN[16] = {
-            {D_MIX, "1 TUNE"}, {D_AATK, "1 DEC"}, {D_ADEC, "1 TONE"}, {D_AEND, "1 LEV"},
-            {D_OFSC, "2 TUNE"}, {D_ALEV, "2 DEC"}, {D_BATK, "2 TONE"}, {D_BDEC, "2 LEV"},
-            {D_OFSA, "3 TUNE"}, {D_BEND, "3 DEC"}, {D_BLEV, "3 TONE"}, {D_ADEL, "3 LEV"},
-            {D_OFSB1, "4 TUNE"}, {D_BDEL, "4 DEC"}, {D_RATB, "4 TONE"}, {D_OFSB2, "4 LEV"}};
+            {D_MIX, "1 TUN"}, {D_AATK, "1 DEC"}, {D_ADEC, "1 TON"}, {D_AEND, "1 LEV"},
+            {D_OFSC, "2 TUN"}, {D_ALEV, "2 DEC"}, {D_BATK, "2 TON"}, {D_BDEC, "2 LEV"},
+            {D_OFSA, "3 TUN"}, {D_BEND, "3 DEC"}, {D_BLEV, "3 TON"}, {D_ADEL, "3 LEV"},
+            {D_OFSB1, "4 TUN"}, {D_BDEL, "4 DEC"}, {D_RATB, "4 TON"}, {D_OFSB2, "4 LEV"}};
         for (i = 0; i < 16; i++)
             if (DRN[i].d == d)
                 return DRN[i].n;
         return "---";
     }
     if (engine == ENG_DR && d >= D_P5TUN && d <= D_KLEV) {   /* DRUM [TONIC 0.9]: pads 5-8, the whole kit */
-        static const char *const KN[4] = {"TUNE", "DEC", "TONE", "LEV"};
+        static const char *const KN[4] = {"TUN", "DEC", "TON", "LEV"};   /* (0.22: a value box's 5) */
         static char b[12];
         int k = (d - D_P5TUN) & 3;
         if (d >= D_KTUN) {
-            b[0] = 'A'; b[1] = 'L'; b[2] = 'L'; b[3] = ' ';
-            for (i = 0; KN[d - D_KTUN][i]; i++) b[4 + i] = KN[d - D_KTUN][i];
-            b[4 + i] = 0;
+            b[0] = '*'; b[1] = ' ';                  /* (0.22: "* TUN", the whole kit; was ALL TUNE) */
+            for (i = 0; KN[d - D_KTUN][i]; i++) b[2 + i] = KN[d - D_KTUN][i];
+            b[2 + i] = 0;
         } else {
             b[0] = (char)('5' + (d - D_P5TUN) / 4); b[1] = ' ';
             for (i = 0; KN[k][i]; i++) b[2 + i] = KN[k][i];

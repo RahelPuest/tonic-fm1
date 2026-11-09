@@ -127,6 +127,16 @@ static void o_frame(int x, int y, int w, int h)      /* one pixel thin, the corn
     for (i = 2; i < H - 2; i++) { h_px(X, Y + i, 1); h_px(X + W - 1, Y + i, 1); }
     h_px(X + 1, Y + 1, 1); h_px(X + W - 2, Y + 1, 1); h_px(X + 1, Y + H - 2, 1); h_px(X + W - 2, Y + H - 2, 1);
 }
+static void o_thick(int x, int y, int w, int h)      /* (0.22) one frame, three pixels thick, the corners cut */
+{
+    int X = 2 * x, Y = 2 * y, W = 2 * w, H = 2 * h;
+    h_rect(X + 2, Y, W - 4, 3, 1);
+    h_rect(X + 2, Y + H - 3, W - 4, 3, 1);
+    h_rect(X, Y + 2, 3, H - 4, 1);
+    h_rect(X + W - 3, Y + 2, 3, H - 4, 1);
+    h_rect(X + 1, Y + 1, 2, 2, 1); h_rect(X + W - 3, Y + 1, 2, 2, 1);
+    h_rect(X + 1, Y + H - 3, 2, 2, 1); h_rect(X + W - 3, Y + H - 3, 2, 2, 1);
+}
 static void o_box(int x, int y, int w, int h)        /* filled, the corners rounded */
 {
     int X = 2 * x, Y = 2 * y, W = 2 * w, H = 2 * h;
@@ -145,13 +155,14 @@ static int o_glyph_i(int ch)
 /* S: 4 units a character (the glyph 5 x 9 pixels, thin); returns the end x */
 static int o_ts(int x, int y, const char *s, int on)
 {
-    for (; *s; s++, x += 4) {
+    for (; *s; s++) {                                /* (0.22) a '.' takes half a cell: 10.50 fits where 10.5 did */
         const uint8_t *g = OF_S9[o_glyph_i((uint8_t)*s)];
-        int r, c;
+        int r, c, dot = *s == '.';
         for (r = 0; r < 9; r++)
             for (c = 0; c < 5; c++)
                 if (g[r] >> (4 - c) & 1u)
-                    h_px(2 * x + c, 2 * y + r, on);
+                    h_px(2 * x + c - dot, 2 * y + r, on);
+        x += dot ? 2 : 4;
     }
     return x;
 }
@@ -176,7 +187,13 @@ static int o_tm(int x, int y, const char *s, int on, int k)
     }
     return x;
 }
-static int o_ws(const char *s) { int n = tx_len(s); return n ? n * 4 - 1 : 0; }
+static int o_ws(const char *s)
+{
+    int n = 0;
+    for (; *s; s++)
+        n += *s == '.' ? 2 : 4;
+    return n ? n - 1 : 0;
+}
 static int o_wm(const char *s, int k) { int n = tx_len(s); return n ? (n * 6 - 1) * k : 0; }
 static void o_ts_c(int x, int w, int y, const char *s, int on) { o_ts(x + (w - o_ws(s) + 1) / 2, y, s, on); }
 static void o_clear(void)
@@ -668,22 +685,21 @@ static void o_wave(int x, int y, int w, int h, int wave, float ph)
     }
 }
 
-/* (0.21) an LFO as a picture, as the envelopes are: row 1 (SPD MULT FADE) a bar of it, as many cycles as it runs in
- * a bar (SPD x MULT / 128; past 8 drawn as 8, a dotted line under it), FADE as its outline growing or shrinking;
- * row 2 (WAVE SPH MODE) one cycle from SPH, as tall as DEP (negative: upside down), the dot where the voice is, the
- * mode at the corner */
-static void o_lfo(int x, int y, int w, int h, const sound_t *s, int l, int row2)
+/* (0.21) an LFO as a picture, as the envelopes are (0.22: LFO 1 and 2 side by side on the first row, as Hortator
+ * puts them on K1 K2 / K3 K4): a bar of it, as many cycles as it runs in a bar (SPD x MULT / 128; past 8 drawn as 8,
+ * a dotted line under it), FADE as its outline growing or shrinking, the dot where the voice's LFO is */
+static void o_lfo(int x, int y, int w, int h, const sound_t *s, int l)
 {
     int b = l ? P_L2SPD : P_L1SPD, wave = s->p[b + 3], m = s->p[b + 1];
-    float spd = (float)s->p[b] * 0.25f, dep = (float)s->p[b + 6] / 1024.0f, fade = (float)s->p[b + 2];
+    float spd = (float)s->p[b] * 0.25f, fade = (float)s->p[b + 2];
     float W = (float)(w - 4), x0 = (float)x + 2.0f, yc = (float)y + (float)h * 0.5f, hh = (float)h * 0.5f - 2.0f;
-    float px = 0, py = 0, sph = (float)s->p[b + 4] / 128.0f;
+    float px = 0, py = 0;
     int i, n = 2 * (w - 4);
     uint8_t ink = o_ink;                             /* the row's: the accent on the row the knobs edit */
     o_frame(x, y, w, h);
     o_ink = K_DIM;
     o_hline(x + 1, (int)yc, w - 2, 1);               /* the zero line */
-    if (!row2) {
+    {
         float cyc = spd * (float)(1 << (m % 12)) / 128.0f, ac = fm_fabsf(cyc);
         int many = ac > 8.0f;
         o_ink = ink;
@@ -704,35 +720,17 @@ static void o_lfo(int x, int y, int w, int h, const sound_t *s, int l, int row2)
             py = ny;
         }
         if (many) o_hline(x + 2, y + h - 2, w - 4, 1);
-    } else {
-        float ph = engine_lfo_phase(ui.trk, l), amp = fm_clampf(dep, -1.0f, 1.0f);
-        static const char *const MD[5] = {"FRE", "TRG", "HLD", "ONE", "HLF"};
-        if (fm_fabsf(amp) < 0.999f) {                /* the wave's shape at full depth, dotted, to see it at DEP 0 */
-            o_ink = K_DIM;
-            for (i = 0; i <= n; i += 3) {
-                float u = (float)i / (float)n, q = u + sph;
-                q -= fm_floorf(q);
-                o_px((int)(x0 + u * W), (int)(yc - lfo_shape(wave, q, i / 2) * hh), 1);
+        {   /* where the sound's LFO is, on the first cycle; its number at the corner */
+            float ph = engine_lfo_phase(ui.trk, l);
+            char c[2] = {(char)('1' + l), 0};
+            if (ph >= 0.0f) {
+                float u = (cyc < 0 ? 1.0f - ph : ph) / ac;
+                o_ink = K_ACC;
+                o_dot(x0 + fm_clampf(u, 0.0f, 1.0f) * W, yc - lfo_shape(wave, ph, 0) * hh);
             }
+            o_ink = K_DIM;
+            o_ts(x + w - 6, y + 2, c, 1);
         }
-        o_ink = ink;
-        for (i = 0; i <= n; i++) {
-            float u = (float)i / (float)n, q = u + sph, nx, ny;
-            q -= fm_floorf(q);
-            nx = x0 + u * W;
-            ny = yc - lfo_shape(wave, q, i / 2) * hh * amp;
-            if (i) o_fline(px, py, nx, ny);
-            px = nx;
-            py = ny;
-        }
-        if (ph >= 0.0f) {                            /* where the newest voice's LFO is */
-            float u = ph - sph;
-            u -= fm_floorf(u);
-            o_ink = K_ACC;
-            o_dot(x0 + u * W, yc - lfo_shape(wave, ph, (int)(ph * W)) * hh * amp);
-        }
-        o_ink = K_DIM;
-        o_ts(x + w - 2 - o_ws(MD[s->p[b + 5] % 5]), y + 2, MD[s->p[b + 5] % 5], 1);
     }
     o_ink = K_FG;
 }
@@ -786,10 +784,77 @@ static void o_filter(int x, int y, int w, int h, int type, float fc_now, float f
 /* a value too wide for its slot loses its last characters (after the point first) */
 static void o_fit(char *v, int w)
 {
-    while (o_ws(v) > w && v[0])
+    int cut = 0;
+    while (o_ws(v) > w && v[0]) {
         v[tx_len(v) - 1] = 0;
-    if (v[0] && v[tx_len(v) - 1] == '.')
+        cut = 1;
+    }
+    if (cut && v[0] && v[tx_len(v) - 1] == '.')      /* (0.22: only a cut one's: 1/16. keeps its dot) */
         v[tx_len(v) - 1] = 0;
+}
+
+/* (0.22) a number's trailing zeros off: 1.00 > 1, .50 > .5 */
+static void o_trimz(char *v)
+{
+    int n = tx_len(v), i, dot = -1;
+    for (i = 0; i < n; i++)
+        if (v[i] == '.')
+            dot = i;
+    if (dot < 0)
+        return;
+    while (n > dot + 1 && v[n - 1] == '0')
+        v[--n] = 0;
+    if (n == dot + 1)
+        v[--n] = 0;
+    if (!n) { v[0] = '0'; v[1] = 0; }
+}
+/* (0.22) a value into w: a number loses its trailing zeros, then its leading 0, then a decimal (rounded), before
+ * anything is cut */
+static void o_fitv(char *v, int w)
+{
+    int n = tx_len(v), i, dot = -1, num = n > 0;
+    for (i = 0; i < n; i++) {
+        if (v[i] == '.') { if (dot >= 0) num = 0; dot = i; }
+        else if (!(v[i] >= '0' && v[i] <= '9') && !(i == 0 && (v[i] == '-' || v[i] == '+'))) num = 0;
+    }
+    if (o_ws(v) <= w || !num || dot < 0) {
+        o_fit(v, w);
+        return;
+    }
+    while (n > dot + 1 && v[n - 1] == '0' && o_ws(v) > w)   /* 10.50 > 10.5, -24.00 > -24 */
+        v[--n] = 0;
+    if (n == dot + 1)
+        v[--n] = 0;
+    if (o_ws(v) > w && n > dot + 1) {
+        int s0 = v[0] == '-' || v[0] == '+';
+        if (v[s0] == '0' && s0 + 1 == dot) {         /* -0.999 > -.999 */
+            for (i = s0; i < n; i++)
+                v[i] = v[i + 1];
+            n--;
+            dot--;
+        }
+    }
+    while (o_ws(v) > w && n > dot + 1) {             /* the last decimal rounded off (10.25 > 10.3) */
+        int k = n - 1, up = v[k] >= '5';
+        v[k] = 0;
+        n--;
+        for (k = n - 1; up && k >= 0; k--) {
+            if (v[k] == '.') continue;
+            if (v[k] == '-' || v[k] == '+') break;
+            if (v[k] == '9') v[k] = '0';
+            else { v[k]++; up = 0; }
+        }
+        if (n == dot + 1)
+            v[--n] = 0;
+        if (up) {                                    /* (9.96 > 10.0: one more digit in front) */
+            int s0 = v[0] == '-' || v[0] == '+';
+            for (k = n; k >= s0; k--)
+                v[k + 1] = v[k];
+            v[s0] = '1';
+            n++;
+        }
+    }
+    o_fit(v, w);
 }
 
 static void o_slot(const item_t *it, int x, int y, int w, int active)
@@ -844,14 +909,53 @@ static void o_slot(const item_t *it, int x, int y, int w, int active)
     item_fmt(it, val, v);
     if (it->kind == IK_SET && id >= S_DM1 && id <= S_DM8)   /* a kit's model: its flavour (the name has the rest) */
         tx_cpy(v, DM_VAR[val % NDM]);
-    o_fit(v, w - 4);
-    /* (0.21) the row the knobs edit: its boxes framed in the accent (not filled); a locked value in the accent */
+    o_fitv(v, w - 4);
+    /* (0.21) the row the knobs edit: its boxes framed in the accent (not filled; 0.22 one thick frame); a locked value
+     * in the accent */
     o_ink = active ? K_ACC : K_DIM;
-    o_frame(x, y + 2, w - 2, 11);
     if (active)
-        o_frame(x + 1, y + 3, w - 4, 9);             /* two pixels: the row stands out without a fill */
+        o_thick(x, y + 2, w - 2, 11);
+    else
+        o_frame(x, y + 2, w - 2, 11);
     o_ink = lk ? K_ACC : K_FG;
-    o_ts_c(x, w - 2, y + 5, v, 1);
+    {
+        char full[24];
+        int i;
+        item_fmt(it, val, full);
+        for (i = 0; full[i] && full[i] != '/'; i++)
+            ;
+        if (full[i] == '/' && o_ws(full) > w - 4 && i < 12) {   /* (0.22) B1/B2 too wide: their trailing zeros off,
+                                                                  * else one over the other, at full resolution */
+            char a[12], b[12];
+            int n;
+            tx_cpy(a, full);
+            a[i] = 0;
+            tx_cpy(b, full + i + 1);
+            o_trimz(a);
+            o_trimz(b);
+            tx_cpy(full, a);
+            tx_cat(full, "/");
+            tx_cat(full, b);
+            if (o_ws(full) <= w - 4)
+                o_ts_c(x, w - 2, y + 5, full, 1);
+            else {
+                for (n = 0; n < 2; n++) {
+                    const char *t = n ? b : a;
+                    int X = 2 * x + (2 * (w - 2) - (o_ws(t) * 2)) / 2, k2;
+                    for (k2 = 0; t[k2]; k2++) {
+                        const uint8_t *g = OF_S9[o_glyph_i((uint8_t)t[k2])];
+                        int rr, cc, dot = t[k2] == '.';
+                        for (rr = 0; rr < 8; rr++)
+                            for (cc = 0; cc < 5; cc++)
+                                if (g[rr] >> (4 - cc) & 1u)
+                                    h_px(X + cc - dot, 2 * y + 7 + n * 8 + rr, 1);
+                        X += dot ? 4 : 8;
+                    }
+                }
+            }
+        } else
+            o_ts_c(x, w - 2, y + 5, v, 1);
+    }
     o_ink = active ? K_ACC : K_FG;
     if (rg.hi - rg.lo >= 8 && rg.fmt != F_LIST) {
         int span = rg.hi - rg.lo, f = (val - rg.lo) * (w - 2) / span, i;
@@ -875,22 +979,21 @@ static void o_row(const row_t *rr, int x0, int pitch, int y, int active)
         if (it[0].id == P_AATK || it[0].id == P_BATK) graph = 0;
         else if (it[0].id == P_FATK || it[0].id == P_EATK || it[0].id == P_MATK) graph = 1;   /* (0.12.1: MENV) */
         else if (it[0].id == P_FREQ) graph = 2;      /* the filter's curve [TONIC] */
-        else if (it[0].id == P_L1SPD || it[0].id == P_L2SPD) graph = 3;   /* (0.21) the LFOs as pictures */
-        else if (it[0].id == P_L1WAV || it[0].id == P_L2WAV) graph = 4;
+        else if (it[0].id == P_L1WAV) graph = 3;     /* (0.21) the LFOs as pictures (0.22: both, side by side) */
     }
     for (k = 0; k < 4; k++) {
-        if ((graph == 0 || graph >= 3) && k < 3) continue;   /* SYN2: ATK DEC END as one picture, LEV on its own;
-                                                      * an LFO: three as the picture, DEST / DEP on its own */
-        if (graph == 1 || graph == 2) continue;
+        if (graph == 0 && k < 3) continue;           /* SYN2: ATK DEC END as one picture, LEV on its own */
+        if (graph >= 1) continue;
         o_slot(&it[k], x0 + k * pitch, y, pitch, active);
         o_ink = K_FG;
     }
     if (graph >= 0) {
-        int n = graph == 0 || graph >= 3 ? 3 : 4, j;
+        int n = graph == 0 ? 3 : 4, j;
         o_ink = active ? K_ACC : K_FG;
-        if (graph >= 3) {
-            int l = it[0].id == P_L2SPD || it[0].id == P_L2WAV;
-            o_lfo(x0, y + 1, 3 * pitch - 2, 16, s, l, graph == 4);
+        if (graph == 3) {                            /* LFO 1 over K1 K2, LFO 2 over K3 K4 */
+            o_lfo(x0, y + 1, 2 * pitch - 2, 16, s, 0);
+            o_ink = active ? K_ACC : K_FG;
+            o_lfo(x0 + 2 * pitch, y + 1, 2 * pitch - 2, 16, s, 1);
         } else if (graph == 0) {
             int b = it[0].id == P_AATK ? P_AATK : P_BATK;
             o_env(x0, y + 1, 3 * pitch - 2, 16, s->p[b], s->p[b + 1], s->p[b + 2], 0, 0, b == P_AATK ? 0 : 1);
@@ -1266,10 +1369,16 @@ static void o_duck(int x, int y, int w, int h)
         o_rect(x + w + 5, y + 1, 2, (int)((1.0f - g) * (float)(h - 1) + 0.5f), 1);
 }
 
+/* (0.22) the SYN pages that keep the engine's picture at the left (narrow slots); SETUP, PORTA and BRAIDS' page
+ * take the full width (BRAIDS: the model's name needs it) */
+static int syn_pic(const row_t *r)
+{
+    return ui.grp == G_SYN && r && r->title[0] != 'S' && r->title[0] != 'P' && tsnd()->s[S_ENGINE] != ENG_BR;
+}
 static void o_page(void)
 {
     const row_t *r = cur_row();
-    int gi, row0, j, syn = ui.grp == G_SYN, x0 = syn ? 45 : 18, pitch = syn ? 19 : 25;
+    int gi, row0, j, syn = syn_pic(r), x0 = syn ? 45 : 18, pitch = syn ? 19 : 25;
     char right[6] = "";
     char name[24];
     if (!r)
@@ -1307,7 +1416,7 @@ static void o_page(void)
         return;
     }
     o_meters(19, 42);
-    if (syn && tsnd()->s[S_ENGINE] == ENG_BR)
+    if (0 && tsnd()->s[S_ENGINE] == ENG_BR)         /* (0.22: BRAIDS at full width, its model in the box) */
         o_braids(18, 20, tsnd());
     else if (syn && tsnd()->s[S_ENGINE] == ENG_VA)
         o_va(18, 20, tsnd());
@@ -1446,15 +1555,18 @@ static void o_keys(void)
         } else
             o_ts(34, 95, (g->flags & TF_LOCK) ? "LOCK TRIG" : "EMPTY", 1);
     }
-    else if (ui.grp == G_LFO) {                      /* the LFO's value now */
-        const row_t *r = cur_row();
-        float v = engine_lfo_view(ui.trk, r && r->title[3] == '2' ? 1 : 0);
-        int c = 60 + (int)(v * 58.0f);
-        o_ts(1, 95, "LFO", 1);
-        o_ink = K_DIM;
-        o_hline(16, 97, 103, 1);
-        o_ink = K_ACC;
-        o_rect(c - 1, 94, 3, 7, 1);
+    else if (ui.grp == G_LFO) {                      /* the LFOs' values now (0.22: both, side by side) */
+        int l;
+        for (l = 0; l < 2; l++) {
+            float v = engine_lfo_view(ui.trk, l);
+            int x0 = l * 61, c = x0 + 35 + (int)(v * 22.0f);
+            o_ink = K_FG;
+            o_ts(x0 + 1, 95, l ? "L2" : "L1", 1);
+            o_ink = K_DIM;
+            o_hline(x0 + 12, 97, 46, 1);
+            o_ink = K_ACC;
+            o_rect(c - 1, 94, 3, 7, 1);
+        }
         o_ink = K_FG;
     }
     if (ui.grp == G_ARP) {                           /* the arpeggiator's steps */
@@ -1714,6 +1826,39 @@ static void o_menu(void)                             /* HOME held: the settings 
     o_ts(0, 100, v, 1);
     o_ts(0, 108, "SELECT ROW  KNOB VALUE", 1);
     o_ts(0, 115, "OCT- OR HOME: CLOSE", 1);
+    o_ink = K_FG;
+}
+
+/* (0.22) EDIT held: the engines, a big box each as the white keys 1-6 lie; the track's engine filled in its colour, the
+ * cursor in a thick accent frame */
+static void o_engsel(void)
+{
+    static const char *const EN[NENG] = {"FM", "VA", "DRUM", "BRAIDS", "SSAW", "ENS"};
+    static const char *const ED[NENG] = {"4 OPERATORS", "2 OSC + SUB", "8 DRUM PADS", "47 MODELS", "7 SAWS",
+                                         "4 OSC MORPH"};
+    int e, cur = tsnd()->s[S_ENGINE] < NENG ? tsnd()->s[S_ENGINE] : 0;
+    o_header("ENGINE", "");
+    for (e = 0; e < NENG; e++) {
+        int x = 1 + (e % 2) * 60, y = 12 + (e / 2) * 30, w = 58, h = 28, on = e == cur;
+        char k[2] = {(char)('1' + e), 0};
+        o_ink = on ? K_TRK[ui.trk] : K_DIM;
+        if (on)
+            o_box(x, y, w, h);
+        else
+            o_frame(x, y, w, h);
+        if (e == ui.eng_i) {
+            o_ink = K_ACC;
+            o_thick(x, y, w, h);
+        }
+        o_ink = on ? K_BG : K_FG;
+        o_ts(x + 3, y + 3, k, !on);
+        o_tm(x + (w - o_wm(EN[e], 1)) / 2, y + 7, EN[e], !on, 1);
+        o_ink = on ? K_BG : K_DIM;
+        o_ts_c(x, w, y + 19, ED[e], !on);
+    }
+    o_ink = K_DIM;
+    o_ts(0, 104, "WHITE 1-6 OR OCT+: TAKE", 1);
+    o_ts(0, 112, "OCT- OR EDIT: CLOSE", 1);
     o_ink = K_FG;
 }
 
@@ -1992,6 +2137,8 @@ static void ui_draw(void)
         o_tools();
     else if (ui.ov == OV_MENU)
         o_menu();
+    else if (ui.ov == OV_ENG)
+        o_engsel();
     else if (ui.grp == G_HOME)
         o_home();
     else if (ui.grp == G_SAVE)

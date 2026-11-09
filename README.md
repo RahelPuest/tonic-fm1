@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.21" src="https://img.shields.io/badge/version-0.21-orange">
+  <img alt="Version 0.22" src="https://img.shields.io/badge/version-0.22-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -50,13 +50,16 @@ FM-1's flash.
     a chorus that spreads and moves them.
 - **Held buttons** (0.18, after Hortator's way of playing the FM-1): a tap as ever, held a screen of its own: FX PERFORM
   (live effects on the black keys, filter / duck / throw / drive on the knobs), SAVE the patterns, GLO mute and solo,
-  SEQ step tools, EDIT a preset list that plays as you browse, HOME a settings menu, REC a fill.
+  SEQ step tools, EDIT (0.22) the engine screen, HOME a settings menu, REC a fill.
 - **Ten screen themes** (0.19) in Hortator's two-colour style (RED, BLUE, GREEN, AMBER and their INV) plus OLED and
   PAPER, and **MIDI clock** in and out that keeps a TONIC FM-1 in time with a Hortator one (through a USB host).
 - **Pages sorted the Hortator way** (0.20): GLO only the project's and the device's, the track's own (length, speed,
   voices, keys, song) on SEQ, SETUP and portamento with the engine on EDIT; a quieter screen with the edited values
   boxed and the full parameter name on every turn; a MENU for the screen and the knobs (pop-up, acceleration, PERFORM
   as a page).
+- **The engine screen and Hortator's pages** (0.22): hold EDIT for six big engine boxes (white 1–6), the LFOs and
+  GLO laid out as Hortator's (LFO 1 on K1 K2, LFO 2 on K3 K4; GLOBAL / SYSTEM / GLOBAL), one thick frame on the edited
+  row, every name and value fitting its box.
 - **Clearer screen** (0.21): the page tabs back, the edited values framed, the LFOs drawn as pictures like the
   envelopes, only the active track and the tempo at the bottom. The effects rest when nothing is sent to them, and an
   overload first lowers the inserts' rate before a voice goes (both ideas from Hortator).
@@ -102,7 +105,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.21.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.22.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.

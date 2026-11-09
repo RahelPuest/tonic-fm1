@@ -27,7 +27,7 @@ static int8_t key_white[NKEYS], key_black[NKEYS];   /* key -> white index / blac
 /* (0.18) what a held button shows, after Hortator's way (DEADACTIVE): a tap does what it did (on the release), held
  * 0.4 s (or a key or knob with it) it opens its screen while held: HOME the MENU (it stays), FX PERFORM, SAVE the
  * patterns (CUE), GLO MUTE, SEQ TOOLS, EDIT the preset list (it stays), REC a FILL */
-enum { OV_NONE, OV_MENU, OV_PERF, OV_CUE, OV_MUTE, OV_TOOLS };
+enum { OV_NONE, OV_MENU, OV_PERF, OV_CUE, OV_MUTE, OV_TOOLS, OV_ENG };   /* (0.22: OV_ENG, EDIT held) */
 #define HOLD_MS 400u
 
 static struct {
@@ -51,9 +51,9 @@ static struct {
     uint8_t hold_btn, hold_on, hold_used;   /* (0.18) the button with a hold function down; its hold begun; used in a
                                    * combination (no tap on release) */
     uint8_t menu_i;               /* (0.18) the MENU's cursor */
+    uint8_t eng_i;                /* (0.22) the engine screen's cursor */
     uint8_t tool_arm;             /* (0.18) TOOLS: a CLEAR TRACK waiting for its second press (key + 1) */
     uint32_t tool_t;
-    uint8_t aud_on;               /* (0.18) the preset list from EDIT held: the sound under the cursor plays */
     uint32_t taps[4];             /* tap tempo: the last taps */
     uint32_t plist_t;             /* PRESETS turned: when (the list window closes 6 s after the last turn) */
     uint8_t plist_on, plist_i;    /* the list window is open; its cursor (OCT+ loads it, OCT- closes) */
@@ -331,8 +331,7 @@ static void item_set_raw(const item_t *it, int v)
             (void)p;
             sound_set_engine(tsnd(), v);
             engine_sound_changed(ui.trk);
-            ui.row[G_SYN] = (uint8_t)(v == ENG_DR ? DRM_ENGINE_ROW : v == ENG_BR || v == ENG_SW || v == ENG_EN ? BR_ENGINE_ROW : 6);   /* (the ENGINE
-                                                      * knob stays in reach) */
+            ui.row[G_SYN] = 0;                       /* (0.22: the engine's first page) */
         } else if (it->id == S_ARPCHD && tsnd()->s[S_SCALE])
             tsnd()->s[S_SCHD] = (uint8_t)v;          /* (0.12) with a scale: the chord by degrees */
         else
@@ -1111,52 +1110,32 @@ static void transport_play(int sel)
 
 static void save_action(void);
 static int ov_key(int k, int down);
+static void engine_pick(int e);
 static int sound_index(void);
 static void plist_close(void);
 static void plist_open(int aud);
-static void plist_audition(void);
 static void hold_start(void);
 static void lock_compact_safe(void);
 static int page_held(void);
 static void control_all(const item_t *it, int v);
 
-/* (0.18) the preset list, opened by PRESETS or by EDIT held; from EDIT it plays the sound under the cursor
- * (audition), OCT+ keeps it, anything else puts the track's own sound back */
-static sound_t aud_bak;
+/* the preset list, opened by PRESETS: OCT+ loads the sound under the cursor (0.22: EDIT held is the engine screen
+ * now, its audition gone) */
 static void plist_open(int aud)
 {
+    (void)aud;
     if (!ui.plist_on) {
         ui.plist_on = 1;
         ui.plist_i = (uint8_t)sound_index();
-    }
-    if (aud && !ui.aud_on) {
-        ui.aud_on = 1;
-        aud_bak = *tsnd();
     }
     ui.plist_t = plat_ms();
     ui.msg_until = 0;
     ui.redraw = 1;
 }
-static void plist_close(void)                      /* (cancelled: the audition's sound back) */
+static void plist_close(void)
 {
-    if (ui.aud_on) {
-        *tsnd() = aud_bak;
-        engine_sound_changed(ui.trk);
-        ui.aud_on = 0;
-    }
     ui.plist_on = 0;
     ui.redraw = 1;
-}
-static void plist_audition(void)
-{
-    int i = ui.plist_i;
-    if (!ui.aud_on)
-        return;
-    if (i < NFACTORY)
-        preset_apply(tsnd(), &FACTORY[i]);
-    else if (lib[i - NFACTORY].name[0])
-        *tsnd() = lib[i - NFACTORY];
-    engine_sound_changed(ui.trk);
 }
 
 /* (0.18) a button's hold begins: its screen (or the list, or a FILL) */
@@ -1171,7 +1150,7 @@ static void hold_start(void)
     case B_SAVE: ui.ov = OV_CUE; ui.perf_chain_n = 0; break;
     case B_GLO: ui.ov = OV_MUTE; break;
     case B_SEQ: ui.ov = OV_TOOLS; ui.tool_arm = 0; break;
-    case B_EDIT: plist_open(1); break;
+    case B_EDIT: ui.ov = OV_ENG; ui.eng_i = tsnd()->s[S_ENGINE] < NENG ? tsnd()->s[S_ENGINE] : 0; break;   /* (0.22) */
     case B_REC: eng.fill = 1; app_say("FILL", "WHILE HELD"); break;
     }
     ui.redraw = 1;
@@ -1194,7 +1173,8 @@ static void hold_end(int sel)
         ui.perf_chain_n = 0;
         if (b == B_REC)
             eng.fill = 0;
-        if (b != B_HOME && ui.ov != OV_MENU && !(b == B_FX && set.perf_page))   /* (0.20: PERF PAGE: it stays) */
+        if (b != B_HOME && ui.ov != OV_MENU && ui.ov != OV_ENG && !(b == B_FX && set.perf_page))   /* (0.20: PERF PAGE: it
+                                                      * stays; 0.22: the engine screen too) */
             ui.ov = OV_NONE;
         ui.redraw = 1;
         return;
@@ -1222,8 +1202,8 @@ static void hold_end(int sel)
     case B_GLO: group_button(G_GLO, sel); break;
     case B_SEQ: group_button(G_TRIG, sel); break;
     case B_EDIT:
-        if (ui.plist_on && ui.aud_on)                /* the audition list open: EDIT closes it, the sound back */
-            plist_close();
+        if (ui.ov == OV_ENG)                         /* (0.22) the engine screen open: EDIT closes it */
+            ui.ov = OV_NONE;
         else
             group_button(G_SYN, sel);
         break;
@@ -1332,12 +1312,11 @@ static void buttons(uint32_t b)
             if (d > 0) {
                 int i2 = ui.plist_i;
                 ui.sound_i = (uint8_t)i2;
-                snd_bak = ui.aud_on ? aud_bak : *tsnd();
+                snd_bak = *tsnd();
                 if (i2 < NFACTORY)
                     preset_apply(tsnd(), &FACTORY[i2]);
                 else
                     *tsnd() = lib[i2 - NFACTORY];
-                ui.aud_on = 0;
                 ui.plist_on = 0;
                 if (!pattern_fits()) {               /* (too big for the pattern: the sound as it was) [0.9.2] */
                     *tsnd() = snd_bak;
@@ -1353,6 +1332,11 @@ static void buttons(uint32_t b)
             ui.redraw = 1;
         } else if (ui.ov == OV_MENU) {               /* MENU: OCT- closes */
             if (d < 0)
+                ui.ov = OV_NONE;
+        } else if (ui.ov == OV_ENG) {                /* (0.22) the engine screen: OCT+ takes the cursor's, OCT- closes */
+            if (d > 0)
+                engine_pick(ui.eng_i);
+            else
                 ui.ov = OV_NONE;
         } else if (ui.ov == OV_TOOLS) {              /* TOOLS: the step page */
             ui.spage = (uint8_t)clamp(ui.spage + d, 0, page_count() - 1);
@@ -1561,6 +1545,20 @@ static void mute_toggle(int t)
 }
 
 /* (0.18) a key on a held button's screen: 1 if it took it */
+/* (0.22) the engine screen (EDIT held): a white key 1-6, or OCT+ on the cursor, gives the track's sound that engine
+ * (its SYN pages to the engine's defaults, as ENGINE on K4 did before) and closes it */
+static void engine_pick(int e)
+{
+    static const item_t EI = {IK_SET, S_ENGINE};
+    int lk;
+    if (e >= 0 && e < NENG && e != item_get(&EI, &lk)) {
+        item_set(&EI, e);
+        mark_dirty();
+    }
+    ui.ov = OV_NONE;
+    app_say("ENGINE", L_ENGINE[e < NENG && e >= 0 ? e : 0]);
+    ui.redraw = 1;
+}
 static int ov_key(int k, int down)
 {
     int w = key_white[k], bl = key_black[k];
@@ -1620,6 +1618,10 @@ static int ov_key(int k, int down)
             grid_white(w, down);
         else if (bl >= 0 && down)
             tool_key(bl);
+        break;
+    case OV_ENG:                                     /* (0.22) white 1-6: that engine */
+        if (down && w >= 0 && w < NENG)
+            engine_pick(w);
         break;
     default:                                         /* MENU: the keys rest */
         break;
@@ -1812,8 +1814,7 @@ static void preset_turn(int d)
         ui.plist_t = plat_ms();
         ui.msg_until = 0;
         ui.redraw = 1;
-        if (steps)
-            plist_audition();                        /* (0.18: from EDIT held, the sound plays as it moves) */
+        (void)steps;
     }
 }
 
@@ -1830,6 +1831,11 @@ static void encoders(void)
         ui.enc_t[e] = now;
         if (ui.hold_btn != 0xFF && !ui.hold_on && ui.hold_btn != B_REC)
             hold_start();                            /* (0.18) a knob with a held button: its screen at once */
+        if (ui.ov == OV_ENG) {                       /* (0.22) the engine screen: any knob moves the cursor */
+            ui.eng_i = (uint8_t)clamp(ui.eng_i + d, 0, NENG - 1);
+            ui.redraw = 1;
+            continue;
+        }
         if (ui.ov == OV_MENU && e != EN_ALGO) {      /* (0.18) the MENU: SELECT the row, a knob its value */
             if (e == EN_SELECT)
                 ui.menu_i = (uint8_t)clamp(ui.menu_i + d, 0, NMENU - 1);
@@ -1863,10 +1869,6 @@ static void encoders(void)
         }
         if ((ui.ov == OV_MUTE || ui.ov == OV_TOOLS || ui.ov == OV_CUE || ui.ov == OV_PERF) && e <= EN_K4)
             continue;                                /* (their knobs rest) */
-        if (ui.plist_on && ui.aud_on && e == EN_K1) {   /* (0.18) the audition list: K1 as PRESETS */
-            preset_turn(d);
-            continue;
-        }
         switch (e) {
         case EN_K1: case EN_K2: case EN_K3: case EN_K4:
             if (ui.grp == G_HOME) {                  /* home: the track levels */
@@ -2027,7 +2029,7 @@ static void rows_sync(void)
 static void ui_input(void)
 {
     rows_sync();
-    if (ui.plist_on && !ui.aud_on && (plat_ms() - ui.plist_t > 6000u || ui.ov || ui.grp == G_HOME || ui.grp == G_SAVE))
+    if (ui.plist_on && (plat_ms() - ui.plist_t > 6000u || ui.ov || ui.grp == G_HOME || ui.grp == G_SAVE))
         plist_close();                               /* the preset list: closed after 6 s untouched (0.18: not the
                                                       * audition list from EDIT: it stays until EDIT, OCT or HOME) */
     touch_poll();

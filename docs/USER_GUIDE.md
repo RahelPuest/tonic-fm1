@@ -19,7 +19,7 @@ is live recording; SCL (the second page button) is FUNC; the page buttons open t
 | **SEQ** | TRIG page: NOTE, VEL, LEN, PROB / FLT.T, LFO.T, PTIM, PORT. Pressed a third time: the **piano roll** (below); a fourth: **RTRG** (retrig: on, rate, velocity fade). |
 | **EDIT** | SYN1 (ALGO, C, A, B / HARM, DTUN, FDBK, MIX), SYN1 2 (ratio offsets), SYN2 (operator envelopes A and B), SYN2 2 (delays, trig mode, reset, phase reset, **ENGINE** FM / VA / DRUM). Under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; then SETUP and PORTA (not on a kit); under DRUM: the kit's pads, LEVEL, KIT (below). |
 | **ENV** | FLTR (envelope / FREQ, RESO, TYPE, ENV), FLTR 2 (delay, BASE, WIDTH, key track), AMP (ADSR / DRV, PAN, VOL, AENR), AMP 2 (chorus, delay, reverb sends), LOFI (SRR sample-rate reduction, BRR bit reduction). |
-| **LFO** | LFO1, LFO2 (SPD, MULT, FADE, DEST / WAVE, SPH, MODE, DEP), MENV, the modulation pages. |
+| **LFO** | (0.22, as Hortator's: LFO 1 on K1 K2, LFO 2 on K3 K4) LFO (WAVE SPD / MULT SPH), TRIG (MODE FADE), DEST (DEST DEP), MENV, the modulation pages. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER (track levels, master overdrive, pattern volume, the DJ filter FILT), DUCK and PUMP (sidechain ducking, volume shaping), COMP. |
 | **ARP** | The arpeggiator (MODE, SPD, RNG, LEN / STEPS and each step's offset). |
 | **GLO** | (0.20, as Hortator) only the project's and the device's: GLOBAL (BPM, swing, tempo mode, metronome, clock in / out, quantize, velocity, fixed velocity, mute timing) and MIDI (channels, MIDI tracks). The rest is where it belongs: the track's length, speed, transpose, MICRO, voices, keyboard scale and song on **SEQ** (TRACK, VOICE, KEYS, SONG); the sound's SETUP (play mode, priority, velocity to volume, pitch bend, key scaling, octave) and PORTA on **EDIT** after the engine's pages; the modulation pages (VEL MOD / MODWHEEL / AFTERTCH / BREATH / PITCHBND) on **LFO**. |
@@ -121,18 +121,19 @@ song's length, END loops or stops at the end. With song mode on, PLAY starts the
   pad ducks, e.g. the BD), ATK (the dip comes in over 2–250 ms), KEEP (a track never ducked). Both pages draw the curve.
 - On **PERFORM** (FX held, since 0.18) K1 is the DJ filter, K2 the ducking depth, K3 THROW and K4 the overdrive; the screen shows them.
 
-- **VA engine** (EDIT, SYN2 2, K4 ENGINE: VA): two oscillators instead of the FM operators. OSC: WAV1, WAV2 (SAW,
+- **Engines** (0.22): hold **EDIT** for the engine screen: white 1–6 (FM, VA, DRUM, BRAIDS, SSAW, ENS), or a knob and OCT+; OCT− or EDIT closes.
+- **VA engine** (EDIT held, white 2): two oscillators instead of the FM operators. OSC: WAV1, WAV2 (SAW,
   SQR, TRI, SIN, OFF), SUB (a square an octave down) / TUNE (OSC2, ±24 semitones), DETN, PW (pulse width), MIX.
   OSC 2: SYNC, NOIS, XMOD (OSC2 modulates OSC1), DRFT (analog drift). ENV: envelope A with PENV (pitch of both),
   envelope B with MENV (OSC2's pitch: sync sweeps); RST ON restarts the oscillators on each note. Switching ENGINE
   sets the SYN pages to its defaults; filters, amp, LFOs and effects stay. Factory sounds: the VA … group (22 sounds); SCL+PRESETS jumps
   straight there (it steps the groups: KEYS, BELLS, BASS, LEADS, PADS, DRUMS, TEXTURES, VA, KITS, BRAIDS, SSAW, ENS,
   INIT).
-- **SSAW engine** (0.21, K4 ENGINE: SSAW): a JP-8000 supersaw. Row 1: WAVE (SAW, PULS, BOTH), OSCS (1–7), DETN, MIX
+- **SSAW engine** (0.21, EDIT held, white 5): a JP-8000 supersaw. Row 1: WAVE (SAW, PULS, BOTH), OSCS (1–7), DETN, MIX
   (the side oscillators); row 2: PW, PWM (the pulses' widths moving), SUB, ENGINE. Factory group SSAW (6 sounds).
-- **ENS engine** (0.21, K4 ENGINE: ENS): four oscillators. Row 1: TUN1–TUN4 (±24 semitones each: unison, octaves,
+- **ENS engine** (0.21, EDIT held, white 6): four oscillators. Row 1: TUN1–TUN4 (±24 semitones each: unison, octaves,
   chords); row 2: MRPH (SIN > TRI > SAW > SQR), CHOR (spread and movement), RATE, ENGINE. Factory group ENS (6 sounds).
-- **DRUM engine** (K4 ENGINE: DRUM, or a KITS preset): the track becomes a kit of 8 synthesized pads. The white keys
+- **DRUM engine** (EDIT held, white 3, or a KITS preset): the track becomes a kit of 8 synthesized pads. The white keys
   play pads 1–8 (C4 … C5; keys 9–16 again); a pad played moves the knobs to its row. The SYN pages: a row a pad
   (MODEL, TUNE, DEC, TONE), LEVEL (the 8 levels), KIT (ENGINE). 17 models: BD 808 / 909 / FM, SD 808 / 909, RIM,
   CLAP, HH CL / HH OP (a closed hat chokes the open one), CYMBAL, TOM, CONGA, COWBEL, CLAVE, SHAKER, ZAP, NOISE. Each
@@ -179,7 +180,7 @@ always did:
   3 **temporary save**, 4 **reload**, 5 restart, 6 **tap tempo**; K1 CHNG; OCT transposes the pattern.
 - **GLO held, MUTE:** white 1–4 **mute**, black 1–4 **solo**, black 10 / 11 mutes at once / at the next bar.
 - **SEQ held, TOOLS:** copy / paste / clear a page or the track, shift, duplicate, reverse, undo on the black keys.
-- **EDIT held:** the preset list, each sound playing as you move (OCT+ keeps it). **HOME held:** the MENU (settings).
+- **EDIT held:** (0.22) the engine screen. **HOME held:** the MENU (settings).
   **REC held:** a FILL. **ENV / LFO / ARP held + a knob:** all four tracks.
 
 Also: track levels with K1–K4 on HOME, track transposition with SCL+OCT, the arpeggiator on any sound (ARP), the mixer
@@ -201,7 +202,7 @@ with `python3 base/tools/fm1_backup.py backup FILE` (and `restore FILE`).
 
 ## MIDI
 
-USB MIDI in and out (the FM-1's TRS jack is MIDI in only). Channels 1–4 play tracks 1–4 (GLO > MIDI > TRK CH); the
+USB MIDI in and out (the FM-1's TRS jack is MIDI in only). Channels 1–4 play tracks 1–4 (GLO > SYSTEM > ROUT); the
 auto channel plays the active track. CC numbers follow the Digitone's for the sound parameters (CC 90 ALGO, 23 FREQ,
 7 VOL, …: Appendix B of its manual), 94 mutes, 95 is the track level; program change picks a pattern. The sequencer's
 notes go out on each track's MIDI channel (GLO > MIDI), and MIDI clock in and out can be switched on (GLO > GLOBAL).

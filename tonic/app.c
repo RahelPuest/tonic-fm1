@@ -204,6 +204,57 @@ void app_input_only(void)
 int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, const char *d)
 {
     (void)b; (void)c; (void)d;
+    if (!strcmp(cmd, "fitcheck")) {                  /* (0.22) every page's names and values against their slot */
+        int e, g, r, k, bad = 0;
+        for (e = 0; e < NENG; e++) {
+            sound_set_engine(tsnd(), e);
+            for (g = 0; g < G_HOME; g++) {
+                ui.grp = (uint8_t)g;
+                for (r = 0; r < grp_n(g); r++)
+                    for (k = 0; k < 4; k++) {
+                        const row_t *rw = &grp_rows(g)[r];
+                        const item_t *it = &rw->it[k];
+                        int pitch = syn_pic(rw) ? 19 : 25, x, step, cut = 0, rnd = 0;
+                        range_t rg;
+                        char v[32], f[32], ex[32] = "";
+                        if (it->kind == IK_NONE || (e && g != G_SYN))
+                            continue;
+                        if (it->kind == IK_SET && it->id >= S_DM1 && it->id <= S_DM8)
+                            continue;                /* (a kit's model shows its flavour) */
+                        if (o_ws(item_name(it)) > pitch - 1) {
+                            printf("  fit: %s %s name '%s'\n", L_ENGINE[e], rw->title, item_name(it));
+                            bad++;
+                        }
+                        rg = item_range(it);
+                        step = rg.fmt == F_LIST || rg.hi - rg.lo <= 256 ? 1 : (rg.hi - rg.lo) / 256;
+                        for (x = rg.lo; x <= rg.hi; x += step) {
+                            int i, num = 1;
+                            item_fmt(it, x, v);
+                            tx_cpy(f, v);
+                            o_fitv(f, pitch - 4);
+                            if (!strcmp(f, v) || strchr(v, '/'))   /* (B1/B2: one over the other) */
+                                continue;
+                            for (i = 0; v[i]; i++)
+                                if (!((v[i] >= '0' && v[i] <= '9') || v[i] == '.' || v[i] == '-' || v[i] == '+'))
+                                    num = 0;
+                            if (!num || atof(f) != atof(v)) {
+                                if (!num) cut++; else rnd++;
+                                if (!ex[0]) { tx_cpy(ex, v); tx_cat(ex, ">"); tx_cat(ex, f); }
+                            }
+                        }
+                        if (cut || rnd) {
+                            printf("  fit: %s %s %s %d cut %d rounded, e.g. '%s'\n", L_ENGINE[e], rw->title,
+                                   item_name(it), cut, rnd, ex);
+                            bad += cut;
+                        }
+                    }
+            }
+        }
+        sound_set_engine(tsnd(), ENG_FM);
+        ui.grp = G_HOME;
+        printf("  fitcheck: %d cut\n", bad);
+        return 1;
+    }
     if (!strcmp(cmd, "sound") && atoi(a) >= 0 && atoi(a) < NFACTORY) {
         preset_apply(tsnd(), &FACTORY[atoi(a)]);
         ui.redraw = 1;

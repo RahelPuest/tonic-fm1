@@ -8,19 +8,16 @@ sound 97
 wait 50
 tap EDIT
 wait 30
-spin SELECT 6
+# (0.22) the engine on EDIT held: white 4 BRAIDS
+press EDIT
+wait 500
+release EDIT
 wait 30
-expect row 6
-spin K4 1
-wait 300
-spin K4 1
-wait 300
-spin K4 1
-wait 300
+expect ov 6
+tapkey w3
+wait 50
+expect ov 0
 expect engine 3
-expect row 1
-spin SELECT -1
-wait 30
 expect row 0
 expect p3 0
 expect p15 64
@@ -58,28 +55,35 @@ expect p19 34
 tap LFO
 wait 30
 expect row 0
-spin K4 1
+# (0.22) LFO 1's DEST on the DEST page, K1
+spin SELECT 3
+wait 30
+expect row 3
+spin K1 1
 wait 30
 expect p52 4
-spin K4 3
+spin K1 3
 wait 30
 expect p52 16
-spin K4 -3
+spin K1 -3
 wait 30
 expect p52 4
 shot braids_lfo.png
 tap EDIT
 wait 30
-spin SELECT 1
-wait 30
-expect row 1
-# (0.21) the second row: only the engine (SYNC SIGN SUB gone)
+expect row 0
 key w0 down
 wait 300
 expect voices 1
 key w0 up
 wait 1500
 shot braids_row2.png
-spin K4 -3
+press EDIT
+wait 500
+release EDIT
+wait 30
+expect ov 6
+tapkey w0
 wait 50
+expect ov 0
 expect engine 0

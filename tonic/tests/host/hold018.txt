@@ -102,17 +102,44 @@ shot menu.png
 tap OCT-
 wait 30
 expect ov 0
-# ---- EDIT held: the preset list with audition; OCT- puts the sound back
+# ---- (0.22) EDIT held: the engine screen (it stays); a knob moves the cursor, OCT- closes it, the engine as it was
 press EDIT
 wait 500
 release EDIT
 wait 30
-expect plist 1
-spin PRESET 3
-wait 50
+expect ov 6
+shot engines.png
+spin K1 3
+wait 30
 tap OCT-
 wait 30
-expect plist 0
+expect ov 0
+expect engine 0
+# white 2: VA at once, the screen closes; EDIT held again, a tap on EDIT closes it; white 1: FM again
+press EDIT
+wait 500
+release EDIT
+wait 30
+tapkey w1
+wait 30
+expect ov 0
+expect engine 1
+press EDIT
+wait 500
+release EDIT
+wait 30
+expect ov 6
+tap EDIT
+wait 30
+expect ov 0
+expect engine 1
+press EDIT
+wait 500
+release EDIT
+wait 30
+tapkey w0
+wait 30
+expect engine 0
 # ---- REC held: a FILL while held; a tap still the grid
 press REC
 wait 500

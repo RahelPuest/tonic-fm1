@@ -79,7 +79,7 @@ static const row_t R_SYN[] = {
     {"SYN2", {S_(P_AATK), S_(P_ADEC), S_(P_AEND), S_(P_ALEV)}},
     {"SYN2", {S_(P_BATK), S_(P_BDEC), S_(P_BEND), S_(P_BLEV)}},
     {"SYN2 2", {S_(P_ADEL), S_(P_ATRG), S_(P_ARST), S_(P_PHRT)}},
-    {"SYN2 2", {S_(P_BDEL), S_(P_BTRG), S_(P_BRST), ST(S_ENGINE)}},
+    {"SYN2 2", {S_(P_BDEL), S_(P_BTRG), S_(P_BRST), NO}},   /* (0.22: the engine on EDIT held) */
     {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},   /* (0.20: the sound's own, on EDIT) */
     {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
     {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},           /* (0.20: with the engine) */
@@ -109,9 +109,8 @@ static const row_t R_DRM[] = {
     {T_PAD8, {S_(P_DA8), S_(P_DB8), S_(P_DPN8), S_(P_D8LEV)}},
     {T_LEVEL, {S_(P_AEND), S_(P_BDEC), S_(P_ADEL), S_(P_OFSB2)}},
     {T_LEVEL, {S_(P_D5LEV), S_(P_D6LEV), S_(P_D7LEV), S_(P_D8LEV)}},
-    {"KIT", {NO, NO, NO, ST(S_ENGINE)}},       /* (K4, as on the FM and VA pages: the knob stays the same) */
 };
-#define NDRM_ROWS 19
+#define NDRM_ROWS 18
 #define NDRM_PAD_ROWS 16                       /* (a pad's page: rows 2 x pad, 2 x pad + 1) */
 /* the VA engine's SYN pages [TONIC]: the FM pages' places under their VA names, and SHAPE (0.6) */
 static const char T_OSC[] = "OSC", T_OSC2[] = "OSC 2", T_VENV[] = "ENV", T_VENV2[] = "ENV 2", T_SHAPE[] = "SHAPE";
@@ -122,7 +121,7 @@ static const row_t R_VA[] = {
     {T_VENV, {S_(P_AATK), S_(P_ADEC), S_(P_AEND), S_(P_ALEV)}},
     {T_VENV, {S_(P_BATK), S_(P_BDEC), S_(P_BEND), S_(P_BLEV)}},
     {T_VENV2, {S_(P_ADEL), S_(P_ATRG), S_(P_ARST), S_(P_PHRT)}},
-    {T_VENV2, {S_(P_BDEL), S_(P_BTRG), S_(P_BRST), ST(S_ENGINE)}},
+    {T_VENV2, {S_(P_BDEL), S_(P_BTRG), S_(P_BRST), NO}},
     {T_SHAPE, {S_(V_FOLD), S_(V_RING), NO, NO}},
     {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},   /* (0.20: the sound's own, on EDIT) */
     {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
@@ -134,19 +133,18 @@ static const row_t R_VA[] = {
 static const char T_BRAID[] = "BRAIDS";
 static const row_t R_BR[] = {
     {T_BRAID, {S_(P_RATB), S_(P_ALEV), S_(P_BLEV), S_(P_HARM)}},
-    {T_BRAID, {NO, NO, NO, ST(S_ENGINE)}},     /* (0.21: SYNC SIGN SUB gone; K4 the engine, as on every engine) */
     {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},   /* (0.20: the sound's own, on EDIT) */
     {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
     {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},           /* (0.20: with the engine) */
     {"PORTA", {ST(S_PGATE), NO, NO, NO}},
 };
-#define NBR_ROWS 6
-#define BR_ENGINE_ROW 1
-/* (0.21) SSAW and ENS: two rows each, K4 of the second the engine (as BRAIDS'), then SETUP and PORTA */
+#define NBR_ROWS 5                     /* (0.22: the engine on EDIT held, not in the pages) */
+#define NSWE_ROWS 6
+/* (0.21) SSAW and ENS: two rows each, then SETUP and PORTA */
 static const char T_SSAW[] = "SSAW", T_ENS[] = "ENS";
 static const row_t R_SW[] = {
     {T_SSAW, {S_(SW_WAVE), S_(SW_OSCS), S_(SW_DETN), S_(SW_MIX)}},
-    {T_SSAW, {S_(SW_PW), S_(SW_PWM), S_(SW_SUB), ST(S_ENGINE)}},
+    {T_SSAW, {S_(SW_PW), S_(SW_PWM), S_(SW_SUB), NO}},
     {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},
     {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
     {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},
@@ -154,13 +152,12 @@ static const row_t R_SW[] = {
 };
 static const row_t R_EN[] = {
     {T_ENS, {S_(EN_T1), S_(EN_T2), S_(EN_T3), S_(EN_T4)}},
-    {T_ENS, {S_(EN_MORPH), S_(EN_CHOR), S_(EN_RATE), ST(S_ENGINE)}},
+    {T_ENS, {S_(EN_MORPH), S_(EN_CHOR), S_(EN_RATE), NO}},
     {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},
     {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
     {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},
     {"PORTA", {ST(S_PGATE), NO, NO, NO}},
 };
-#define DRM_ENGINE_ROW 18
 static const row_t R_ENV[] = {
     {"FLTR", {S_(P_FATK), S_(P_FDEC), S_(P_FSUS), S_(P_FREL)}},
     {"FLTR", {S_(P_FREQ), S_(P_RESO), S_(P_FTYP), S_(P_FENV)}},
@@ -172,10 +169,11 @@ static const row_t R_ENV[] = {
     {"INSRT", {S_(P_ITYP), S_(P_IAMT), S_(P_ITON), S_(P_IMIX)}},   /* [TONIC 0.12] the voice's insert effect */
 };
 static const row_t R_LFO[] = {
-    {"LFO1", {S_(P_L1SPD), S_(P_L1MUL), S_(P_L1FAD), S_(P_L1DST)}},
-    {"LFO1", {S_(P_L1WAV), S_(P_L1SPH), S_(P_L1MOD), S_(P_L1DEP)}},
-    {"LFO2", {S_(P_L2SPD), S_(P_L2MUL), S_(P_L2FAD), S_(P_L2DST)}},
-    {"LFO2", {S_(P_L2WAV), S_(P_L2SPH), S_(P_L2MOD), S_(P_L2DEP)}},
+    /* (0.22, as Hortator's) LFO 1 on K1 K2, LFO 2 on K3 K4: WAVE SPD, MULT SPH, MODE FADE, then DEST DEP */
+    {"LFO", {S_(P_L1WAV), S_(P_L1SPD), S_(P_L2WAV), S_(P_L2SPD)}},
+    {"LFO", {S_(P_L1MUL), S_(P_L1SPH), S_(P_L2MUL), S_(P_L2SPH)}},
+    {"TRIG", {S_(P_L1MOD), S_(P_L1FAD), S_(P_L2MOD), S_(P_L2FAD)}},
+    {"DEST", {S_(P_L1DST), S_(P_L1DEP), S_(P_L2DST), S_(P_L2DEP)}},
     {"MENV", {S_(P_MATK), S_(P_MDEC), S_(P_MSUS), S_(P_MREL)}},      /* [TONIC 0.12] the modulation envelope */
     {"MENV", {S_(P_MDEL), S_(P_MDST), S_(P_MDEP), NO}},
     {"VEL MOD", {MD(0, 0), MD(0, 1), MD(1, 0), MD(1, 1)}},     /* (0.20: the modulation with the LFOs) */
@@ -213,12 +211,14 @@ static const row_t R_ARP[] = {
 };
 /* (0.20) GLO: what is global, as on Hortator (the track's own on SEQ, the sound's on EDIT and LFO, the device's in
  * the MENU: HOME held) */
+static const char T_GLOB[] = "GLOBAL", T_GLOB3[] = "GLOBAL";   /* (two pages of one name, as Hortator's) */
 static const row_t R_GLO[] = {
-    {"GLOBAL", {PF(PF_BPM_), PF(PF_SWING_), GL(GL_TMODE_), GL(GL_MET_)}},
-    {"GLOBAL", {GL(GL_CLKIN_), GL(GL_CLKOUT_), GL(GL_QUANT_), GL(GL_VELS_)}},
-    {"GLOBAL", {GL(GL_VELF_), GL(GL_MUTEB_), NO, NO}},
+    /* (0.22, as Hortator's GLOBAL 1/7, SYSTEM 2/7, GLOBAL 3/7: BPM SWG CLK CH / SYNC ROUT ... / MUTE METRO .. QUANT) */
+    {T_GLOB, {PF(PF_BPM_), PF(PF_SWING_), GL(GL_CLKIN_), GL(GL_MIDIIN_)}},
+    {"SYSTEM", {GL(GL_CLKOUT_), GL(GL_TRKCH_), GL(GL_MTRK_), GL(GL_TMODE_)}},
+    {T_GLOB3, {GL(GL_MUTEB_), GL(GL_MET_), GL(GL_VELS_), GL(GL_QUANT_)}},
+    {T_GLOB3, {GL(GL_VELF_), NO, NO, NO}},
     {"MIDI", {GL(GL_MIDI0_), GL(GL_MIDI1_), GL(GL_MIDI2_), GL(GL_MIDI3_)}},
-    {"MIDI", {GL(GL_MIDIIN_), GL(GL_TRKCH_), GL(GL_MTRK_), NO}},
 };
 
 enum { G_TRIG, G_SYN, G_ENV, G_LFO, G_FX, G_ARP, G_GLO, G_HOME, G_SAVE, NG };
@@ -244,7 +244,8 @@ static const row_t *grp_rows(int g)
 static int grp_n(int g)
 {
     if (g == G_TRIG && drum_trk()) return sizeof R_TRIG_DR / sizeof R_TRIG_DR[0];
-    if (g == G_SYN && (br_trk() || tsnd()->s[S_ENGINE] == ENG_SW || tsnd()->s[S_ENGINE] == ENG_EN)) return NBR_ROWS;
+    if (g == G_SYN && br_trk()) return NBR_ROWS;
+    if (g == G_SYN && (tsnd()->s[S_ENGINE] == ENG_SW || tsnd()->s[S_ENGINE] == ENG_EN)) return NSWE_ROWS;
     return g == G_SYN && drum_trk() ? NDRM_ROWS : g == G_SYN && va_trk() ? NVA_ROWS : GROUP[g].n;
 }
 static int is_roll(const row_t *r) { return r && r->it[0].kind == IK_VIEW; }   /* SEQ's piano roll row */
@@ -301,10 +302,10 @@ static int theme_pos(int stored)
 }
 static const char *const L_ZOOM[] = {"16", "32", "64"};
 static const char *const L_ARPMODE[NARP] = {"OFF", "TRUE", "UP", "DOWN", "CYCL", "RAND", "CHRD"};
-static const char *const L_PLAY[] = {"POLY", "POLY M", "MONO", "LEGATO"};
+static const char *const L_PLAY[] = {"POLY", "POLYM", "MONO", "LEGAT"};   /* (0.22: a box's five) */
 static const char *const L_PRIO[] = {"LAST", "LOW", "HIGH"};
 static const char *const L_V2V[] = {"OFF", "LOG", "LIN", "EXP"};
-static const char *const L_PTYPE[] = {"TRACK", "VOICE", "LEGATO"};
+static const char *const L_PTYPE[] = {"TRACK", "VOICE", "LEGAT"};
 static const char *const L_PSLOPE[] = {"RATE", "TIME"};
 static const char *const L_PSTYLE[] = {"GLIDE", "GLISS"};
 static const char *const L_STEAL[] = {"CYCLE", "TRACK", "LO", "HI"};
@@ -312,6 +313,7 @@ static const char *const L_LMODE[] = {"PTRN", "TRACK"};
 static const char *const L_TMODE[] = {"PROJ", "PTRN"};
 static const char *const L_VELS[] = {"FIXED", "KEYS"};
 static const char *const L_CLK[] = {"OFF", "ON"};
+static const char *const L_CLKIN[] = {"INT", "MIDI"}, *const L_ROUT[] = {"SEL", "TRK"};
 static const char *const L_SEND[] = {"LOOP", "STOP"};
 static const char *const L_PCHG[] = {"SEQ", "START", "JUMP"};
 static const char *const L_MUTEB[] = {"NOW", "BAR"};
@@ -368,9 +370,9 @@ static const char *item_name(const item_t *it)
     /* (0.9.1: names that fit beside each other, at most 5 characters) */
     static const char *const TFN[] = {"LEN", "SCALE", "TRNSP", "VOICE", "UNISN", "SPRD", "LAYER", "SCALE",
                                       "ROOT", "FOLD", "KCHRD", "MICRO"};
-    static const char *const PFN[] = {"BPM", "SWING", "MODE", "MLEN", "CHLEN", "STEAL", "REUSE"};
-    static const char *const GLN[] = {"TEMPO", "CKIN", "CKOUT", "QUANT", "VEL", "FIXVL", "METRO",
-                                      "CH T1", "CH T2", "CH T3", "CH T4", "AUTO", "TRKCH", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE", "ZOOM", "ACCEL", "PERF"};   /* EXT: the active track plays out over MIDI only */
+    static const char *const PFN[] = {"BPM", "SWG", "MODE", "MLEN", "CHLEN", "STEAL", "REUSE"};
+    static const char *const GLN[] = {"TEMPO", "CLK", "SYNC", "QUANT", "VEL", "FIXVL", "METRO",
+                                      "CH T1", "CH T2", "CH T3", "CH T4", "CH", "ROUT", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE", "ZOOM", "ACCEL", "PERF"};   /* EXT: the active track plays out over MIDI only */
     static const char *const STN[NSS] = {"KS A", "KS B1", "KS B2", "KTRK", "TYPE", "SLOPE", "AMT", "STYLE",
                                          "GATE", "PLAY", "PRIO", "V>VOL", "PBDEP", "OCT", "MODE", "SPD", "RNG",
                                          "LEN", "STEPS", "ENG", "PAD 1", "PAD 2", "PAD 3", "PAD 4",
@@ -681,8 +683,11 @@ static range_t item_range(const item_t *it)
     case IK_GLB:
         switch (it->id) {
         case GL_TMODE_: r.hi = 1; r.fmt = F_LIST; r.list = L_TMODE; break;
-        case GL_CLKIN_: case GL_CLKOUT_: case GL_MET_: r.hi = 1; r.fmt = F_LIST; r.list = L_CLK; break;
-        case GL_QUANT_: case GL_TRKCH_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
+        case GL_CLKOUT_: case GL_MET_: r.hi = 1; r.fmt = F_LIST; r.list = L_CLK; break;
+        case GL_CLKIN_: r.hi = 1; r.fmt = F_LIST; r.list = L_CLKIN; break;   /* (0.22: INT / MIDI, as Hortator's CLK) */
+        case GL_TRKCH_: r.hi = 1; r.fmt = F_LIST; r.list = L_ROUT; break;    /* (SEL: the CH channel plays the active
+                                                                               * track; TRK: 1-4 the tracks too) */
+        case GL_QUANT_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
         case GL_MTRK_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
         case GL_SROW_: r.lo = 1; r.hi = 32; break;
         case GL_SPAT_: r.hi = NPAT - 1; r.fmt = 248; break;

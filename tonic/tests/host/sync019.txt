@@ -4,12 +4,14 @@
 wait 1500
 tap GLO
 wait 30
+# (0.22) GLOBAL K3 CLK MIDI, SYSTEM K1 SYNC ON
+expect row 0
+spin K3 1
+wait 30
 spin SELECT 1
 wait 30
 expect row 1
 spin K1 1
-wait 30
-spin K2 1
 wait 30
 tap HOME
 wait 30
