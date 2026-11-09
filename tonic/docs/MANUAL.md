@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.23.fwsc
+python3 base/tools/fm1_install.py tonic-0.24.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -99,6 +99,7 @@ python3 base/tools/fm1_install.py tonic-0.23.fwsc
 | 0.21 | The SSAW and ENS engines, the LFO pictures |
 | 0.22 | The engine screen on EDIT held, Hortator's LFO and GLO pages |
 | 0.23 | PERFORM's second bank, MIDI out in time with the sound, the CPU guard (after mono2k) |
+| 0.24 | LFO without the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages |
 
 ## 3. The concepts
 
@@ -130,7 +131,7 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 | **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID (with EUC ACC), and everything that is the track's own: TRACK (length, speed, transpose, quantize), VOICE, KEYS (the keyboard scale), SONG. Held: TOOLS. |
 | **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; a kit: a page a pad, LEVEL; BRAIDS, SSAW, ENS: their page); then the sound's SETUP (play mode, key scaling, octave) and PORTA, with every engine but the kit. Held: the engine screen (0.22: FM, VA, DRUM, BRAIDS, SSAW, ENS on white 1–6). |
 | **ENV** | FLTR, FLTR 2, AMP, AMP 2, LOFI, INSRT. Held + a knob: all four tracks. |
-| **LFO** | (0.22, as Hortator's: LFO 1 on K1 K2, LFO 2 on K3 K4) LFO, TRIG, DEST, MENV, then the modulation pages (VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND). Held + a knob: all four tracks. |
+| **LFO** | (0.22, as Hortator's: LFO 1 on K1 K2, LFO 2 on K3 K4) LFO, TRIG, DEST, MENV, VEL MOD (0.24: the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages are gone, the FM-1 has none of them). Held + a knob: all four tracks. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER, DUCK, PUMP, COMP. Held: PERFORM. |
 | **ARP** | The arpeggiator, CHORD, SCALE (the sound's scale). Held + a knob: all four tracks. |
 | **GLO** | Only what is the whole project's or the device's (as on Hortator): GLOBAL (tempo, swing, metronome, clock in and out, live quantize, velocity, mute timing) and MIDI. Held: MUTE. |
@@ -560,7 +561,7 @@ A third modulator: an envelope, started by every note, that goes to any destinat
 
 Ideas: a pitch blip at the start (DEST PITCH, short DEC), FM index that falls (HARM or A LEV), the insert's drive that swells (I AMT), the reverb send that opens with the release.
 
-**Destinations:** ALGO, RAT C, RAT A, RAT B, HARM, DTUN, FDBK, MIX, A/B envelope parameters, PITCH, P.AB2 (pitch of A and B2), R.ALL, ABLEV, ABATK/ABDEC/ABEND/ABDEL (0.22: the names as short as a box), ratio offsets, FREQ, RESO, F ENV, filter envelope, BASE, WIDTH, amp envelope, DRIVE, PAN, VOL, REV, DEL, CHR. LFO2 also reaches LFO1's SPD, MULT, FADE, WAVE, SPH, MODE and DEP. From 0.9 also: **SRR** and **BRR** (LO-FI), and on a DRUM kit every pad (1 TUNE … 8 LEV) and the whole kit (**\* TUN, \* DEC, \* TON, \* LEV**; ALL TUNE … before 0.22). From 0.12 the insert effect: **I AMT, I TONE, I MIX**. LFO1's DEST skips LFO1's own parameters. The modulation pages (VELOCITY, MOD WHEEL, AFTERTOUCH, BREATH, PITCH BEND) reach every destination, LFO1's parameters too: the mod wheel on LFO1's DEP is the classic vibrato.
+**Destinations:** ALGO, RAT C, RAT A, RAT B, HARM, DTUN, FDBK, MIX, A/B envelope parameters, PITCH, P.AB2 (pitch of A and B2), R.ALL, ABLEV, ABATK/ABDEC/ABEND/ABDEL (0.22: the names as short as a box), ratio offsets, FREQ, RESO, F ENV, filter envelope, BASE, WIDTH, amp envelope, DRIVE, PAN, VOL, REV, DEL, CHR. LFO2 also reaches LFO1's SPD, MULT, FADE, WAVE, SPH, MODE and DEP. From 0.9 also: **SRR** and **BRR** (LO-FI), and on a DRUM kit every pad (1 TUNE … 8 LEV) and the whole kit (**\* TUN, \* DEC, \* TON, \* LEV**; ALL TUNE … before 0.22). From 0.12 the insert effect: **I AMT, I TONE, I MIX**. LFO1's DEST skips LFO1's own parameters. VEL MOD reaches every destination, LFO1's parameters too: velocity on FREQ or A LEV makes a hard note brighter.
 
 ## 11. Sequencing: grid recording
 
@@ -971,7 +972,7 @@ Since 0.20 GLO holds only what is the whole project's or the device's, as on Hor
 | **SEQ > SONG** | ROW, PTN, REPT, MUTE; SONG, ROWS, END, CHNG (the pattern change). See section 16. |
 | **EDIT > SETUP** | PLAY (POLY, POLYM (one LFO for all voices), MONO, LEGAT (legato)), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
 | **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages, every engine but the kit. |
-| **LFO > VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND** | Four destinations each, with a depth of ±128. Velocity, mod wheel, aftertouch, breath and pitch bend (from MIDI) move any listed parameter. |
+| **LFO > VEL MOD** | Four destinations, each with a depth of ±128: velocity moves any listed parameter. (0.24: MODWHEEL, AFTERTCH, BREATH and PITCHBND are gone, as the FM-1 has no wheel, no aftertouch and no breath input; a sound's old routings of them stay in it and do nothing, and an older TONIC plays them again.) |
 | **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ (section 20). |
 
 ![The GLO page](img/glo.png "GLO > GLOBAL")
@@ -1006,7 +1007,7 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
   - Notes on channels 1–4 play tracks 1–4 (with ROUT TRK); the CH channel plays the active track. Program change 0–31 selects a pattern (32 and up are ignored).
   - CC numbers follow the Digitone's for the sound parameters (CC MSB): for example 90 ALGO, 23 FREQ, 24 RESO, 7 VOL, 74 filter TYPE, 29 LFO1 DEP.
   - 94 mutes a track, 95 sets its level, and program change picks a pattern.
-  - Mod wheel, breath, aftertouch and pitch bend go to the modulation pages.
+  - Pitch bend bends the track by the sound's PBDEP (EDIT > SETUP). Mod wheel, breath and aftertouch are ignored (0.24).
 - **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when SYNC is ON (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
 - **In time with the sound (0.23, after mono2k).** The sound is computed a block ahead of what you hear: a block (5.8 ms) is made while the one before plays. Before 0.23 a note or a clock went out when its block was computed, 6 to 12 ms before you heard it. Now each waits for the moment its own sample reaches the FM-1's output and goes out then, within a millisecond (the FM-1's 1 kHz timer sends it). An external synth, a drum machine or Hortator following the clock now plays with TONIC's own sound, not ahead of it. Through USB audio into a computer, the computer's own latency still adds to the sound.
 - **MIDI tracks:** GLO > SYSTEM > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.

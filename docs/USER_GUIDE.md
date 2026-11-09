@@ -22,7 +22,7 @@ is live recording; SCL (the second page button) is FUNC; the page buttons open t
 | **LFO** | (0.22, as Hortator's: LFO 1 on K1 K2, LFO 2 on K3 K4) LFO (WAVE SPD / MULT SPH), TRIG (MODE FADE), DEST (DEST DEP), MENV, the modulation pages. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER (track levels, master overdrive, pattern volume, the DJ filter FILT), DUCK and PUMP (sidechain ducking, volume shaping), COMP. |
 | **ARP** | The arpeggiator (MODE, SPD, RNG, LEN / STEPS and each step's offset). |
-| **GLO** | (0.20, as Hortator) only the project's and the device's: GLOBAL (BPM, swing, tempo mode, metronome, clock in / out, quantize, velocity, fixed velocity, mute timing) and MIDI (channels, MIDI tracks). The rest is where it belongs: the track's length, speed, transpose, MICRO, voices, keyboard scale and song on **SEQ** (TRACK, VOICE, KEYS, SONG); the sound's SETUP (play mode, priority, velocity to volume, pitch bend, key scaling, octave) and PORTA on **EDIT** after the engine's pages; the modulation pages (VEL MOD / MODWHEEL / AFTERTCH / BREATH / PITCHBND) on **LFO**. |
+| **GLO** | (0.20, as Hortator) only the project's and the device's: GLOBAL (BPM, swing, tempo mode, metronome, clock in / out, quantize, velocity, fixed velocity, mute timing) and MIDI (channels, MIDI tracks). The rest is where it belongs: the track's length, speed, transpose, MICRO, voices, keyboard scale and song on **SEQ** (TRACK, VOICE, KEYS, SONG); the sound's SETUP (play mode, priority, velocity to volume, pitch bend, key scaling, octave) and PORTA on **EDIT** after the engine's pages; VEL MOD on **LFO** (0.24: the mod wheel, aftertouch, breath and pitch bend pages gone). |
 | **HOME** | Tap: the overview (patterns, tracks, levels with K1–K4). **Hold: the MENU**: THEME (ten), ZOOM (the value pop-up), ACCEL (knob acceleration), PERF (PERFORM while FX is held, or as a page), INSHQ. The other held screens: see *Performing*. |
 | **SAVE** | The save page. **SCL+SAVE**: save everything now. |
 | **PLAY** | Start / stop. SCL+PLAY: stop and cut the effects' tails. |
@@ -52,8 +52,8 @@ the parameters the Digitone shows with two decimals); a fast turn moves in whole
    dotted multipliers); MODE: free, trigged, held, one-shot, half. LFO2 can also move LFO1. DEP, as on the
    Digitone, moves the destination by 2 of its units per DEP step: on PITCH, DEP 0.25 is a half-semitone vibrato and
    1.00 is ±2 semitones (the knob moves in 1/16 steps near zero).
-6. Play it on the keys (velocity-sensitive; GLO > GLOBAL > VEL sets fixed velocity instead). EDIT > SETUP and the
-   modulation pages route velocity, mod wheel, aftertouch, breath and pitch bend from MIDI to any parameter.
+6. Play it on the keys (velocity-sensitive; GLO > GLOBAL > VEL sets fixed velocity instead). LFO > VEL MOD routes
+   velocity to any parameter; EDIT > SETUP > PBDEP sets how far pitch bend from MIDI bends.
 7. Keep it: SAVE > SOUND > LIBRARY (32 user slots, chosen with PRESETS) or SOUND > POOL (16 slots: the sounds a
    pattern can sound-lock).
 

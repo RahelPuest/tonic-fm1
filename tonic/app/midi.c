@@ -111,9 +111,7 @@ static void midi_poll(void)
             engine_note_off(t, (int)d1);
             break;
         case 0xB0:
-            if (d1 == 1) engine_mod(t, MS_MW, (int)d2);
-            else if (d1 == 2) engine_mod(t, MS_BC, (int)d2);
-            else if (d1 == 94) { eng.mute = (uint8_t)(d2 ? eng.mute | 1u << t : eng.mute & ~(1u << t)); }
+            if (d1 == 94) { eng.mute = (uint8_t)(d2 ? eng.mute | 1u << t : eng.mute & ~(1u << t)); }
             else if (d1 == 95) { pcur->trk[t].tp[P_TLVL - NSP] = (int16_t)d2; mark_dirty(); }
             else if (d1 == 123) engine_all_off(t);
             else if (CC_PARAM[d1] != P_NONE) {
@@ -131,7 +129,6 @@ static void midi_poll(void)
             }
             break;
         case 0xC0: if (d1 < NPAT) { pattern_select((int)d1); ui.redraw = 1; } break;   /* (0.17: 32 and up ignored) */
-        case 0xD0: engine_mod(t, MS_AT, (int)d1); break;
         case 0xE0: engine_mod(t, MS_PB, (int)((d2 << 7 | d1)) - 8192); break;
         default: break;
         }

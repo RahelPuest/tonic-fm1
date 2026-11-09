@@ -32,7 +32,7 @@ the FM-1, not done yet. **Unavailable**: the FM-1 cannot do it.
 | Parameter smoothing | one pole, τ 22 ms; set at once for a new sound and for locked parameters | Implemented (OS) |
 | 2 LFOs per voice: SPD × MULT (synced or fixed 120 BPM), 7 waves, 5 modes, fade, start phase, RND slew (1.43) | SPD·2^MULT/512 cycles a beat; the OS's waves and fade law; depth ±2·DEP units (pitch: semitones); LFO2 can move LFO1 | Implemented (OS) |
 | LFO destinations (Appendix C) | the synth list incl. the macros (PITCH, RATIO ALL, AB LEV …) | Implemented |
-| Velocity, mod wheel, aftertouch, breath, pitch bend: 4 destinations each | the same | Implemented; depth scaling TONIC's (the OS's MOD SETUP mapping was not tabulated) |
+| Velocity, mod wheel, aftertouch, breath, pitch bend: 4 destinations each | velocity only (0.24: the FM-1 has no wheel, aftertouch or breath; pitch bend from MIDI by PBDEP) | Implemented; depth scaling TONIC's (the OS's MOD SETUP mapping was not tabulated) |
 | Velocity to volume OFF/LOG/LIN/EXP | the OS's curves ((e^{4.86x}−1)/(e^{4.86}−1) and its mirror) | Implemented (OS) |
 | INIT sound and effect defaults | the OS's defaults (its parameter descriptors) | Implemented (OS) |
 | Play modes POLY, POLY M.LFO, MONO, MONO LEG; note priority | the same | Implemented |

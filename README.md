@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.23" src="https://img.shields.io/badge/version-0.23-orange">
+  <img alt="Version 0.24" src="https://img.shields.io/badge/version-0.24-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -57,6 +57,8 @@ FM-1's flash.
   voices, keys, song) on SEQ, SETUP and portamento with the engine on EDIT; a quieter screen with the edited values
   boxed and the full parameter name on every turn; a MENU for the screen and the knobs (pop-up, acceleration, PERFORM
   as a page).
+- **Only what the FM-1 has** (0.24): the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages gone from LFO, VEL MOD
+  the last; MIDI pitch bend still bends by PBDEP.
 - **After mono2k** (0.23, ideas from Sequencist's Monomachine-style FM-1 firmware): a second PERFORM bank (OCT+:
   REVERSE, STUTTER, SCATTER, OCTAVE down / up, WOW, a 1/16 GATE, a DUB throw, SHIMMER), MIDI notes and clock sent when
   their sound reaches the output (no longer 6-12 ms ahead), an overload that takes the voice heard least and names the
@@ -74,7 +76,7 @@ FM-1's flash.
   - overdrive, LO-FI (sample-rate and bit reduction), base-width and multimode filters (LP2, HP2, LP4);
   - an **insert effect** after the filter: overdrive, hard clip, fuzz, rectifier, wavefolder or bitcrusher;
   - **two LFOs** and a **modulation envelope**, each routable to 80+ destinations;
-  - velocity, mod wheel, aftertouch, breath and pitch bend routings.
+  - velocity routings (VEL MOD), and pitch bend from MIDI.
 - **Effects:** chorus, delay (ping-pong) and reverb sends, a master compressor, a DJ filter, and sidechain ducking from a
   track, a single drum pad or the tempo itself (4/4 volume shaping).
 
@@ -109,7 +111,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.23.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.24.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.

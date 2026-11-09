@@ -197,7 +197,7 @@ static inline __attribute__((always_inline)) float lks(float x)                 
 
 /* the per-track sources: modulation inputs (key / MIDI), the sound in use */
 typedef struct {
-    float mw, at, bc, pb;         /* 0..1 (pb -1..1) */
+    float pb;                     /* MIDI pitch bend, -1..1 (0.24: mod wheel, aftertouch, breath gone) */
     const sound_t *snd;           /* the track's sound now */
     float level;                  /* track level gain */
     float meter;

@@ -110,8 +110,9 @@ enum { DCH_OFF, DCH_2ND, DCH_3RD, DCH_4TH, DCH_5TH, DCH_6TH, DCH_7TH, DCH_OCT, D
 #define NKSCALE 12
 extern const uint16_t KSCALE_MASK[NKSCALE];   /* the keyboard scales: bit i, i semitones above the root */
 
-/* modulation sources with assignable destinations (sound setup: VELOCITY MOD, MOD WHEEL, AFTERTOUCH, BREATH,
- * PITCH BEND): four slots each, a destination parameter and a depth (an offset of the parameter, -128..127) */
+/* modulation sources with assignable destinations: four slots each, a destination parameter and a depth (an offset
+ * of the parameter, -128..127). Since 0.24 only VELOCITY MOD has a page and acts; the other four stay in the
+ * sound's layout (MOD WHEEL, AFTERTOUCH, BREATH, PITCH BEND: the FM-1 has none of them) */
 enum { MS_VEL, MS_MW, MS_AT, MS_BC, MS_PB, NMS };
 #define NMSLOT 4
 

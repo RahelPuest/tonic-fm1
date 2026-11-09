@@ -618,10 +618,7 @@ static void q_drain(void)
         case Q_ON: key_on(e.trk, e.a, e.b); break;
         case Q_OFF: key_off(e.trk, e.a); break;
         case Q_MOD:
-            if (e.a == MS_MW) ts[e.trk].mw = (float)e.b * (1.0f / 127.0f);
-            else if (e.a == MS_AT) ts[e.trk].at = (float)e.b * (1.0f / 127.0f);
-            else if (e.a == MS_BC) ts[e.trk].bc = (float)e.b * (1.0f / 127.0f);
-            else if (e.a == MS_PB) ts[e.trk].pb = (float)e.b * (1.0f / 8192.0f);
+            if (e.a == MS_PB) ts[e.trk].pb = (float)e.b * (1.0f / 8192.0f);   /* (0.24: only the bend, by PBDEP) */
             break;
         case Q_ALLOFF: {
             for (i = 0; i < NVOICE; i++)

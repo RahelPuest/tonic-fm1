@@ -178,14 +178,7 @@ static const row_t R_LFO[] = {
     {"MENV", {S_(P_MDEL), S_(P_MDST), S_(P_MDEP), NO}},
     {"VEL MOD", {MD(0, 0), MD(0, 1), MD(1, 0), MD(1, 1)}},     /* (0.20: the modulation with the LFOs) */
     {"VEL MOD", {MD(2, 0), MD(2, 1), MD(3, 0), MD(3, 1)}},
-    {"MODWHEEL", {MD(4, 0), MD(4, 1), MD(5, 0), MD(5, 1)}},
-    {"MODWHEEL", {MD(6, 0), MD(6, 1), MD(7, 0), MD(7, 1)}},
-    {"AFTERTCH", {MD(8, 0), MD(8, 1), MD(9, 0), MD(9, 1)}},
-    {"AFTERTCH", {MD(10, 0), MD(10, 1), MD(11, 0), MD(11, 1)}},
-    {"BREATH", {MD(12, 0), MD(12, 1), MD(13, 0), MD(13, 1)}},
-    {"BREATH", {MD(14, 0), MD(14, 1), MD(15, 0), MD(15, 1)}},
-    {"PITCHBND", {MD(16, 0), MD(16, 1), MD(17, 0), MD(17, 1)}},
-    {"PITCHBND", {MD(18, 0), MD(18, 1), MD(19, 0), MD(19, 1)}},
+    /* (0.24) MODWHEEL, AFTERTCH, BREATH, PITCHBND gone: the FM-1 has none of them */
 };
 static const row_t R_FX[] = {
     {"CHORUS", {F_(P_CDEP), F_(P_CSPD), F_(P_CHPF), F_(P_CWID)}},

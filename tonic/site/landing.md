@@ -15,7 +15,8 @@ fm1-emu. It is a custom firmware: installing is at your own risk; the installer 
 - [Source code on GitHub](https://github.com/RahelPuest/tonic-fm1).
 - Since 0.12 projects are saved in a new format: versions before 0.12 cannot read what 0.12 or later saved. Take a USB backup first if you
   may want to go back.
-- Earlier versions stay available: [0.22](firmware/tonic-0.22.fwsc) (one PERFORM bank, MIDI out a block early, the 3-pixel frame),
+- Earlier versions stay available: [0.23](firmware/tonic-0.23.fwsc) (the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages on LFO),
+  [0.22](firmware/tonic-0.22.fwsc) (one PERFORM bank, MIDI out a block early, the 3-pixel frame),
   [0.21](firmware/tonic-0.21.fwsc) (ENGINE on K4, EDIT held the preset list, the double frame),
   [0.20](firmware/tonic-0.20.fwsc) (four engines and BRAIDS' SYNC, SIGN, SUB; the tabs as one box),
   [0.19](firmware/tonic-0.19.fwsc) (the many-page GLO, EUC NOTE),

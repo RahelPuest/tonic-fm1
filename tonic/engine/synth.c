@@ -803,18 +803,14 @@ static void voice_control(voice_t *v, int core)
         v->gliding = far != 0;
     }
 
-    /* modulation sources with destinations (VELOCITY MOD, MOD WHEEL, AFTERTOUCH, BREATH, PITCH BEND): the depth
-     * offsets the parameter (display units) by depth x source */
+    /* VELOCITY MOD's destinations: the depth offsets the parameter (display units) by depth x velocity (0.24: the
+     * other sources, MOD WHEEL, AFTERTOUCH, BREATH and PITCH BEND, gone: the FM-1 has none of them; a sound's old
+     * routings of them stay in it and do nothing) */
     {
-        float src[NMS];
-        int k, j;
-        src[MS_VEL] = v->vel01;
-        src[MS_MW] = t->mw;
-        src[MS_AT] = t->at;
-        src[MS_BC] = t->bc;
-        src[MS_PB] = t->pb;
-        for (k = 0; k < NMS; k++)
-            if (src[k] != 0.0f)                      /* (a source at rest adds nothing) */
+        const int k = MS_VEL;
+        const float src = v->vel01;
+        int j;
+        if (src != 0.0f)                             /* (a source at rest adds nothing) */
             for (j = 0; j < NMSLOT; j++)
                 if (s->mdst[k][j] && s->mdst[k][j] < ND) {
                     int d = s->mdst[k][j];
@@ -825,7 +821,7 @@ static void voice_control(voice_t *v, int core)
                     }
                     if (va && (d == D_RATA || d == D_RATALL))   /* VA: FOLD, RING */
                         sp = 63.0f;
-                    m[d] += (float)s->mdep[k][j] * (1.0f / 128.0f) * sp * src[k];
+                    m[d] += (float)s->mdep[k][j] * (1.0f / 128.0f) * sp * src;
                     mw[nmw++] = (uint8_t)d;
                 }
     }
