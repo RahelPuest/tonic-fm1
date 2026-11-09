@@ -186,6 +186,10 @@ static void c1_engine_start(void)
     fm1_core1_hi = (uint32_t)(uintptr_t)tonic_c1_sstack_top;
     if (c1_start(0) == 0)
         engine_dual(&c1_dual);
+    fm1_guard_unlock_top();                           /* (0.25) the start locked the top of RAM (fm1_cpu1_prepare), but
+                                                     * the platform's audio_init writes its vector there after app_init
+                                                     * and locks it itself after that: on some FM-1s that write raised
+                                                     * the exception at every start (pc 02017644, then safe mode) */
 }
 #else                                                 /* the host: no second core */
 static uint8_t c1_up;
