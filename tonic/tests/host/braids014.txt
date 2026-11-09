@@ -1,18 +1,22 @@
-# 0.14 / 0.15: the BRAIDS engine (0.15: SYNC SIGN SUB): ENGINE BRAID on the SYN page's K4, its page (MODEL TIMB COLOR TUNE), notes sound, the
+# 0.14: the BRAIDS engine (0.21: without 0.15's SYNC SIGN SUB): ENGINE BRAID on the SYN page's K4, its page (MODEL TIMB COLOR TUNE), notes sound, the
 # models, an LFO on MODEL, the engine back to FM
 wait 1500
 spin PRESET 16
 wait 100
 expect pattern 16
-sound 85
+sound 97
 wait 50
 tap EDIT
 wait 30
 spin SELECT 6
 wait 30
 expect row 6
-spin K4 3
-wait 50
+spin K4 1
+wait 300
+spin K4 1
+wait 300
+spin K4 1
+wait 300
 expect engine 3
 expect row 1
 spin SELECT -1
@@ -59,7 +63,7 @@ wait 30
 expect p52 4
 spin K4 3
 wait 30
-expect p52 7
+expect p52 16
 spin K4 -3
 wait 30
 expect p52 4
@@ -69,19 +73,7 @@ wait 30
 spin SELECT 1
 wait 30
 expect row 1
-# (0.15) SYNC SIGN SUB on the second row
-expect p5 0
-expect p6 0
-expect p8 0
-spin K1 48
-wait 30
-expect p5 48
-spin K2 90
-wait 30
-expect p6 90
-spin K3 60
-wait 30
-expect p8 60
+# (0.21) the second row: only the engine (SYNC SIGN SUB gone)
 key w0 down
 wait 300
 expect voices 1

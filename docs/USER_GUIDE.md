@@ -97,7 +97,7 @@ and change length. Different track lengths make polymeters.
 
 **Swing, tempo:** GLO > GLOBAL, or SELECT on HOME.
 
-**The screen** (0.20): the edited row's values sit in filled boxes, the names stay plain; the tab line shows only the page shown and its row (3/11). Turning a knob, the pop-up shows the parameter's full name (FILTER ENV DEPTH, OP A LEVEL). MENU > ZOOM OFF turns the pop-up off, ACCEL OFF makes every detent one step.
+**The screen** (0.21): the edited row's value boxes are framed in the accent colour, the names stay plain; the tabs show the button's pages; the LFO rows are drawn as pictures; at the bottom only the active track and the tempo. Turning a knob, the pop-up shows the parameter's full name (FILTER ENV DEPTH, OP A LEVEL). MENU > ZOOM OFF turns the pop-up off, ACCEL OFF makes every detent one step.
 
 **Song:** SEQ > SONG. ROW picks the row to edit (a higher row lengthens the song), PTN its pattern, REPEAT how
 often it plays, MUTE which tracks are muted in it; on the second row SONG switches song mode on, ROWS sets the
@@ -126,7 +126,12 @@ song's length, END loops or stops at the end. With song mode on, PLAY starts the
   OSC 2: SYNC, NOIS, XMOD (OSC2 modulates OSC1), DRFT (analog drift). ENV: envelope A with PENV (pitch of both),
   envelope B with MENV (OSC2's pitch: sync sweeps); RST ON restarts the oscillators on each note. Switching ENGINE
   sets the SYN pages to its defaults; filters, amp, LFOs and effects stay. Factory sounds: the VA … group (22 sounds); SCL+PRESETS jumps
-  straight there (it steps the groups: KEYS, BELLS, BASS, LEADS, PADS, DRUMS, TEXTURES, VA, KITS, INIT).
+  straight there (it steps the groups: KEYS, BELLS, BASS, LEADS, PADS, DRUMS, TEXTURES, VA, KITS, BRAIDS, SSAW, ENS,
+  INIT).
+- **SSAW engine** (0.21, K4 ENGINE: SSAW): a JP-8000 supersaw. Row 1: WAVE (SAW, PULS, BOTH), OSCS (1–7), DETN, MIX
+  (the side oscillators); row 2: PW, PWM (the pulses' widths moving), SUB, ENGINE. Factory group SSAW (6 sounds).
+- **ENS engine** (0.21, K4 ENGINE: ENS): four oscillators. Row 1: TUN1–TUN4 (±24 semitones each: unison, octaves,
+  chords); row 2: MRPH (SIN > TRI > SAW > SQR), CHOR (spread and movement), RATE, ENGINE. Factory group ENS (6 sounds).
 - **DRUM engine** (K4 ENGINE: DRUM, or a KITS preset): the track becomes a kit of 8 synthesized pads. The white keys
   play pads 1–8 (C4 … C5; keys 9–16 again); a pad played moves the knobs to its row. The SYN pages: a row a pad
   (MODEL, TUNE, DEC, TONE), LEVEL (the 8 levels), KIT (ENGINE). 17 models: BD 808 / 909 / FM, SD 808 / 909, RIM,

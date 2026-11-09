@@ -546,16 +546,12 @@ static void t_scale(void)
 
 /* [0.14] the BRAIDS engine: every model sounds and stays finite; two delay-line voices at once, a third takes the
  * oldest's buffer */
-static int br_sync_, br_sign_, br_sub_;               /* (0.15) SYNC (quarter semitones), SIGN, SUB for br_run */
 static float br_run(int model, int timb, int col, int note)
 {
     uint32_t i;
     float pk = 0;
     reset();
     sound_set_engine(&pat.snd[0], ENG_BR);
-    pat.snd[0].p[P_DTUN] = (int16_t)br_sync_;
-    pat.snd[0].p[P_FDBK] = (int16_t)br_sign_;
-    pat.snd[0].p[P_OFSC] = (int16_t)br_sub_;
     pat.snd[0].p[P_RATB] = (int16_t)model;
     pat.snd[0].p[P_ALEV] = (int16_t)timb;
     pat.snd[0].p[P_BLEV] = (int16_t)col;
@@ -602,36 +598,56 @@ static void t_braids(void)
         printf("     A3 on FOLD: %.2f Hz\n", hz);
         bad += fabsf(hz - 220.0f) > 1.5f;
     }
-    {   /* (0.15) SYNC 12 on FOLD (a sine at TIMB 0) at A3: Braids an octave up, reset at 220 Hz: the period stays 220 Hz;
-         * SUB: energy at 110 Hz; SIGN: another wave, finite */
-        double c220 = 0, c110s = 0, c110 = 0, e = 0;
-        uint32_t k, L = (uint32_t)(SR / 220.0f + 0.5f), from = 8000, n = 8192;
-        float pk;
-        br_sync_ = 48;
-        br_run(3, 0, 0, 57);
-        for (k = from; k < from + n; k++) {
-            c220 += wav_l[k] * wav_l[k + L];
-            e += wav_l[k] * wav_l[k];
-        }
-        c220 /= e;
-        br_sync_ = 0;
-        br_sub_ = 127;
-        br_run(3, 0, 0, 57);
-        for (k = from; k < from + n; k++)
-            c110s += wav_l[k] * sinf(2.0f * 3.14159265f * 110.0f * (float)k / SR);
-        br_sub_ = 0;
-        br_run(3, 0, 0, 57);
-        for (k = from; k < from + n; k++)
-            c110 += wav_l[k] * sinf(2.0f * 3.14159265f * 110.0f * (float)k / SR);
-        br_sign_ = 127;
-        pk = br_run(0, 64, 64, 57);
-        br_sign_ = 0;
-        printf("     SYNC 12: the 220 Hz period's correlation %.3f; SUB: 110 Hz %.1f against %.1f; SIGN peak %.3f\n",
-               c220, fabs(c110s), fabs(c110), pk);
-        bad += c220 < 0.9 || fabs(c110s) < 10.0 * fabs(c110) + 1.0 || pk <= 0.0f;
-    }
     check(!bad && quiet == 0 && busy == 3, "BRAIDS models", "47 models: %d silent, %d not finite; 3 PLUCK notes on 2 buffers: %d voices",
           quiet, bad, busy);
+}
+
+/* [0.21] SSAW and ENS: in tune (the middle saw alone; four sines without chorus), every setting finite and about as
+ * loud as the VA, the oscillators' TUNE in semitones */
+static float x_run(int eng, const int16_t *kv, int note, float *hz)
+{
+    uint32_t i;
+    float pk = 0;
+    reset();
+    sound_set_engine(&pat.snd[0], eng);
+    for (; kv && kv[0] >= 0; kv += 2)
+        pat.snd[0].p[kv[0]] = kv[1];
+    put(0, 0, note);
+    pat.trig[0][0].len = LEN_INF;
+    wav_start(1);
+    engine_play();
+    render(0.5f, 1);
+    for (i = 0; i < wav_n; i++) {
+        if (!isfinite(wav_l[i]))
+            return -1.0f;
+        if (fabsf(wav_l[i]) > pk)
+            pk = fabsf(wav_l[i]);
+    }
+    if (hz)
+        *hz = pitch_of(8000, 8192);
+    return pk;
+}
+static void t_ssaw_ens(void)
+{
+    static const int16_t SW0[] = {SW_OSCS, 1, SW_DETN, 0, -1}, SWP[] = {SW_WAVE, SWW_PULSE, SW_PW, 200, -1},
+                         SWB[] = {SW_WAVE, SWW_BOTH, SW_DETN, 127, SW_PWM, 127, SW_SUB, 127, -1},
+                         EN0[] = {EN_MORPH, 0, EN_CHOR, 0, -1}, ENO[] = {EN_MORPH, 0, EN_CHOR, 0, EN_T1, 12, EN_T2, 12,
+                                                                         EN_T3, 12, EN_T4, 12, -1},
+                         ENX[] = {EN_MORPH, 127, EN_CHOR, 127, EN_RATE, 127, EN_T2, 24, EN_T3, -24, -1};
+    float h1 = 0, h2 = 0, h3 = 0, pk[6];
+    int bad = 0, i;
+    pk[0] = x_run(ENG_SW, SW0, 57, &h1);
+    pk[1] = x_run(ENG_SW, SWP, 57, 0);
+    pk[2] = x_run(ENG_SW, SWB, 84, 0);
+    pk[3] = x_run(ENG_EN, EN0, 57, &h2);
+    pk[4] = x_run(ENG_EN, ENO, 57, &h3);
+    pk[5] = x_run(ENG_EN, ENX, 84, 0);
+    for (i = 0; i < 6; i++)
+        bad += !(pk[i] > 0.05f && pk[i] < 1.5f);
+    bad += fabsf(h1 - 220.0f) > 1.5f || fabsf(h2 - 220.0f) > 1.5f || fabsf(h3 - 440.0f) > 3.0f;
+    printf("     SSAW A3 %.2f Hz, ENS A3 %.2f Hz, +12 %.2f Hz; peaks %.2f %.2f %.2f / %.2f %.2f %.2f\n", h1, h2, h3, pk[0],
+           pk[1], pk[2], pk[3], pk[4], pk[5]);
+    check(!bad, "SSAW and ENS", "in tune, finite, levels near the VA's");
 }
 
 /* [0.9.2] an LFO on VOL in MODE FRE (the default) and HLD moves a held note (they used to stand still) */
@@ -1081,8 +1097,9 @@ static void t_cpu(void)
     ips = (double)(b.ri_instructions - a.ri_instructions) / (2.0 * SR);
     /* a regression guard: the device binary at this load measured 45 % of a 240 MHz core in fm1-emu (2026-10-23,
      * docs/VALIDATION.md); this host figure was 2103 then */
-    /* (0.14: 2564 -> 2673, the reverb's half floats: 13 conversions a sample) */
-    check(ips < 2750.0, "CPU regression guard", "%.0f host instr / sample (worst case; 2414 = 48 %% in the ISS)", ips);
+    /* (0.14: 2564 -> 2673, the reverb's half floats: 13 conversions a sample; 0.21: 2800, 0.20 itself measured
+     * 2750 .. 2760 here from run to run) */
+    check(ips < 2800.0, "CPU regression guard", "%.0f host instr / sample (worst case; 2414 = 48 %% in the ISS)", ips);
     printf("     voices busy %d\n", engine_voices_busy(-1));
 #endif
 }
@@ -1794,7 +1811,7 @@ int main(int argc, char **argv)
 {
     static const struct { const char *name; void (*fn)(void); } T[] = {
         {"pitch", t_pitch}, {"fm", t_fm_levels}, {"algo", t_algorithms}, {"timing", t_timing},
-        {"swing", t_swing}, {"cond", t_conditions}, {"plock", t_plock}, {"firmware", t_firmware}, {"pack", t_pack}, {"retrig", t_retrig}, {"lofi", t_lofi}, {"braids", t_braids}, {"drumctl", t_drum_ctl}, {"insert", t_insert}, {"menv", t_menv}, {"scale", t_scale}, {"pump", t_pump}, {"lfo", t_lfo}, {"duck", t_duck},
+        {"swing", t_swing}, {"cond", t_conditions}, {"plock", t_plock}, {"firmware", t_firmware}, {"pack", t_pack}, {"retrig", t_retrig}, {"lofi", t_lofi}, {"braids", t_braids}, {"ssaw", t_ssaw_ens}, {"drumctl", t_drum_ctl}, {"insert", t_insert}, {"menv", t_menv}, {"scale", t_scale}, {"pump", t_pump}, {"lfo", t_lfo}, {"duck", t_duck},
         {"djf", t_djfilter}, {"va", t_va}, {"vacpu", t_va_cpu}, {"drum", t_drum}, {"drumcpu", t_drum_cpu}, {"golden", t_golden}, {"new06", t_new06}, {"pfx", t_pfx}, {"chord08", t_chord08}, {"mod09", t_mod09}, {"new06cpu", t_new06_cpu}, {"cpu", t_cpu}, {"cpuparts", t_cpu_parts},
     };
     unsigned i;

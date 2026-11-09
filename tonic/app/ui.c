@@ -331,7 +331,7 @@ static void item_set_raw(const item_t *it, int v)
             (void)p;
             sound_set_engine(tsnd(), v);
             engine_sound_changed(ui.trk);
-            ui.row[G_SYN] = (uint8_t)(v == ENG_DR ? DRM_ENGINE_ROW : v == ENG_BR ? BR_ENGINE_ROW : 6);   /* (the ENGINE
+            ui.row[G_SYN] = (uint8_t)(v == ENG_DR ? DRM_ENGINE_ROW : v == ENG_BR || v == ENG_SW || v == ENG_EN ? BR_ENGINE_ROW : 6);   /* (the ENGINE
                                                       * knob stays in reach) */
         } else if (it->id == S_ARPCHD && tsnd()->s[S_SCALE])
             tsnd()->s[S_SCHD] = (uint8_t)v;          /* (0.12) with a scale: the chord by degrees */

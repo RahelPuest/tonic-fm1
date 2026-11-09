@@ -839,9 +839,22 @@ void engine_init(void *pool, uint32_t pool_bytes)
 void engine_panic(void) { qput(Q_PANIC, 0, 0, 0); }
 
 /* overload: the oldest released voice goes (or, with none released, the oldest) */
+/* (0.21, after Hortator's plan to degrade before shedding) an overload first puts the inserts at the base rate for
+ * three seconds (eng.ins_lq bit 1, as INSHQ OFF does); only an overload while they are there costs a voice */
+static uint32_t ins_shed_n;
 void engine_shed(void)
 {
     int i, best = -1, rel = 0;
+    if (!eng.ins_lq) {
+        for (i = 0; i < NVOICE; i++)
+            if (vc[i].on && vc[i].in_typ && vc[i].in_typ != INS_CRUSH && vc[i].in_typ != INS_OVER)
+                break;
+        if (i < NVOICE) {                            /* (an insert at 2x is playing: that first) */
+            eng.ins_lq |= 2u;
+            ins_shed_n = 3u * SR;
+            return;
+        }
+    }
     for (i = 0; i < NVOICE; i++)
         if (vc[i].on) {
             int r = !vc[i].gate;
@@ -1118,6 +1131,11 @@ void engine_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
     uint32_t done = 0;
     int cur = 0, pend = 0;                           /* pend: the other slot's second half runs on core 1 */
     pattern_t *p;
+    if (ins_shed_n) {                                /* (0.21) the overload's three seconds at the base rate */
+        ins_shed_n = ins_shed_n > n ? ins_shed_n - n : 0;
+        if (!ins_shed_n)
+            eng.ins_lq &= (uint8_t)~2u;
+    }
     while (done < n) {
         fxjob_t *j = &fj[cur];
         int i, t;

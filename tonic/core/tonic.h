@@ -90,7 +90,8 @@ enum {
     NSS
 };
 enum { PM_POLY, PM_POLY_MLFO, PM_MONO, PM_MONO_LEG };
-enum { ENG_FM, ENG_VA, ENG_DR, ENG_BR, NENG };   /* (0.14: ENG_BR, Mutable Instruments' Braids) */
+enum { ENG_FM, ENG_VA, ENG_DR, ENG_BR, ENG_SW, ENG_EN, NENG };   /* (0.14: ENG_BR, Mutable Instruments' Braids; 0.21:
+                                                             * ENG_SW the supersaw / superpulse, ENG_EN the string ensemble) */
 enum { VV_OFF, VV_LOG, VV_LIN, VV_EXP };
 enum { ARP_OFF, ARP_TRUE, ARP_UP, ARP_DOWN, ARP_CYCLE, ARP_RANDOM, ARP_CHORD, NARP };   /* (0.8: RANDOM, CHORD) */
 enum { ACH_OFF, ACH_MAJ, ACH_MIN, ACH_SUS2, ACH_SUS4, ACH_7, ACH_MAJ7, ACH_MIN7, ACH_DIM, ACH_AUG, ACH_POW, ACH_OCT,
@@ -237,6 +238,16 @@ enum {                            /* VA: which parameter holds what */
                                            * (their default 0: a VA sound from before has them off) */
 };
 enum { VW_SAW, VW_SQR, VW_TRI, VW_SIN, VW_OFF, NVW };
+/* (0.21) SSAW, a supersaw after the JP-8000's (up to seven saws, pulses or both, detuned around the note), and ENS,
+ * four oscillators each tuned in semitones, one wave morphing SIN > TRI > SAW > SQR, a chorus (each oscillator's
+ * pitch moved by its own LFO a quarter turn on): which parameter holds what, each range inside the parameter's own */
+enum {
+    SW_WAVE = P_ALGO, SW_OSCS = P_RATC, SW_DETN = P_ALEV, SW_MIX = P_BLEV, SW_PW = P_FDBK, SW_PWM = P_OFSA,
+    SW_SUB = P_RATB,
+    EN_T1 = P_OFSC, EN_T2 = P_OFSA, EN_T3 = P_OFSB1, EN_T4 = P_OFSB2, EN_MORPH = P_ALEV, EN_CHOR = P_BLEV,
+    EN_RATE = P_AEND,
+};
+enum { SWW_SAW, SWW_PULSE, SWW_BOTH };
 const pdesc_t *param_desc(int engine, int p);
 void sound_set_engine(sound_t *s, int engine);   /* switch, the SYN pages to the engine's defaults */
 

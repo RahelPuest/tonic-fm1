@@ -320,12 +320,23 @@ static ENG_RAMCODE void plate(float in, float *ol, float *orr)
     rv_w = (w - 1u) & RV_M;                      /* every line moves on one sample */
 }
 
+/* (0.21, an idea from Hortator's plans) the effects asleep: with no send and THROW and everything they wrote and gave
+ * back under -140 dB for longer than the delay line (and half a second for the plate), chorus, delay and reverb are
+ * skipped until a send comes in again; what they hold is that quiet */
+static uint32_t fx_quiet;
+#define FX_QUIET_PK 1e-7f
 ENG_RAMCODE void fx_block(float *dl, float *dr, const float *sc, const float *sd, const float *sr, int n)
 {
 #ifdef PROF_NO_FX
     return;
 #endif
-    int i;
+    int i, idle, any = fx_thr > 0.0f || fz_tgt != 1.0f || fz_g != 1.0f;
+    float pk = 0.0f;
+    for (i = 0; i < n && !any; i++)
+        any = sc[i] != 0.0f || sd[i] != 0.0f || sr[i] != 0.0f;
+    if (any)
+        fx_quiet = 0;
+    idle = !any && fx_quiet > (uint32_t)dl_n + SR / 2;
     float m1 = lks(f.c_ph) * f.c_depth, m2 = lks(f.c_ph + 0.25f) * f.c_depth, m1e, m2e, m1d, m2d;
     f.c_ph += f.c_inc;
     if (f.c_ph >= 1.0f)
@@ -337,6 +348,12 @@ ENG_RAMCODE void fx_block(float *dl, float *dr, const float *sc, const float *sd
     float dk = f.duck_now, dkd = (f.duck_tgt - dk) / (float)n;
     for (i = 0; i < n; i++) {
         float cin = sc[i], cl, cr, din, dout_l, dout_r, rin, rl, rr;
+        if (idle) {                                  /* (0.21) asleep: no returns; the delay's TIME glides on */
+            cl = cr = dout_l = dout_r = rl = rr = 0.0f;
+            f.d_time += (f.d_time_tgt - f.d_time) * 0.0004f;
+            f.r_half ^= 1;
+            goto mix;
+        }
         /* chorus */
         f.c_hp_s += f.c_hp_g * (cin - f.c_hp_s);
         cin -= f.c_hp_s;
@@ -374,6 +391,8 @@ ENG_RAMCODE void fx_block(float *dl, float *dr, const float *sc, const float *sd
             f.d_hp_s += f.d_hp_g * (fbk - f.d_hp_s);
             fbk -= f.d_hp_s;
             fbk = soft((din + fbk * f.d_fb) * 0.5f) * 2.0f;
+            if (!any)                                /* (0.21: measured only while nothing comes in) */
+                pk = fm_maxf(pk, fm_fabsf(fbk));
             dl_buf[dl_w] = rv_q(fm_clampf(fbk, -4.0f, 4.0f));   /* (0.17: a half float) */
             dl_w = dl_w + 1 >= dl_n ? 0 : dl_w + 1;
             if (f.d_pp) {                            /* ping-pong: the repeats alternate */
@@ -418,7 +437,10 @@ ENG_RAMCODE void fx_block(float *dl, float *dr, const float *sc, const float *sd
             rr = f.r_out_r;
         }
         f.r_half ^= 1;
+        if (!any)
+            pk = fm_maxf(pk, fm_fabsf(cin) + fm_fabsf(rin) + fm_fabsf(rl) + fm_fabsf(rr));
         /* the mix: dry + returns, master overdrive, pattern volume */
+    mix:
         {
             float l = dl[i] + (cl * f.c_vol + dout_l * f.d_vol + rl * f.r_vol) * dk;
             float r = dr[i] + (cr * f.c_vol + dout_r * f.d_vol + rr * f.r_vol) * dk;
@@ -453,6 +475,21 @@ ENG_RAMCODE void fx_block(float *dl, float *dr, const float *sc, const float *sd
         }
     }
     f.duck_now = f.duck_tgt;
+    if (!idle && !any)                               /* (0.21) how long the effects have been that quiet */
+        fx_quiet = pk < FX_QUIET_PK ? fx_quiet + (uint32_t)n : 0;
+    if (idle) {                                      /* (0.21) asleep, the lines and the plate's sweep move on as if
+                                                      * they ran: woken, the effects are where they would have been */
+        int k;
+        ch_w = (ch_w + (uint32_t)n) & (CH_N - 1);
+        dl_w = (dl_w + (uint32_t)n) % dl_n;
+        for (k = 0; k < n / 2; k++) {                /* (the plate a sample in two; n even) */
+            rv_w = (rv_w - 1u) & RV_M;
+            rv_prew = rv_prew + 1 >= RV_PRE ? 0 : rv_prew + 1;
+            f.r_lfo += 0.9f / 22050.0f;
+            if (f.r_lfo >= 1.0f)
+                f.r_lfo -= 1.0f;
+        }
+    }
     f.c_hp_s = fm_flush(f.c_hp_s);                   /* (0.17) the filters' states off denormals too */
     f.d_hp_s = fm_flush(f.d_hp_s);
     f.d_lp_s = fm_flush(f.d_lp_s);

@@ -67,9 +67,15 @@ const char *dest_name(int engine, int d)
         for (i = 0; i < sizeof VAN / sizeof VAN[0]; i++)
             if (VAN[i].d == d)
                 return VAN[i].n;
+    if (engine == ENG_SW && d >= D_ALGO && d <= D_OFSB2 && d != D_PITCH)   /* (0.21) SSAW */
+        return d == D_ALGO ? "WAVE" : d == D_RATC ? "OSCS" : d == D_ALEV ? "DETN" : d == D_BLEV ? "MIX" :
+               d == D_FDBK ? "PW" : d == D_OFSA ? "PWM" : d == D_RATB ? "SUB" : "---";
+    if (engine == ENG_EN && d >= D_ALGO && d <= D_OFSB2 && d != D_PITCH)   /* (0.21) ENS */
+        return d == D_OFSC ? "TUN1" : d == D_OFSA ? "TUN2" : d == D_OFSB1 ? "TUN3" : d == D_OFSB2 ? "TUN4" :
+               d == D_ALEV ? "MRPH" : d == D_BLEV ? "CHOR" : d == D_AEND ? "RATE" : "---";
     if (engine == ENG_BR && d >= D_ALGO && d <= D_OFSB2 && d != D_PITCH)   /* (0.14) BRAIDS: its four, else unused */
         return d == D_RATB ? "MODEL" : d == D_ALEV ? "TIMB" : d == D_BLEV ? "COLOR" : d == D_HARM ? "TUNE" :
-               d == D_DTUN ? "SYNC" : d == D_FDBK ? "SIGN" : d == D_OFSC ? "SUB" : "---";
+               "---";
     if (engine == ENG_DR && d >= D_ALGO && d <= D_OFSB2 && d != D_PITCH) {   /* DRUM: pads 1-4, else unused */
         static const struct { uint8_t d; const char *n; } DRN[16] = {
             {D_MIX, "1 TUNE"}, {D_AATK, "1 DEC"}, {D_ADEC, "1 TONE"}, {D_AEND, "1 LEV"},
@@ -404,6 +410,59 @@ static void va_control(voice_t *v, const float *m, float f0)
     }
 }
 
+/* (0.21) SSAW's control step: a parameter of its own with its modulation, clamped to its range (display units) */
+static inline __attribute__((always_inline)) float xclamp(const voice_t *v, const float *m, int eng, int p, int d)
+{
+    const pdesc_t *pd = param_desc(eng, p);
+    return fm_clampf(v->ps[p] + m[d], (float)pd->lo / (float)pd->q, (float)pd->hi / (float)pd->q);
+}
+/* the JP-8000's seven detunings (Szabo's measurements of it), the oscillators in the order they come in (the middle,
+ * then pairs outward), PWM's phase offsets */
+static const float SW_OFS[7] = {-0.11002313f, -0.06288439f, -0.01952356f, 0.0f, 0.01991221f, 0.06216538f, 0.10745242f};
+static uint8_t SW_ORD[7] = {3, 2, 4, 1, 5, 0, 6};     /* (in RAM: the RAM code reads it) */
+static void sw_control(voice_t *v, const float *m, float f0)
+{
+    float dn = xclamp(v, m, ENG_SW, SW_DETN, D_ALEV) * (1.0f / 127.0f), mx = xclamp(v, m, ENG_SW, SW_MIX, D_BLEV) * (1.0f / 127.0f);
+    float pw = 0.5f - 0.45f * xclamp(v, m, ENG_SW, SW_PW, D_FDBK) * (1.0f / 120.0f);
+    float pwm = xclamp(v, m, ENG_SW, SW_PWM, D_OFSA) * (0.4f / 127.0f), sub = xclamp(v, m, ENG_SW, SW_SUB, D_RATB) * (1.0f / 127.0f);
+    float det = dn * (0.08f + 0.92f * dn * dn), gc, gs, nrm, lim = 0.45f;
+    int n = (int)fm_clampf(xclamp(v, m, ENG_SW, SW_OSCS, D_RATC) + 0.5f, 1.0f, 7.0f), k;
+    v->sw_w = (uint8_t)fm_clampf((float)v->p[SW_WAVE] + m[D_ALGO] + 0.5f, 0.0f, 2.0f);
+    v->sw_n = (uint8_t)n;
+    for (k = 0; k < 7; k++)                          /* (each its own, the middle the note) */
+        v->sw_inc[k] = fm_minf(f0 * (1.0f + det * SW_OFS[k]) * INV_SR, lim);
+    /* MIX (Szabo): the middle down to -5 dB as the others come up; the sum kept about as loud as one VA oscillator
+     * (the detuned ones add as noise does, by power) */
+    gc = 1.0f - 0.55f * mx;
+    gs = mx * (1.29f - 0.73f * mx);
+    nrm = 0.3f / fm_sqrtf(gc * gc + (float)(n - 1) * gs * gs + 1e-6f);
+    v->sw_gc = gc * nrm;
+    v->sw_gs = gs * nrm;
+    v->sw_gsub = 0.3f * sub * sub;
+    v->sw_pwl += 0.7f * CRF * INV_SR;               /* PWM: a slow turn, each oscillator a seventh of it apart */
+    if (v->sw_pwl >= 1.0f)
+        v->sw_pwl -= 1.0f;
+    for (k = 0; k < 7; k++)
+        v->sw_pwk[k] = fm_clampf(pw + pwm * lks(v->sw_pwl + (float)k * (1.0f / 7.0f) * (1.0f + 0.3f * (float)k)), 0.05f, 0.95f);
+}
+/* ENS's control step: each oscillator at its TUNE (semitones) and its chorus: CHOR spreads them up to +-9 cents and
+ * moves each by up to 12 cents with its own LFO a quarter turn on (RATE 0.1 .. 6 Hz); MORPH 0..3 between the waves */
+static void en_control(voice_t *v, const float *m, float f0)
+{
+    static const uint8_t TP[4] = {EN_T1, EN_T2, EN_T3, EN_T4}, TD[4] = {D_OFSC, D_OFSA, D_OFSB1, D_OFSB2};
+    float ch = xclamp(v, m, ENG_EN, EN_CHOR, D_BLEV) * (1.0f / 127.0f), rt = xclamp(v, m, ENG_EN, EN_RATE, D_AEND);
+    int k;
+    v->en_mo = xclamp(v, m, ENG_EN, EN_MORPH, D_ALEV) * (3.0f / 127.0f);
+    v->en_lf += 0.1f * fm_exp2f(rt * (5.9f / 127.0f)) * CRF * INV_SR;
+    v->en_lf -= fm_floorf(v->en_lf);
+    for (k = 0; k < 4; k++) {
+        float st = xclamp(v, m, ENG_EN, TP[k], TD[k]);
+        float cents = ch * (6.0f * ((float)k - 1.5f) + 12.0f * lks(v->en_lf + (float)k * 0.25f));
+        v->en_inc[k] = fm_minf(f0 * fm_exp2f((st + cents * 0.01f) * (1.0f / 12.0f)) * INV_SR, 0.45f);
+    }
+    v->en_g = 0.3f * 0.5f;                           /* (four, by power) */
+}
+
 /* the DRUM engine's control step [TONIC]: the pad's TUNE DEC TONE LEV (pads 1-4 with their modulation), the
  * pitch offset po (semitones: OCT, PITCH, bend), then the model's frequencies, envelope factors and filters.
  * TUNE: half semitones; DEC scales the model's decay 1/9 .. 9 x (2^((DEC - 64) / 20)); TONE is the model's own */
@@ -565,7 +624,7 @@ static void dr_start(voice_t *v)
 #define BR_NDL 2
 static uint8_t br_defer;                              /* (0.16) in the control phase: delay buffers given after it */
 static float ctl_m[2][ND];                            /* (0.16) the control step's modulation scratch, a core each */
-static uint8_t *br_mem, *br_dl[BR_NDL], *br_ws;
+static uint8_t *br_mem, *br_dl[BR_NDL];
 static int8_t br_own[BR_NDL];
 static unsigned br_sz;
 static float br_ofs;                                  /* the pitch moved by Braids' 96 kHz against the engine's rate */
@@ -573,7 +632,7 @@ static void br_setup(uint8_t *area)
 {
     unsigned i, need;
     br_sz = br_state_size();
-    need = (NVOICE + NFADE) * br_sz + BR_NDL * br_delay_size() + br_shaper_size();
+    need = (NVOICE + NFADE) * br_sz + BR_NDL * br_delay_size();
     br_mem = need <= BR_AREA ? area : 0;              /* (it never is short; if it were, the engine stays silent) */
     if (!br_mem)
         return;
@@ -583,8 +642,6 @@ static void br_setup(uint8_t *area)
     }
     for (i = 0; i < NVOICE + NFADE; i++)
         br_init(br_mem + i * br_sz);
-    br_ws = area + (NVOICE + NFADE) * br_sz + BR_NDL * br_delay_size();
-    br_shaper_init(br_ws, 0x5A3C9Fu);                /* (one signature: sigmoid, skew and bumps of its own) */
     br_ofs = 1536.0f * fm_log2f(96000.0f / SR);       /* 128 x 12 x log2(96 kHz / rate) */
 }
 static inline __attribute__((always_inline)) void *br_st(const voice_t *v) { return br_mem + v->br_i * br_sz; }
@@ -624,16 +681,7 @@ static void br_control(voice_t *v, const float *m, float pitch)
     v->br_pitch = (int16_t)fm_clampf((pitch + tune) * 128.0f + br_ofs, 0.0f, 32767.0f);
     v->br_timb = (int16_t)(fm_clampf(eff(v, m, P_ALEV, D_ALEV), 0.0f, 127.0f) * 258.0f);
     v->br_col = (int16_t)(fm_clampf(eff(v, m, P_BLEV, D_BLEV), 0.0f, 127.0f) * 258.0f);
-    {   /* (0.15) SYNC: Braids SYNC semitones over the master, the master at the note; SIGN; SUB an octave below it */
-        float sy = fm_clampf(eff(v, m, P_DTUN, D_DTUN), 0.0f, 48.0f), sg = fm_clampf(eff(v, m, P_FDBK, D_FDBK), 0.0f, 127.0f);
-        float hz = fm_minf(440.0f * fm_exp2f((pitch + tune - 69.0f) * (1.0f / 12.0f)), 0.45f * SR);
-        v->br_sync = sy > 0.01f;
-        v->br_pitch = (int16_t)fm_clampf((pitch + tune + sy) * 128.0f + br_ofs, 0.0f, 32767.0f);
-        v->br_minc = (uint32_t)(hz * INV_SR * 4294967296.0f);
-        v->br_sinc = hz * 0.5f * INV_SR;
-        v->br_sign = (uint16_t)(sg * sg * (65535.0f / (127.0f * 127.0f)));   /* (as the module: squared) */
-        v->br_sub = fm_clampf(eff(v, m, P_OFSC, D_OFSC), 0.0f, 127.0f) * (0.6f / 127.0f);
-    }
+    /* (0.21: SYNC, SIGN and SUB of 0.15 gone again: Braids' own TIMBRE and COLOR) */
     /* (0.17) a buffer is asked for once, at the note's start or a new model: a voice that lost its buffer to a newer
      * note stays quiet to its next note instead of taking one back each block (which left all of them silent) */
     if (br_mem && br_needs_delay(v->br_model) && v->br_ask &&
@@ -655,34 +703,9 @@ static void br_block(voice_t *v, float *x)            /* (from the flash: Braids
             x[i] = 0.0f;
         return;
     }
-    {
-        uint8_t sy[CR];
-        if (v->br_sync) {                            /* (0.15) the master's resets, each at its 128th of a sample */
-            uint32_t ph = v->br_mph, inc = v->br_minc, q = inc >> 7 ? inc >> 7 : 1;
-            for (i = 0; i < CR; i++) {
-                uint32_t was = ph;
-                ph += inc;
-                sy[i] = ph < was ? (uint8_t)(ph / q > 127u ? 128u : ph / q + 1u) : 0;
-            }
-            v->br_mph = ph;
-        } else
-            v->br_mph += v->br_minc * CR;
-        br_render(br_st(v), v->br_model, v->br_pitch, v->br_timb, v->br_col, v->br_sync ? sy : 0, b, CR);
-    }
-    if (v->br_sign && br_ws)
-        br_shape(br_ws, b, CR, v->br_sign);
+    br_render(br_st(v), v->br_model, v->br_pitch, v->br_timb, v->br_col, 0, b, CR);
     for (i = 0; i < CR; i++)
         x[i] = (float)b[i] * (0.4f / 32768.0f);   /* (0.17: 6 dB down, as loud as FM and VA) */
-    if (v->br_sub > 0.0f) {                          /* (0.15) SUB: a sine an octave below the note */
-        float sp = v->br_sph, si = v->br_sinc, g = v->br_sub;
-        for (i = 0; i < CR; i++) {
-            x[i] += g * lks(sp);
-            sp += si;
-            if (sp >= 1.0f)
-                sp -= 1.0f;
-        }
-        v->br_sph = sp;
-    }
 }
 /* a stolen BRAIDS voice fades out with its own oscillator: a copy (without a delay buffer: those models go quiet) */
 void synth_fader(voice_t *fader, const voice_t *v, int f)
@@ -704,6 +727,19 @@ static void voice_engine(voice_t *v, int eng)
         b[i] = 0;
     if (eng == ENG_FM)
         v->harm_side = 9;
+    if (eng == ENG_SW || eng == ENG_EN) {            /* (0.21) the oscillators free-running from phases of their
+                                                      * own, not all at 0 (that would start as one loud saw) */
+        uint32_t r = 0x9E3779B9u * (uint32_t)(v - vc + 1);
+        for (i = 0; i < 7; i++) {
+            r = r * 1664525u + 1013904223u;
+            if (eng == ENG_SW)
+                v->sw_ph[i] = (float)(r >> 8) * (1.0f / 16777216.0f);
+            else if (i < 4)
+                v->en_ph[i] = (float)(r >> 8) * (1.0f / 16777216.0f);
+        }
+        if (eng == ENG_EN)
+            v->en_lf = (float)(v - vc) * 0.13f;
+    }
     if (eng == ENG_BR && br_mem && v->br_i < NVOICE) {   /* (0.14) its oscillator from the start, no delay buffer */
         br_init(br_st(v));
         if (v->br_slot < BR_NDL && br_own[v->br_slot] == v->br_i)
@@ -870,6 +906,14 @@ static void voice_control(voice_t *v, int core)
     }
     if (eng == ENG_BR) {                             /* (0.14) the BRAIDS engine: its model, TIMBRE, COLOR */
         br_control(v, m, pitch);
+        goto filters;
+    }
+    if (eng == ENG_SW) {                             /* (0.21) SSAW */
+        sw_control(v, m, f0);
+        goto filters;
+    }
+    if (eng == ENG_EN) {                             /* (0.21) ENS */
+        en_control(v, m, f0);
         goto filters;
     }
     if (va) {                                        /* the VA engine: its oscillators instead of the operators */
@@ -1795,6 +1839,102 @@ static inline __attribute__((always_inline)) __attribute__((always_inline)) void
     v->wy_now = v->wy_tgt;
 }
 
+/* (0.21) SSAW's samples: each of its oscillators over the block, the
+ * middle at its own level, the sub a square an octave under the middle */
+static inline __attribute__((always_inline)) void sw_osc(float *x, float t, float dt, float pw, float g, int w, float *end)
+{
+    float idt = 1.0f / fm_maxf(dt, 1e-6f), dc = 2.0f * pw - 1.0f;
+    int i;
+    for (i = 0; i < CR; i++) {
+        float y = 0.0f;
+        if (w != SWW_PULSE) {
+            y = 2.0f * t - 1.0f;
+            if (t < dt || t > 1.0f - dt) y -= blep(t, dt, idt);
+        }
+        if (w != SWW_SAW) {
+            float u = t - pw + 1.0f, q;
+            if (u >= 1.0f) u -= 1.0f;
+            q = (t < pw ? 1.0f : -1.0f) - dc;
+            if (t < dt || t > 1.0f - dt) q += blep(t, dt, idt);
+            if (u < dt || u > 1.0f - dt) q -= blep(u, dt, idt);
+            y = w == SWW_BOTH ? 0.7f * (y + q) : q;
+        }
+        x[i] += g * y;
+        t += dt;
+        if (t >= 1.0f) t -= 1.0f;
+    }
+    *end = t;
+}
+static ENG_RAMCODE void sw_block(voice_t *v, float *x)
+{
+    int i, k, n = v->sw_n;
+    for (i = 0; i < CR; i++)
+        x[i] = 0.0f;
+    for (k = 0; k < n; k++) {
+        int o = SW_ORD[k];
+        float g = o == 3 ? v->sw_gc : v->sw_gs;
+        sw_osc(x, v->sw_ph[o], v->sw_inc[o], v->sw_pwk[o], g, v->sw_w, &v->sw_ph[o]);
+    }
+    if (v->sw_gsub > 0.0f) {
+        float t = v->sw_sph, dt = 0.5f * v->sw_inc[3], idt = 1.0f / fm_maxf(dt, 1e-6f), g = v->sw_gsub;
+        for (i = 0; i < CR; i++) {
+            float u = t + 0.5f, y = t < 0.5f ? 1.0f : -1.0f;
+            if (u >= 1.0f) u -= 1.0f;
+            if (t < dt || t > 1.0f - dt) y += blep(t, dt, idt);
+            if (u < dt || u > 1.0f - dt) y -= blep(u, dt, idt);
+            x[i] += g * y;
+            t += dt;
+            if (t >= 1.0f) t -= 1.0f;
+        }
+        v->sw_sph = t;
+    }
+}
+/* (0.21) ENS's samples: four oscillators, the wave a blend of the two MORPH lies between (SIN TRI SAW SQR; the saw's
+ * and the square's steps BLEP-corrected) */
+static inline __attribute__((always_inline)) float en_wave(int w, float t, float dt, float idt)
+{
+    switch (w) {
+    case 0: return lks(t);
+    case 1: {                                        /* (each wave rising through 0 at the phase's start, as the
+                                                      * sine: the blends never cancel) */
+        float u = t + 0.25f;
+        if (u >= 1.0f) u -= 1.0f;
+        return 1.0f - 4.0f * fm_fabsf(u - 0.5f);
+    }
+    case 2: {
+        float u = t + 0.5f, y;
+        if (u >= 1.0f) u -= 1.0f;
+        y = 2.0f * u - 1.0f;
+        if (u < dt || u > 1.0f - dt) y -= blep(u, dt, idt);
+        return y;
+    }
+    default: {
+        float u = t + 0.5f, y = t < 0.5f ? 1.0f : -1.0f;
+        if (u >= 1.0f) u -= 1.0f;
+        if (t < dt || t > 1.0f - dt) y += blep(t, dt, idt);
+        if (u < dt || u > 1.0f - dt) y -= blep(u, dt, idt);
+        return 0.8f * y;                             /* (a square as loud as the saw) */
+    }
+    }
+}
+static void en_block(voice_t *v, float *x)           /* (from the flash: the RAM's code room is full) */
+{
+    int i, k, w0 = (int)v->en_mo;
+    float b = v->en_mo - (float)w0, g = v->en_g;
+    if (w0 >= 3) { w0 = 2; b = 1.0f; }
+    for (i = 0; i < CR; i++)
+        x[i] = 0.0f;
+    for (k = 0; k < 4; k++) {
+        float t = v->en_ph[k], dt = v->en_inc[k], idt = 1.0f / fm_maxf(dt, 1e-6f), ga = g * (1.0f - b), gb = g * b;
+        for (i = 0; i < CR; i++) {
+            x[i] += ga * en_wave(w0, t, dt, idt) + (gb > 0.0f ? gb * en_wave(w0 + 1, t, dt, idt) : 0.0f);
+            t += dt;
+            if (t >= 1.0f) t -= 1.0f;
+        }
+        v->en_ph[k] = t;
+    }
+}
+
 /* (0.17) the insert's 2x halfband (15 taps, Kaiser 6: -1.8 dB at 17.6 kHz, -31 dB from 31 kHz, -62 dB from 35 kHz):
  * its odd taps from the centre out (the centre 0.5, the even ones 0); in RAM, as the code that reads it. The scratch:
  * a core each */
@@ -1821,6 +1961,10 @@ ENG_RAMCODE void voice_block(voice_t *v, float *dl, float *dr, float *sc, float 
         dr_block(v, x);
     else if (v->eng == ENG_BR)
         ENG_FAR(br_block)(v, x);                     /* (0.14: its code in the flash) */
+    else if (v->eng == ENG_SW)
+        sw_block(v, x);
+    else if (v->eng == ENG_EN)
+        ENG_FAR(en_block)(v, x);
     else {
         harm_t *h = &harm_w[v->wti];
         if (h->pend && v->harm_side != 0) {
@@ -2197,8 +2341,6 @@ void voice_start(voice_t *v, int trk, int note, int vel, const sound_t *s, const
     if (s->s[S_ENGINE] == ENG_BR && br_mem && !legato) {   /* (0.14) BRAIDS: the struck and plucked models excited; */
         br_strike(br_st(v));
         v->br_ask = 1;                               /* (0.17) its delay buffer asked for now */
-        v->br_mph = 0;                               /* (0.15) the master and the sub from the start */
-        v->br_sph = 0.0f;
     }
     if (s->s[S_ENGINE] == ENG_VA && v->p[P_PHRT])    /* VA: RST ON starts the oscillators at 0 */
         v->va_ph[0] = v->va_ph[1] = v->va_ph[2] = 0;

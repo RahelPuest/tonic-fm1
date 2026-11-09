@@ -302,17 +302,20 @@ static void o_tabs(const row_t *cur)
         }
         b++;
     }
-    (void)a, (void)b, (void)x;
-    {   /* (0.20) uncluttered: the page shown alone, and where it is among the button's pages (n/m) */
-        char c[8];
-        o_ink = K_ACC;
-        o_box(0, 10, w[me], 7);
-        o_ts(2, 11, tt[me], 0);
-        tx_num(c, me + 1);
-        tx_cat(c, "/");
-        tx_num(c + tx_len(c), n);
-        o_ink = K_DIM;
-        o_ts(OW - o_ws(c) - 1, 11, c, 1);
+    x = a > 0 ? 5 : 0;
+    o_ink = K_DIM;
+    if (a > 0) o_ts(0, 11, "<", 1);
+    if (b < n) o_ts(OW - 4, 11, ">", 1);
+    for (i = a; i < b; i++) {
+        if (i == me) {
+            o_ink = K_ACC;
+            o_box(x, 10, w[i], 7);
+            o_ts(x + 2, 11, tt[i], 0);
+        } else {
+            o_ink = K_DIM;
+            o_ts(x + 2, 11, tt[i], 1);
+        }
+        x += w[i] + 2;
     }
     o_ink = K_FG;
 }
@@ -506,6 +509,47 @@ static void o_va(int x0, int y0, const sound_t *s)
     o_tm(x0 + 3, y0 + 41, "VA", 1, 1);
 }
 
+/* (0.21) SSAW: its oscillators as saws (or pulses) fanned out by DETN, the middle one solid; ENS: the four
+ * oscillators' tunings as dots on a +-24 scale, the morphed wave under them */
+static void o_ssaw(int x0, int y0, const sound_t *s)
+{
+    int n = s->p[SW_OSCS] < 1 ? 1 : s->p[SW_OSCS] > 7 ? 7 : s->p[SW_OSCS], k, i, w = s->p[SW_WAVE];
+    float dn = (float)s->p[SW_DETN] / 127.0f;
+    for (k = 0; k < n; k++) {
+        int o = k == 0 ? 0 : (k + 1) / 2 * (k & 1 ? -1 : 1), y = y0 + 16 + o * 4;
+        float per = 10.0f * (1.0f + dn * 0.25f * (float)o);   /* (a wider fan, more detune) */
+        if (k == 0) o_ink = K_FG; else o_ink = K_DIM;
+        for (i = 0; i < 24; i++) {
+            float ph = (float)i / per, f = ph - fm_floorf(ph);
+            int h = w == SWW_PULSE ? (f < 0.5f ? 3 : 0) : (int)(f * 3.0f);
+            o_px(x0 + i, y + 1 - h, 1);
+        }
+    }
+    o_ink = K_FG;
+    o_tm(x0 + 1, y0 + 41, "SAW", 1, 1);
+}
+static void o_ens(int x0, int y0, const sound_t *s)
+{
+    static const uint8_t TP[4] = {EN_T1, EN_T2, EN_T3, EN_T4};
+    int k, i;
+    float mo = (float)s->p[EN_MORPH] * (3.0f / 127.0f);
+    o_ink = K_DIM;
+    o_vline(x0 + 12, y0, 26, 1);
+    o_ink = K_FG;
+    for (k = 0; k < 4; k++) {                        /* each oscillator: its row, the dot at its tuning */
+        int t = s->p[TP[k]], x = x0 + 12 + t / 2;
+        o_rect(x - 1, y0 + 2 + k * 6, 3, 3, 1);
+    }
+    for (i = 0; i < 24; i++) {                       /* the wave MORPH makes */
+        float ph = (float)i / 24.0f, a = fm_sin_turns(ph), u = ph + 0.25f - (ph >= 0.75f ? 1.0f : 0.0f);
+        float b = 1.0f - 4.0f * fm_fabsf(u - 0.5f), c = 2.0f * (ph + 0.5f - (ph >= 0.5f ? 1.0f : 0.0f)) - 1.0f;
+        float d = ph < 0.5f ? 1.0f : -1.0f, y;
+        y = mo < 1.0f ? a + (b - a) * mo : mo < 2.0f ? b + (c - b) * (mo - 1.0f) : c + (d - c) * (mo - 2.0f);
+        o_px(x0 + i, y0 + 33 - (int)(y * 3.0f), 1);
+    }
+    o_tm(x0 + 1, y0 + 41, "ENS", 1, 1);
+}
+
 /* the BRAIDS engine [TONIC 0.14]: the model's name large, as on the module's display, TIMBRE and COLOR as bars */
 static void o_braids(int x0, int y0, const sound_t *s)
 {
@@ -624,6 +668,75 @@ static void o_wave(int x, int y, int w, int h, int wave, float ph)
     }
 }
 
+/* (0.21) an LFO as a picture, as the envelopes are: row 1 (SPD MULT FADE) a bar of it, as many cycles as it runs in
+ * a bar (SPD x MULT / 128; past 8 drawn as 8, a dotted line under it), FADE as its outline growing or shrinking;
+ * row 2 (WAVE SPH MODE) one cycle from SPH, as tall as DEP (negative: upside down), the dot where the voice is, the
+ * mode at the corner */
+static void o_lfo(int x, int y, int w, int h, const sound_t *s, int l, int row2)
+{
+    int b = l ? P_L2SPD : P_L1SPD, wave = s->p[b + 3], m = s->p[b + 1];
+    float spd = (float)s->p[b] * 0.25f, dep = (float)s->p[b + 6] / 1024.0f, fade = (float)s->p[b + 2];
+    float W = (float)(w - 4), x0 = (float)x + 2.0f, yc = (float)y + (float)h * 0.5f, hh = (float)h * 0.5f - 2.0f;
+    float px = 0, py = 0, sph = (float)s->p[b + 4] / 128.0f;
+    int i, n = 2 * (w - 4);
+    uint8_t ink = o_ink;                             /* the row's: the accent on the row the knobs edit */
+    o_frame(x, y, w, h);
+    o_ink = K_DIM;
+    o_hline(x + 1, (int)yc, w - 2, 1);               /* the zero line */
+    if (!row2) {
+        float cyc = spd * (float)(1 << (m % 12)) / 128.0f, ac = fm_fabsf(cyc);
+        int many = ac > 8.0f;
+        o_ink = ink;
+        if (many) ac = 8.0f;
+        if (ac < 0.25f) ac = 0.25f;
+        for (i = 0; i <= n; i++) {
+            float u = (float)i / (float)n, ph = u * ac, a = 1.0f, nx, ny;
+            ph -= fm_floorf(ph);
+            if (cyc < 0) ph = 1.0f - ph;
+            if (fade != 0) {                         /* in or out over |FADE| / 64 of the bar */
+                float k = fm_clampf(u * 64.0f / fm_maxf(fm_fabsf(fade), 1.0f), 0.0f, 1.0f);
+                a = fade < 0 ? k : 1.0f - k;
+            }
+            nx = x0 + u * W;
+            ny = yc - lfo_shape(wave, ph, (int)(u * ac * 8.0f)) * hh * a;
+            if (i) o_fline(px, py, nx, ny);
+            px = nx;
+            py = ny;
+        }
+        if (many) o_hline(x + 2, y + h - 2, w - 4, 1);
+    } else {
+        float ph = engine_lfo_phase(ui.trk, l), amp = fm_clampf(dep, -1.0f, 1.0f);
+        static const char *const MD[5] = {"FRE", "TRG", "HLD", "ONE", "HLF"};
+        if (fm_fabsf(amp) < 0.999f) {                /* the wave's shape at full depth, dotted, to see it at DEP 0 */
+            o_ink = K_DIM;
+            for (i = 0; i <= n; i += 3) {
+                float u = (float)i / (float)n, q = u + sph;
+                q -= fm_floorf(q);
+                o_px((int)(x0 + u * W), (int)(yc - lfo_shape(wave, q, i / 2) * hh), 1);
+            }
+        }
+        o_ink = ink;
+        for (i = 0; i <= n; i++) {
+            float u = (float)i / (float)n, q = u + sph, nx, ny;
+            q -= fm_floorf(q);
+            nx = x0 + u * W;
+            ny = yc - lfo_shape(wave, q, i / 2) * hh * amp;
+            if (i) o_fline(px, py, nx, ny);
+            px = nx;
+            py = ny;
+        }
+        if (ph >= 0.0f) {                            /* where the newest voice's LFO is */
+            float u = ph - sph;
+            u -= fm_floorf(u);
+            o_ink = K_ACC;
+            o_dot(x0 + u * W, yc - lfo_shape(wave, ph, (int)(ph * W)) * hh * amp);
+        }
+        o_ink = K_DIM;
+        o_ts(x + w - 2 - o_ws(MD[s->p[b + 5] % 5]), y + 2, MD[s->p[b + 5] % 5], 1);
+    }
+    o_ink = K_FG;
+}
+
 /* the filter's response (FLTR row 2): the magnitude over 20 Hz .. 20 kHz, the cutoff now (with its envelope, from
  * the track's newest voice) solid, the set FREQ dotted when they differ; LP2, HP2 and LP4 as the engine's [TONIC] */
 static float filt_db(int type, float f, float fc, float rs)
@@ -732,20 +845,14 @@ static void o_slot(const item_t *it, int x, int y, int w, int active)
     if (it->kind == IK_SET && id >= S_DM1 && id <= S_DM8)   /* a kit's model: its flavour (the name has the rest) */
         tx_cpy(v, DM_VAR[val % NDM]);
     o_fit(v, w - 4);
-    if (active) {                                    /* (0.20) the row the knobs edit: its values filled (accent; a
-                                                      * locked one in the ink) */
-        if (lk)
-            o_ink = K_FG;
-        o_box(x, y + 2, w - 2, 11);
-        o_ts_c(x, w - 2, y + 5, v, 0);
-        o_ink = K_ACC;
-    } else if (lk) {                                 /* the other row: a locked value framed in the accent */
-        o_frame(x, y + 2, w - 2, 11);
-        o_ts_c(x, w - 2, y + 5, v, 1);
-    } else {
-        o_frame(x, y + 2, w - 2, 11);
-        o_ts_c(x, w - 2, y + 5, v, 1);
-    }
+    /* (0.21) the row the knobs edit: its boxes framed in the accent (not filled); a locked value in the accent */
+    o_ink = active ? K_ACC : K_DIM;
+    o_frame(x, y + 2, w - 2, 11);
+    if (active)
+        o_frame(x + 1, y + 3, w - 4, 9);             /* two pixels: the row stands out without a fill */
+    o_ink = lk ? K_ACC : K_FG;
+    o_ts_c(x, w - 2, y + 5, v, 1);
+    o_ink = active ? K_ACC : K_FG;
     if (rg.hi - rg.lo >= 8 && rg.fmt != F_LIST) {
         int span = rg.hi - rg.lo, f = (val - rg.lo) * (w - 2) / span, i;
         for (i = 0; i < w - 2; i++)
@@ -768,17 +875,23 @@ static void o_row(const row_t *rr, int x0, int pitch, int y, int active)
         if (it[0].id == P_AATK || it[0].id == P_BATK) graph = 0;
         else if (it[0].id == P_FATK || it[0].id == P_EATK || it[0].id == P_MATK) graph = 1;   /* (0.12.1: MENV) */
         else if (it[0].id == P_FREQ) graph = 2;      /* the filter's curve [TONIC] */
+        else if (it[0].id == P_L1SPD || it[0].id == P_L2SPD) graph = 3;   /* (0.21) the LFOs as pictures */
+        else if (it[0].id == P_L1WAV || it[0].id == P_L2WAV) graph = 4;
     }
     for (k = 0; k < 4; k++) {
-        if (graph == 0 && k < 3) continue;           /* SYN2: ATK DEC END as one picture, LEV on its own */
-        if (graph >= 1) continue;
+        if ((graph == 0 || graph >= 3) && k < 3) continue;   /* SYN2: ATK DEC END as one picture, LEV on its own;
+                                                      * an LFO: three as the picture, DEST / DEP on its own */
+        if (graph == 1 || graph == 2) continue;
         o_slot(&it[k], x0 + k * pitch, y, pitch, active);
         o_ink = K_FG;
     }
     if (graph >= 0) {
-        int n = graph == 0 ? 3 : 4, j;
+        int n = graph == 0 || graph >= 3 ? 3 : 4, j;
         o_ink = active ? K_ACC : K_FG;
-        if (graph == 0) {
+        if (graph >= 3) {
+            int l = it[0].id == P_L2SPD || it[0].id == P_L2WAV;
+            o_lfo(x0, y + 1, 3 * pitch - 2, 16, s, l, graph == 4);
+        } else if (graph == 0) {
             int b = it[0].id == P_AATK ? P_AATK : P_BATK;
             o_env(x0, y + 1, 3 * pitch - 2, 16, s->p[b], s->p[b + 1], s->p[b + 2], 0, 0, b == P_AATK ? 0 : 1);
             o_ts(x0 + 2, y + 3, b == P_AATK ? "A" : "B", 1);
@@ -1198,6 +1311,10 @@ static void o_page(void)
         o_braids(18, 20, tsnd());
     else if (syn && tsnd()->s[S_ENGINE] == ENG_VA)
         o_va(18, 20, tsnd());
+    else if (syn && tsnd()->s[S_ENGINE] == ENG_SW)
+        o_ssaw(18, 20, tsnd());
+    else if (syn && tsnd()->s[S_ENGINE] == ENG_EN)
+        o_ens(18, 20, tsnd());
     else if (syn && drum_trk())
         o_kit(18, 20, tsnd());
     else if (syn)
@@ -1253,28 +1370,35 @@ static void o_steps(int y)
     }
 }
 
-static void o_keys_roll(void)
+/* (0.21) the bottom line: only the active track (its colour, struck through when muted), the transport and the tempo,
+ * at the very bottom */
+static void o_bottom(void)
 {
     char b[12];
-    int t, x;
-    for (t = 0; t < NTRK; t++) {
-        x = 1 + t * 15;
-        b[0] = 'T'; b[1] = (char)('1' + t); b[2] = 0;
-        o_ink = K_TRK[t];
-        if (t == ui.trk) { o_box(x, 111, 13, 9); o_ts(x + 3, 113, b, 0); }
-        else { o_frame(x, 111, 13, 9); o_ts(x + 3, 113, b, 1); }
-        if (eng.mute >> t & 1u) o_line(x + 1, 118, x + 11, 112);
-    }
+    int x;
+    b[0] = 'T'; b[1] = (char)('1' + ui.trk); b[2] = 0;
+    o_ink = K_TRK[ui.trk];
+    o_box(1, 111, 13, 9);
+    o_ts(4, 113, b, 0);
+    if (eng.mute >> ui.trk & 1u)
+        o_line(2, 118, 12, 112);
     o_ink = K_FG;
     tx_fix(b, (int)(eng.bpm * 10.0f + 0.5f), 10, 1);
     o_tm(119 - o_wm(b, 1), 112, b, 1, 1);
     x = 119 - o_wm(b, 1) - 9;
-    if (eng.playing) {
+    if (eng.playing) {                               /* play: a triangle */
         int i;
         for (i = 0; i < 4; i++)
             o_vline(x + i, 113 + i, 7 - 2 * i, 0);
     } else
         o_rect(x, 113, 5, 5, 1);
+    if (eng.ext_clock)
+        o_ts(x - 13, 114, "EXT", 1);
+}
+
+static void o_keys_roll(void)
+{
+    o_bottom();
 }
 
 static void o_keys(void)
@@ -1303,34 +1427,7 @@ static void o_keys(void)
     if (eng.rec_live && (plat_ms() / 300u) & 1u)
         o_rect(119 - o_ws(mode) - 5, 85, 3, 3, 1);
     o_ts(120 - o_ws(mode) - 1, 84, mode, 1);
-    /* the tracks; the tempo and the transport */
-    for (t = 0; t < NTRK; t++) {
-        int m = eng.mute >> t & 1u;
-        x = 1 + t * 15;
-        b[0] = 'T'; b[1] = (char)('1' + t); b[2] = 0;
-        o_ink = K_TRK[t];                            /* each track in its colour */
-        if (t == ui.trk) {
-            o_box(x, 91, 13, 9);
-            o_ts(x + 3, 93, b, 0);
-        } else {
-            o_frame(x, 91, 13, 9);
-            o_ts(x + 3, 93, b, 1);
-        }
-        if (m)                                       /* muted: struck through */
-            o_line(x + 1, 98, x + 11, 92);
-        o_ink = K_FG;
-    }
-    tx_fix(b, (int)(eng.bpm * 10.0f + 0.5f), 10, 1);
-    o_tm(119 - o_wm(b, 1), 92, b, 1, 1);
-    x = 119 - o_wm(b, 1) - 9;
-    if (eng.playing) {                               /* play: a triangle; recording: a dot */
-        int i;
-        for (i = 0; i < 4; i++)
-            o_vline(x + i, 93 + i, 7 - 2 * i, 0);
-    } else
-        o_rect(x, 93, 5, 5, 1);
-    if (eng.ext_clock)
-        o_ts(x - 13, 94, "EXT", 1);
+    o_bottom();
     /* the held step, the step being entered, or a hint */
     b[0] = 0;
     if (ui.held || ui.steprec) {
@@ -1338,26 +1435,26 @@ static void o_keys(void)
         const trig_t *g = &pcur->trig[ui.trk][st];
         tx_cpy(b, "STEP ");
         tx_num(b + 5, st + 1);
-        o_ts(1, 104, b, 1);
+        o_ts(1, 95, b, 1);
         if (g->flags & TF_NOTE) {
             char n[8];
             x = 34;
             for (k = 0; k < (g->nnote ? g->nnote : 1) && x < 110; k++) {
                 note_name(g->note + (k ? g->chord[k - 1] : 0), n);
-                x = o_tm(x, 103, n, 1, 1) + 4;
+                x = o_tm(x, 94, n, 1, 1) + 4;
             }
         } else
-            o_ts(34, 104, (g->flags & TF_LOCK) ? "LOCK TRIG" : "EMPTY", 1);
+            o_ts(34, 95, (g->flags & TF_LOCK) ? "LOCK TRIG" : "EMPTY", 1);
     }
     else if (ui.grp == G_LFO) {                      /* the LFO's value now */
         const row_t *r = cur_row();
         float v = engine_lfo_view(ui.trk, r && r->title[3] == '2' ? 1 : 0);
         int c = 60 + (int)(v * 58.0f);
-        o_ts(1, 104, "LFO", 1);
+        o_ts(1, 95, "LFO", 1);
         o_ink = K_DIM;
-        o_hline(16, 106, 103, 1);
+        o_hline(16, 97, 103, 1);
         o_ink = K_ACC;
-        o_rect(c - 1, 103, 3, 7, 1);
+        o_rect(c - 1, 94, 3, 7, 1);
         o_ink = K_FG;
     }
     if (ui.grp == G_ARP) {                           /* the arpeggiator's steps */
@@ -1367,9 +1464,9 @@ static void o_keys(void)
             int on = s->arp_on >> k & 1u, o = s->arp_ofs[k];
             x = 1 + k * 7 + (k / 4);
             if (k >= s->s[S_ARPSTEPS]) continue;
-            o_hline(x, 117, 6, 1);
-            if (on) o_rect(x, 113 - clamp(o, -2, 4), 6, 2, 1);
-            if (k == ui.arp_step) o_hline(x, 119, 6, 0);
+            o_hline(x, 99, 6, 1);
+            if (on) o_rect(x, 95 - clamp(o, -2, 4), 6, 2, 1);
+            if (k == ui.arp_step) o_hline(x, 101, 6, 0);
         }
     }   /* (0.20: no swing, chain, unsaved lines: GLO, the patterns' screen and SAVE's LED tell) */
 }

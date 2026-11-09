@@ -6,7 +6,7 @@ spin PRESET 16
 wait 100
 expect pattern 16
 expect lenmode 0
-sound 85
+sound 97
 wait 50
 tap SEQ
 wait 30

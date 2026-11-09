@@ -19,7 +19,7 @@ tapkey w2
 wait 3000
 expect peak_db_min -40
 # ---- LFO MODE HLD: the mode set, the note held at one pitch (checked by ear / wav in the audit)
-sound 85
+sound 97
 wait 50
 tap LFO
 wait 30
@@ -37,7 +37,7 @@ wait 30
 sound 69
 spin ALGO 1
 wait 30
-sound 85
+sound 97
 spin ALGO -2
 wait 30
 expect track 0
@@ -102,7 +102,7 @@ expect plist 1
 expect plisti 0
 spin PRESET -1
 wait 30
-expect plisti 93
+expect plisti 105
 press SEL
 wait 30
 spin PRESET 1
@@ -116,9 +116,9 @@ wait 30
 expect plisti 0
 spin PRESET -1
 wait 30
-expect plisti 86
+expect plisti 98
 spin PRESET -1
 wait 30
-expect plisti 85
+expect plisti 97
 release SEL
 wait 30

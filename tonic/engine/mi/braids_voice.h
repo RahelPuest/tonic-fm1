@@ -19,11 +19,6 @@ void br_strike(void *st);                         /* a note starts: the struck a
  * 0..32767 */
 void br_render(void *st, int model, int pitch, int timbre, int color, const uint8_t *sync, int16_t *out, int n);
 /* (0.15) sync: per sample 0, or 1 + 128ths of a sample past a reset (Braids' sync input; 0: none at all) */
-/* (0.15) Braids' signature waveshaper: its table from a seed (one fixed signature), then out mixed with its shape by
- * amount (0..65535) */
-unsigned br_shaper_size(void);
-void br_shaper_init(void *ws, uint32_t seed);
-void br_shape(const void *ws, int16_t *buf, int n, int amount);
 #ifdef __cplusplus
 }
 #endif

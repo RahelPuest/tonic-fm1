@@ -83,7 +83,12 @@ static void bench_setup(void)
         sound_set_engine(s, ENG_BR);
         { static const int16_t BRM[4] = {3, 27, 35, 23}; s->p[P_RATB] = BRM[t]; }   /* FOLD WTFM CYMB VFOF */
         s->p[P_ALEV] = 90; s->p[P_BLEV] = 70;
-        s->p[P_DTUN] = 48; s->p[P_FDBK] = 90; s->p[P_OFSC] = 60;   /* (0.15) SYNC 12, SIGN, SUB on every voice */
+#elif TONIC_BENCH == 5                               /* (0.21) SSAW at its heaviest: seven of BOTH, the sub */
+        sound_set_engine(s, ENG_SW);
+        s->p[SW_WAVE] = SWW_BOTH; s->p[SW_OSCS] = 7; s->p[SW_DETN] = 90; s->p[SW_PWM] = 60; s->p[SW_SUB] = 60;
+#elif TONIC_BENCH == 6                               /* (0.21) ENS between SAW and SQR (two waves a sample) */
+        sound_set_engine(s, ENG_EN);
+        s->p[EN_MORPH] = 106; s->p[EN_T2] = 7; s->p[EN_T3] = 12; s->p[EN_T4] = -12; s->p[EN_CHOR] = 90;
 #elif TONIC_BENCH == 3                               /* the DRUM engine: cymbals (six squares, two filters) on every pad */
         sound_set_engine(s, ENG_DR);
         { int k; for (k = 0; k < NPAD; k++) s->s[S_DM1 + k] = DM_CYMB; }

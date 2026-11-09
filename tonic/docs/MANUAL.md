@@ -15,7 +15,7 @@ TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the origi
 5. The screen
 6. Playing the keys
 7. Making a sound
-8. SYN1 and SYN2: the FM, VA and DRUM engines
+8. SYN1 and SYN2: the FM, VA, DRUM, BRAIDS, SSAW and ENS engines
 9. FLTR and AMP: filters, envelope, LO-FI
 10. LFO1 and LFO2
 11. Sequencing: grid recording
@@ -80,7 +80,7 @@ python3 base/tools/fm1_install.py tonic-0.16.fwsc
 | **Project** | Everything: 32 patterns, a 16-sound pool, a 32-sound user library, the global settings. One project lives on the FM-1. |
 | **Pattern** | A01–A16 and B01–B16. A pattern holds four tracks, their four sounds, the trigs and locks, tempo, swing, lengths, the effect settings and the mixer. |
 | **Track** | T1–T4. Each plays one sound (or is a MIDI track for an external instrument). The tracks share 12 voices. |
-| **Sound** | One patch, FM or VA (its ENGINE): the SYN1, SYN2, FLTR, AMP and LFO pages and the sound's setup (key scaling, play mode, portamento, modulation routing, arpeggiator). |
+| **Sound** | One patch, FM, VA, DRUM, BRAIDS, SSAW or ENS (its ENGINE): the SYN1, SYN2, FLTR, AMP and LFO pages and the sound's setup (key scaling, play mode, portamento, modulation routing, arpeggiator). |
 | **Trig** | A step with a note (a *note trig*), or with locks only (a *lock trig*). A note trig can hold a chord of up to 4 notes. |
 | **Parameter lock** | A value that one trig plays instead of the track's. Almost every sound, trig and FX parameter can be locked. |
 | **Sound lock** | A trig that plays a sound from the pool instead of the track's own. |
@@ -101,7 +101,7 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 | **PRESETS** knob | The track's sound: a list (factory sounds, then the user library; SCL: by group), OCT+ loads. On HOME: the pattern. With a step held: a sound lock. In step recording: the active step. On SAVE: the slot. |
 | **MASTER** | The output volume. |
 | **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID (with EUC ACC), and everything that is the track's own: TRACK (length, speed, transpose, quantize), VOICE, KEYS (the keyboard scale), SONG. Held: TOOLS. |
-| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; a kit: a page a pad, LEVEL, KIT; BRAIDS: its page); then the sound's SETUP (play mode, key scaling, octave) and PORTA, with every engine but the kit. Held: the preset list, playing each sound as you move. |
+| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; a kit: a page a pad, LEVEL, KIT; BRAIDS, SSAW, ENS: their page); then the sound's SETUP (play mode, key scaling, octave) and PORTA, with every engine but the kit. Held: the preset list, playing each sound as you move. |
 | **ENV** | FLTR, FLTR 2, AMP, AMP 2, LOFI, INSRT. Held + a knob: all four tracks. |
 | **LFO** | LFO1, LFO2, MENV, then the modulation pages (VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND). Held + a knob: all four tracks. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER, DUCK, PUMP, COMP. Held: PERFORM. |
@@ -125,17 +125,17 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 TONIC draws the Digitone's screen layout at the LCD's full resolution and in colour.
 
 - **Header:** the pattern, then a bar in the active track's colour with its sound and the row number.
-- **Tabs:** under the header, the name of the page shown in a box, and at the right which row of the button's it is (for example 3/11). (0.20: only the page shown, the screen is quieter.)
+- **Tabs:** under the header, the pages of the button you pressed (for example SYN1 · SYN1 2 · SYN2 · SYN2 2); the page shown is highlighted. When there are too many for one line, < and > show that more are there.
 - **Left column:** meters for T1–T4 in their colours and the master (M: green, yellow, red near full scale). The active track's number is highlighted.
-- **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **values in filled boxes** (0.20: the boxes, not the names, are lit, so the eye goes to the value). A locked value has a box in the ink colour (in the edited row) or an accent frame (in the other row).
+- **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **value boxes framed in the accent colour** (0.21: a double frame, not filled; the other row's frames dim). A locked value is written in the accent colour.
 - **Moving pictures:**
   - A dot runs along the envelopes (operator A and B, filter, amp) where the track's sound is now.
-  - A dot runs along the LFO wave at its phase.
+  - (0.21) The LFO rows are pictures, as the envelopes are: the first row draws a bar of the LFO (as many cycles as SPD × MULT make in a bar, FADE as its outline growing or shrinking), the second one cycle of the wave from SPH, as tall as DEP (dotted at full height to show its shape), with a dot where the sound's LFO is and the MODE at the corner. Turn a knob of the row and its values come back for a moment.
   - The filter row shows the filter's curve. It follows the cutoff as the filter envelope moves it; the set cutoff is dotted.
   - On SYN1 the algorithm's lines grow thicker with the modulation (LEV × envelope).
-- **Bottom band:** the 16 steps in the track's colour (the playhead moves along them), the step pages, the tracks in their colours and the tempo.
+- **Bottom band:** the 16 steps in the track's colour (the playhead moves along them) and the step pages; under them a held step's notes, the LFO's value or the arpeggiator's steps; at the very bottom (0.21) only the active track (its colour, struck through when muted), the transport and the tempo.
 - **Mode line:** what the keys do now (KEYS, GRID, PERFORM …). Since 0.20 without hint lines; the step page dots show only when the track is longer than 16 steps.
-- **CPU figure** (HOME, top right): how much of its time the sound takes. **CPU2** (TONIC 0.16): the FM-1's second core renders part of the voices, the same sound with about a third less load. If the second core ever fails to answer, TONIC goes on with one core (the figure then reads CPU); after a crash on it, it stays on one core until the FM-1 is switched off and on. **XR** counts the audio blocks that came too late.
+- **CPU figure** (HOME, top right): how much of its time the sound takes. **CPU2** (TONIC 0.16): the FM-1's second core renders part of the voices, the same sound with about a third less load. If the second core ever fails to answer, TONIC goes on with one core (the figure then reads CPU); after a crash on it, it stays on one core until the FM-1 is switched off and on. **XR** counts the audio blocks that came too late. Under too much load (0.21, after Hortator's plans) TONIC first runs the insert effects at the base rate for three seconds (as INSHQ OFF), and only drops the oldest voice if that is not enough. With nothing sent to chorus, delay or reverb and their tails died away, they rest and cost nothing (about 4 points less CPU when stopped).
 - **Colours:** the MENU (HOME held) > THEME. Since 0.19 after Hortator's (and the Machinedrum's) two-colour screens: each colour as the ground, then its inverse (**INV**: the colour on black or white): **RED**, **R INV**, **BLUE**, **B INV**, **GREEN**, **G INV**, **AMBER**, **A INV**; and TONIC's own **OLED** (white on black, the tracks in four colours, the default) and **PAPER** (dark on light, the tracks in colours). The two-colour themes draw the tracks in the ink, as the Machinedrum does. A theme chosen before 0.19 keeps its look (AMBER is now A INV, PHOSPHOR G INV). The theme is kept with the device's settings.
 
 ![A page in the PAPER theme](img/theme_paper.png "MENU > THEME: PAPER")
@@ -173,7 +173,7 @@ Holding a page button gives two shortcuts:
 
 ![The SYN1 page with the algorithm diagram](img/syn1.png "EDIT > SYN1: ALGO, ratios C, A, B; the algorithm drawn on the left")
 
-## 8. SYN1 and SYN2: the FM, VA and DRUM engines
+## 8. SYN1 and SYN2: the FM, VA, DRUM, BRAIDS, SSAW and ENS engines
 
 TONIC's engine has four sine operators named as on the Digitone: **C** (carrier), **A**, **B1** and **B2**. The algorithm decides who modulates whom. Each algorithm has two outputs, **X** and **Y**, and MIX fades between them.
 
@@ -223,7 +223,7 @@ Envelope **A** drives operator A. Envelope **B** drives B1 and B2. On the screen
 
 ### The VA engine
 
-A sound's **ENGINE** (EDIT, SYN2 2, K4) is **FM** or **VA**. With VA, two oscillators, a sub-oscillator and noise replace the four operators. Everything after them is the same as for FM: overdrive, LO-FI, the filters, the amp, the LFOs and the effects.
+A sound's **ENGINE** (EDIT, SYN2 2, K4) is **FM**, **VA**, **DRUM**, **BRDS**, **SSAW** or **ENS**. With VA, two oscillators, a sub-oscillator and noise replace the four operators. Everything after them is the same as for FM: overdrive, LO-FI, the filters, the amp, the LFOs and the effects.
 
 Switching ENGINE sets the SYN pages to that engine's defaults. The FLTR, AMP and LFO settings stay, and undo takes a switch back. The pages are titled OSC, OSC 2, ENV and ENV 2, and the left column shows the two waves, the sub and the noise.
 
@@ -365,7 +365,7 @@ Live and step recording record the pads you play.
 
 ENGINE **BRDS** turns the sound into **Braids**, the macro oscillator Emilie Gillet designed for Mutable Instruments (its code, under the MIT licence, runs in TONIC). Each of its 47 models is a whole synthesis technique; two knobs shape it, as on the module.
 
-![The BRAIDS page](img/braids.png "EDIT under BRAIDS: MODL TIMB COLR TUNE / SYNC SIGN SUB; the model, TIMBRE and COLOR on the left")
+![The BRAIDS page](img/braids.png "EDIT under BRAIDS: MODL TIMB COLR TUNE; the model, TIMBRE and COLOR on the left")
 
 | Param | Range | What it does |
 | --- | --- | --- |
@@ -373,9 +373,8 @@ ENGINE **BRDS** turns the sound into **Braids**, the macro oscillator Emilie Gil
 | TIMB | 0–127 | TIMBRE: the model's first control. |
 | COLR | 0–127 | COLOR: its second. |
 | TUNE | ±24 semitones, quarter steps | The sound's tuning. |
-| SYNC | OFF, up to 48 semitones (0.15) | Hard sync: Braids plays this much higher and a master at the note resets it, so the pitch stays and the overtones climb. Sweep it with an LFO or MENV for the classic sync scream. It works on the models that take Braids' sync input (the analog-style ones: CSAW, MRPH, SAWSQ, SYNSQ, SAWx3 …). |
-| SIGN | 0–127 (0.15) | Braids' signature waveshaper: a fixed curve of soft saturation, skew and small bumps, mixed in. Low: a little warmer, more analog; high: driven, asymmetric. |
-| SUB | 0–127 (0.15) | A sine an octave below the note, mixed in: weight under thin models (VOSIM, ZLPF, BELL …). |
+
+The second row has only ENGINE (K4). (0.21: SYNC, SIGN and SUB of 0.15 are gone; a sound made with them plays without.)
 
 | Family | Models |
 | --- | --- |
@@ -387,11 +386,47 @@ ENGINE **BRDS** turns the sound into **Braids**, the macro oscillator Emilie Gil
 
 - Every note strikes the model anew (PLUCK, BELL, DRUM … are excited by each note).
 - Everything after the oscillator is TONIC's as for the other engines: overdrive, LO-FI, the filters and their envelope, the insert effect, the amp, the LFOs, MENV, the sends.
-- All seven can be locked per step and are LFO and modulation destinations (**MODEL**, **TIMB**, **COLOR**, **TUNE**, **SYNC**, **SIGN**, **SUB**): an LFO on MODEL walks through the models.
+- All four can be locked per step and are LFO and modulation destinations (**MODEL**, **TIMB**, **COLOR**, **TUNE**): an LFO on MODEL walks through the models.
 - **COMB, PLUCK, BOWED, BLOWN and FLUTE** need a delay buffer. There are two for all voices: a third such note takes the oldest one's, and that note stays quiet until it is played again (0.17: before, the notes took the buffers from each other every few milliseconds and could all go silent).
 - Braids runs at 96 kHz on the module, here at 44.1 kHz with its pitch corrected: in tune, and since 0.17 its formants too (VOWL, VFOF, VOSIM and the random period of the noise models sat about 13 semitones low before). The models' own decays (KICK, BELL, PLUCK …) are still about twice as long; turn TIMB or COLR, or shorten with the AMP envelope.
 - Since 0.17 BRAIDS is 6 dB quieter than before, as loud as FM and VA: raise VOL on sounds made with 0.14–0.16 if they now sit too low. The factory group BRAIDS has ten sounds to start from.
 - Braids' code runs from the flash, not the RAM: many heavy BRAIDS voices at once cost more CPU than the other engines (since 0.16 both cores share them).
+
+### The SSAW engine (TONIC 0.21)
+
+ENGINE **SSAW** is a supersaw after the Roland JP-8000's: up to seven saws (or pulses, or both) around the note, the middle one at the note, the others detuned by the JP-8000's own spread (as measured by Adam Szabo). It is the trance lead and the big pad in one engine, and with PULS a "superpulse".
+
+![The SSAW page](img/ssaw_page.png "EDIT under SSAW: WAVE OSCS DETN MIX / PW PWM SUB; the oscillators fanned out on the left")
+
+| Param | Range | What it does |
+| --- | --- | --- |
+| WAVE | SAW, PULS, BOTH | The oscillators' wave: saws, pulses, or a saw and a pulse each. |
+| OSCS | 1–7 | How many: the middle one first, then pairs outward. |
+| DETN | 0–127 | The detune: slight at first, up to about ±2 semitones at the top, as on the JP-8000. |
+| MIX | 0–127 | The side oscillators against the middle one (the sum stays about as loud). |
+| PW | 0–120 | The pulses' width (0: square). |
+| PWM | 0–127 | Each pulse's width moving slowly, every oscillator a seventh of a turn apart: the pulses shimmer. |
+| SUB | 0–127 | A square an octave below the middle one. |
+
+- The oscillators run free from note to note, each from a phase of its own, so a note never starts as one loud saw.
+- All seven are lock and LFO / modulation destinations (WAVE, OSCS, DETN, MIX, PW, PWM, SUB).
+- Seven oscillators a voice cost about as much CPU as an FM voice; BOTH costs twice as much. The factory group **SSAW** has six sounds.
+
+### The ENS engine (TONIC 0.21)
+
+ENGINE **ENS** is four oscillators, each tuned in semitones, all with one wave that morphs from sine through triangle and saw to square, and a chorus that spreads and moves them: unison, octaves, fifths and whole chords from one key.
+
+![The ENS page](img/ens_page.png "EDIT under ENS: TUN1..TUN4 / MRPH CHOR RATE; the tunings as dots, the morphed wave under them")
+
+| Param | Range | What it does |
+| --- | --- | --- |
+| TUN1–TUN4 | ±24 semitones | Each oscillator's tuning (0 0 0 0: unison; 0 12 7 −12: an organ; 0 4 7 11: a maj7 chord on every key). |
+| MRPH | 0–127 | The wave: SIN at 0, TRI at 42, SAW at 85, SQR at 127, blended in between. |
+| CHOR | 0–127 | The chorus: the four spread up to ±9 cents and each moved by up to 12 cents by its own slow LFO, a quarter turn apart. |
+| RATE | 0–127 | The chorus' speed, 0.1 to 6 Hz. |
+
+- All seven are lock and LFO / modulation destinations (TUN1–TUN4, MRPH, CHOR, RATE): an LFO on MRPH sweeps the wave.
+- The factory group **ENS** has six sounds.
 
 ## 9. FLTR and AMP: filters, envelope, LO-FI
 
@@ -980,7 +1015,9 @@ TONIC's factory sounds are its own (not Elektron's). PRESETS steps through them,
 | Textures | NOISE SWEEP, VOX, FB GROWL, HARM SWEEP |
 | VA engine | VA BASS, VA ACID, VA SYNC LD, VA SUPERSAW, VA PAD, VA BRASS, VA PLUCK, VA ZAP, VA KICK, VA HAT, VA FAT BASS, VA SQR BASS, VA WOBBLE, VA STRINGS, VA PWM PAD, VA SQR LEAD, VA STAB, VA CHIP ARP, VA SNARE, VA TOM, VA BELL, VA HOOVER, VA FOLD BAS (wavefolder), VA RING BEL (ring modulation), VA CHORD AR (a chord arpeggio) |
 | DRUM kits | 808 KIT, 909 KIT, FM KIT, ELECTRO KIT, TECHNO KIT, LOFI KIT, PERC KIT, TRAP KIT, MODERN KIT, HARD KIT, DEEP KIT |
-| BRAIDS (0.17) | BR SWARM, BR SYNC LD, BR PLUCK, BR BELL, BR VOWEL, BR WTBL PAD, BR FM BASS, BR KICK, BR CLOUD, BR TOY |
+| SSAW (0.21) | SS TRANCE, SS HOOVER, SS PULSE, SS PAD, SS BASS, SS STAB |
+| ENS (0.21) | EN UNISON, EN ORGAN, EN FIFTHS, EN MAJ7 PAD, EN SQR BASS, EN GLASS |
+| BRAIDS (0.17) | BR SWARM, BR SAW LEAD, BR PLUCK, BR BELL, BR VOWEL, BR WTBL PAD, BR FM BASS, BR KICK, BR CLOUD, BR TOY |
 | Start | INIT |
 
 **The demo project** (SAVE > LOAD DEMO PROJECT) has four patterns, A01–A04, and a sound pool. Take them apart: hold a step to see its locks.

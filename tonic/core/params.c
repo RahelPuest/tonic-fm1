@@ -244,16 +244,30 @@ static const pdesc_t VA_FOLD = P("FOLD", F_INT, 1, 0, 63, 0), VA_RING = P("RING"
 /* (0.14) the BRAIDS engine's SYN page: MODEL, TIMBRE, COLOR (the module's two knobs), TUNE, in FM places whose ranges
  * hold them (P_RATB 0..360, P_ALEV / P_BLEV 0..127, P_HARM +-104), so the patterns keep them as they are */
 static const pdesc_t BR_MODEL = PL("MODL", L_BRM, 46, 0), BR_TIMB = P("TIMB", F_INT, 1, 0, 127, 64),
-                     BR_COLOR = P("COLR", F_INT, 1, 0, 127, 64), BR_TUNE = P("TUNE", F_X4, 4, -96, 96, 0),
-                     /* (0.15) SYNC: Braids up to 48 semitones over a master at the note that resets it (0 off); SIGN:
-                      * Braids' signature waveshaper mixed in; SUB: a sine an octave below (P_DTUN, P_FDBK, P_OFSC) */
-                     BR_SYNC = P("SYNC", F_X4, 4, 0, 192, 0), BR_SIGN = P("SIGN", F_INT, 1, 0, 127, 0),
-                     BR_SUB = P("SUB", F_INT, 1, 0, 127, 0);
+                     BR_COLOR = P("COLR", F_INT, 1, 0, 127, 64), BR_TUNE = P("TUNE", F_X4, 4, -96, 96, 0);
+                     /* (0.21: 0.15's SYNC, SIGN and SUB gone) */
+/* (0.21) SSAW and ENS (core/tonic.h SW_*, EN_*); their other SYN places unused */
+static const char *const L_SWW[] = {"SAW", "PULS", "BOTH"};
+static const pdesc_t SW_D_WAVE = PL("WAVE", L_SWW, 2, SWW_SAW), SW_D_OSCS = P("OSCS", F_INT, 1, 1, 7, 7),
+                     SW_D_DETN = P("DETN", F_INT, 1, 0, 127, 50), SW_D_MIX = P("MIX", F_INT, 1, 0, 127, 90),
+                     SW_D_PW = P("PW", F_X4, 4, 0, 480, 0), SW_D_PWM = P("PWM", F_INT, 1, 0, 127, 0),
+                     SW_D_SUB = P("SUB", F_INT, 1, 0, 127, 0);
+static const pdesc_t EN_D_T1 = P("TUN1", F_BIP, 1, -24, 24, 0), EN_D_T2 = P("TUN2", F_BIP, 1, -24, 24, 0),
+                     EN_D_T3 = P("TUN3", F_BIP, 1, -24, 24, 0), EN_D_T4 = P("TUN4", F_BIP, 1, -24, 24, 0),
+                     EN_D_MORPH = P("MRPH", F_INT, 1, 0, 127, 64), EN_D_CHOR = P("CHOR", F_INT, 1, 0, 127, 60),
+                     EN_D_RATE = P("RATE", F_INT, 1, 0, 127, 40);
 const pdesc_t *param_desc(int engine, int p)
 {
+    if (engine == ENG_SW && p >= 0 && p <= P_BRST)
+        return p == SW_WAVE ? &SW_D_WAVE : p == SW_OSCS ? &SW_D_OSCS : p == SW_DETN ? &SW_D_DETN : p == SW_MIX ? &SW_D_MIX :
+               p == SW_PW ? &SW_D_PW : p == SW_PWM ? &SW_D_PWM : p == SW_SUB ? &SW_D_SUB :
+               PDESC[p].q == 4 ? &DR_NONE4 : &DR_NONE;
+    if (engine == ENG_EN && p >= 0 && p <= P_BRST)
+        return p == EN_T1 ? &EN_D_T1 : p == EN_T2 ? &EN_D_T2 : p == EN_T3 ? &EN_D_T3 : p == EN_T4 ? &EN_D_T4 :
+               p == EN_MORPH ? &EN_D_MORPH : p == EN_CHOR ? &EN_D_CHOR : p == EN_RATE ? &EN_D_RATE :
+               PDESC[p].q == 4 ? &DR_NONE4 : &DR_NONE;
     if (engine == ENG_BR && p >= 0 && p <= P_BRST)
         return p == P_RATB ? &BR_MODEL : p == P_ALEV ? &BR_TIMB : p == P_BLEV ? &BR_COLOR : p == P_HARM ? &BR_TUNE :
-               p == P_DTUN ? &BR_SYNC : p == P_FDBK ? &BR_SIGN : p == P_OFSC ? &BR_SUB :
                PDESC[p].q == 4 ? &DR_NONE4 : &DR_NONE;
     if (engine == ENG_VA && p >= 0 && p <= P_PHRT && VADESC[p].name[0])
         return &VADESC[p];

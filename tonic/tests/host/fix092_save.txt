@@ -170,12 +170,12 @@ tap EDIT
 wait 30
 spin PRESET 1
 wait 50
-expect plisti 85
+expect plisti 97
 spin PRESET 8
 wait 50
 spin PRESET 1
 wait 50
-expect plisti 117
+expect plisti 129
 tap OCT+
 wait 50
 expect engine 1

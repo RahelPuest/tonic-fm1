@@ -134,7 +134,7 @@ static const row_t R_VA[] = {
 static const char T_BRAID[] = "BRAIDS";
 static const row_t R_BR[] = {
     {T_BRAID, {S_(P_RATB), S_(P_ALEV), S_(P_BLEV), S_(P_HARM)}},
-    {T_BRAID, {S_(P_DTUN), S_(P_FDBK), S_(P_OFSC), ST(S_ENGINE)}},   /* (0.15) SYNC SIGN SUB */
+    {T_BRAID, {NO, NO, NO, ST(S_ENGINE)}},     /* (0.21: SYNC SIGN SUB gone; K4 the engine, as on every engine) */
     {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},   /* (0.20: the sound's own, on EDIT) */
     {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
     {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},           /* (0.20: with the engine) */
@@ -142,6 +142,24 @@ static const row_t R_BR[] = {
 };
 #define NBR_ROWS 6
 #define BR_ENGINE_ROW 1
+/* (0.21) SSAW and ENS: two rows each, K4 of the second the engine (as BRAIDS'), then SETUP and PORTA */
+static const char T_SSAW[] = "SSAW", T_ENS[] = "ENS";
+static const row_t R_SW[] = {
+    {T_SSAW, {S_(SW_WAVE), S_(SW_OSCS), S_(SW_DETN), S_(SW_MIX)}},
+    {T_SSAW, {S_(SW_PW), S_(SW_PWM), S_(SW_SUB), ST(S_ENGINE)}},
+    {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},
+    {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
+    {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},
+    {"PORTA", {ST(S_PGATE), NO, NO, NO}},
+};
+static const row_t R_EN[] = {
+    {T_ENS, {S_(EN_T1), S_(EN_T2), S_(EN_T3), S_(EN_T4)}},
+    {T_ENS, {S_(EN_MORPH), S_(EN_CHOR), S_(EN_RATE), ST(S_ENGINE)}},
+    {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},
+    {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
+    {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},
+    {"PORTA", {ST(S_PGATE), NO, NO, NO}},
+};
 #define DRM_ENGINE_ROW 18
 static const row_t R_ENV[] = {
     {"FLTR", {S_(P_FATK), S_(P_FDEC), S_(P_FSUS), S_(P_FREL)}},
@@ -219,12 +237,14 @@ static const row_t *grp_rows(int g)
 {
     if (g == G_TRIG && drum_trk()) return R_TRIG_DR;
     if (g == G_SYN && br_trk()) return R_BR;
+    if (g == G_SYN && tsnd()->s[S_ENGINE] == ENG_SW) return R_SW;
+    if (g == G_SYN && tsnd()->s[S_ENGINE] == ENG_EN) return R_EN;
     return g == G_SYN && drum_trk() ? R_DRM : g == G_SYN && va_trk() ? R_VA : GROUP[g].rows;
 }
 static int grp_n(int g)
 {
     if (g == G_TRIG && drum_trk()) return sizeof R_TRIG_DR / sizeof R_TRIG_DR[0];
-    if (g == G_SYN && br_trk()) return NBR_ROWS;
+    if (g == G_SYN && (br_trk() || tsnd()->s[S_ENGINE] == ENG_SW || tsnd()->s[S_ENGINE] == ENG_EN)) return NBR_ROWS;
     return g == G_SYN && drum_trk() ? NDRM_ROWS : g == G_SYN && va_trk() ? NVA_ROWS : GROUP[g].n;
 }
 static int is_roll(const row_t *r) { return r && r->it[0].kind == IK_VIEW; }   /* SEQ's piano roll row */
@@ -246,7 +266,8 @@ static const char *row_title(const row_t *r)
 
 /* ------------------------------------------------------------------- the lists --- */
 static const char *const L_OFFON[] = {"OFF", "ON"};
-static const char *const L_ENGINE[NENG] = {"FM", "VA", "DRUM", "BRDS"};   /* (BRDS: Braids, 0.14) */
+static const char *const L_ENGINE[NENG] = {"FM", "VA", "DRUM", "BRDS", "SSAW", "ENS"};   /* (BRDS: Braids, 0.14;
+                                                                                    * 0.21 SSAW, ENS) */
 /* (0.9.1: list values short enough for a knob's box, at most 5 characters) */
 static const char *const L_ACH[NACH] = {"OFF", "MAJ", "MIN", "SUS2", "SUS4", "7TH", "MAJ7", "MIN7", "DIM", "AUG", "POWER",
                                         "OCT", "SCL3", "SCL4", "6TH", "MIN6", "ADD9", "MAJ9", "MIN9",
@@ -480,9 +501,28 @@ static const char *long_name(const item_t *it)
             case P_ALEV: return "BRAIDS TIMBRE";
             case P_BLEV: return "BRAIDS COLOR";
             case P_HARM: return "BRAIDS TUNE";
-            case P_DTUN: return "BRAIDS HARD SYNC";
-            case P_FDBK: return "SIGNATURE SHAPER";
-            case P_OFSC: return "SUB OSCILLATOR";
+            default: break;
+            }
+        if (eng == ENG_SW)                           /* (0.21) */
+            switch (it->id) {
+            case SW_WAVE: return "SUPERSAW WAVE";
+            case SW_OSCS: return "OSCILLATORS";
+            case SW_DETN: return "SUPERSAW DETUNE";
+            case SW_MIX: return "SIDE OSC MIX";
+            case SW_PW: return "PULSE WIDTH";
+            case SW_PWM: return "PULSE WIDTH MOD";
+            case SW_SUB: return "SUB OSCILLATOR";
+            default: break;
+            }
+        if (eng == ENG_EN)
+            switch (it->id) {
+            case EN_T1: return "OSC 1 TUNE";
+            case EN_T2: return "OSC 2 TUNE";
+            case EN_T3: return "OSC 3 TUNE";
+            case EN_T4: return "OSC 4 TUNE";
+            case EN_MORPH: return "WAVE MORPH";
+            case EN_CHOR: return "CHORUS DEPTH";
+            case EN_RATE: return "CHORUS RATE";
             default: break;
             }
         if (eng == ENG_VA)

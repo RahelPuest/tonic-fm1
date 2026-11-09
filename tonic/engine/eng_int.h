@@ -152,15 +152,22 @@ typedef struct {
             float dr_xa, dr_xb, dr_xr, dr_xc;   /* (0.12) the pad's CTL A / B as the model uses them: factors (1
                                                  * at 0), a ratio's factor, the kick's click added */
         };
+        struct {                  /* SSAW [TONIC 0.21]: the oscillators (the middle one, 3, the note), their phases,
+                                   * increments and pulse widths, the middle's and the others' level, the sub (a square
+                                   * an octave under the middle), PWM's slow turn */
+            uint8_t sw_n, sw_w;
+            float sw_ph[7], sw_inc[7], sw_pwk[7];
+            float sw_gc, sw_gs, sw_gsub, sw_sph, sw_pwl;
+        };
+        struct {                  /* ENS [TONIC 0.21]: the four oscillators' phases and increments, MORPH (0..3), the
+                                   * level, the chorus' LFO */
+            float en_ph[4], en_inc[4], en_mo, en_g, en_lf;
+        };
         struct {                  /* BRAIDS [TONIC 0.14]: the model, pitch (1/128 semitones at the engine's rate),
                                    * TIMBRE and COLOR (0..32767) from each control block */
             uint8_t br_model;
             int16_t br_pitch, br_timb, br_col;
-            uint8_t br_sync;              /* (0.15) SYNC on: the master's resets go in */
             uint8_t br_ask;               /* (0.17) a delay buffer asked for: at the note's start, a new model */
-            uint16_t br_sign;             /* SIGN, 0..65535 */
-            uint32_t br_mph, br_minc;     /* the master at the note (2^-32 cycles) */
-            float br_sph, br_sinc, br_sub;   /* SUB: its phase, increment (cycles), level */
         };
     };
     float amp_now, amp_tgt;       /* amp: envelope x level, interpolated */
@@ -271,5 +278,5 @@ void synth_lock(int trk, const plock_t *locks, int nlock, int lock_key);
 #define NFADE 3                    /* (0.17) faders: stolen voices fading out at once (was one: a second steal cut the first) */
 void synth_fader(voice_t *fader, const voice_t *v, int f);   /* (0.14) a stolen BRAIDS voice: fader f its own oscillator */
 #define BR_NOSLOT 0xFFu
-#define BR_AREA (27u * 1024u + 256u)      /* (0.14) the pool's room for the BRAIDS oscillators (13), two delay buffers and
-                                     * (0.15) the signature waveshaper (0.17: 27.1 KB of it, an oscillator for each of the three faders) */
+#define BR_AREA (27u * 1024u - 256u)      /* (0.14) the pool's room for the BRAIDS oscillators (13: 0.17 an oscillator for
+                                     * each of the three faders) and two delay buffers (0.21: the waveshaper gone) */

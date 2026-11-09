@@ -1,0 +1,103 @@
+# 0.21: SSAW and ENS: ENGINE on the SYN page's K4 (FM > ... > SSAW > ENS), their pages, notes sound; the factory
+# sounds SS TRANCE (85) and EN MAJ7 PAD (94); the LFO rows as pictures; back to FM
+wait 1500
+spin PRESET 16
+wait 100
+expect pattern 16
+sound 97
+wait 50
+tap EDIT
+wait 30
+spin SELECT 6
+wait 30
+expect row 6
+spin K4 1
+wait 300
+spin K4 1
+wait 300
+spin K4 1
+wait 300
+spin K4 1
+wait 300
+expect engine 4
+expect row 1
+spin SELECT -1
+wait 30
+expect row 0
+expect p0 0
+expect p1 7
+expect p15 50
+expect p19 90
+key w0 down
+wait 300
+expect voices 1
+key w0 up
+wait 1500
+shot ssaw_page.png
+spin K1 1
+wait 30
+expect p0 1
+spin K2 -4
+wait 30
+expect p1 3
+spin SELECT 1
+wait 30
+spin K4 1
+wait 300
+expect engine 5
+expect row 1
+spin SELECT -1
+wait 30
+expect p9 0
+spin K2 7
+wait 30
+expect p9 7
+spin K3 12
+wait 30
+expect p10 12
+key w0 down
+wait 300
+expect voices 1
+key w0 up
+wait 1500
+shot ens_page.png
+spin SELECT 1
+wait 30
+expect p15 64
+spin K1 63
+wait 30
+expect p15 127
+# the factory sounds
+sound 85
+wait 50
+expect engine 4
+tap PLAY
+wait 200
+key w0 down
+key w4 down
+wait 600
+expect voices 2
+key w0 up
+key w4 up
+wait 400
+tap EDIT
+wait 30
+spin SELECT -1
+wait 1000
+shot ss_trance.png
+sound 94
+wait 50
+expect engine 5
+key w0 down
+wait 800
+expect voices 1
+key w0 up
+wait 300
+tap LFO
+wait 30
+expect row 0
+wait 1200
+shot lfo_pic.png
+tap PLAY
+wait 9000
+expect voices 0

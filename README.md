@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.20" src="https://img.shields.io/badge/version-0.20-orange">
+  <img alt="Version 0.21" src="https://img.shields.io/badge/version-0.21-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -36,7 +36,7 @@ FM-1's flash.
 
 ### Sound
 
-- **Four engines, chosen per sound:**
+- **Six engines, chosen per sound:**
   - **FM:** four operators, the Digitone's eight algorithms, HARM, operator envelopes, feedback.
   - **Virtual analog:** two oscillators with sync, cross-modulation, sub, noise, drift, a wavefolder and ring
     modulation.
@@ -44,8 +44,10 @@ FM-1's flash.
     cymbals, FM hats …). Each pad has its own tune, decay, tone, level and pan, plus two controls named by its model
     (BEND / TICK, SNAP / BODY, NOIS / RESO …).
   - **BRAIDS:** Mutable Instruments' macro oscillator with all 47 of its models (analog-style, digital filters,
-    vowels, FM, physical models, wavetables, noise), TIMBRE and COLOR, plus hard SYNC, Braids' signature
-    waveshaper and a sub oscillator, through TONIC's filters and effects.
+    vowels, FM, physical models, wavetables, noise), TIMBRE and COLOR, through TONIC's filters and effects.
+  - **SSAW** (0.21): a JP-8000-style supersaw, up to seven saws, pulses or both, with detune, mix, PWM and a sub.
+  - **ENS** (0.21): four oscillators each tuned in semitones, one wave morphing sine > triangle > saw > square, and
+    a chorus that spreads and moves them.
 - **Held buttons** (0.18, after Hortator's way of playing the FM-1): a tap as ever, held a screen of its own: FX PERFORM
   (live effects on the black keys, filter / duck / throw / drive on the knobs), SAVE the patterns, GLO mute and solo,
   SEQ step tools, EDIT a preset list that plays as you browse, HOME a settings menu, REC a fill.
@@ -55,6 +57,9 @@ FM-1's flash.
   voices, keys, song) on SEQ, SETUP and portamento with the engine on EDIT; a quieter screen with the edited values
   boxed and the full parameter name on every turn; a MENU for the screen and the knobs (pop-up, acceleration, PERFORM
   as a page).
+- **Clearer screen** (0.21): the page tabs back, the edited values framed, the LFOs drawn as pictures like the
+  envelopes, only the active track and the tempo at the bottom. The effects rest when nothing is sent to them, and an
+  overload first lowers the inserts' rate before a voice goes (both ideas from Hortator).
 - **Twelve voices**, shared by the four tracks, with unison, reserved voices and four voice-stealing modes.
 - **Both CPU cores** (0.16, 0.17): the FM-1's second core renders part of the voices and their control step, and
   runs the effects of each block while the first core prepares the next; sample for sample the same sound.
@@ -97,7 +102,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.20.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.21.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.
