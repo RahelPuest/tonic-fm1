@@ -1936,6 +1936,7 @@ static void en_block(voice_t *v, float *x)           /* (from the flash: the RAM
  * a core each */
 #define HB_N 4                    /* its side taps (15 taps in all) */
 #define HB_D (2 * HB_N - 1)       /* its delay at the base rate, both halfbands together */
+typedef char hb_d_check[HB_D == ENG_HB_D ? 1 : -1];   /* (0.26) the voice's lines (eng_int.h) that long */
 static float HB[HB_N] = {0.300794105f, -0.062709914f, 0.012712380f, -0.000676007f};
 static float ins_scr[2][HB_D + CR + 2 * HB_D + 2 * CR];
 /* (apart: voice_block's own frame and registers stay as the other engines need them) */

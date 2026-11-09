@@ -50,6 +50,7 @@ extern const uint8_t DEST_PARAM[ND];      /* the parameter a destination moves (
 const char *dest_name(int engine, int d);  /* a destination's name as the engine shows it */
 
 /* ------------------------------------------------------------------------- voices --- */
+#define ENG_HB_D 7                 /* (0.26) the insert halfbands' delay (synth.c HB_D): its voice lines that long */
 typedef struct {
     float lvl;                    /* 0..1 */
     float t;                      /* time in the stage, s */
@@ -105,8 +106,9 @@ typedef struct {
      * wet, and its state (the lowpass, a DC blocker, CRUSH's held sample and its count) */
     uint8_t in_typ, in_n, in_len;
     float in_g, in_c, in_b, in_tg, in_c2, in_mix, in_q, in_lp, in_dc, in_hold;   /* (in_c2: TONE's cache) */
-    float in_hx[15], in_hu[30], in_hd[15];   /* (0.17) the insert's 2x oversampling (room for up to 31 taps): the input, the 2x stream, the dry
-                                              * line (HB_D samples: the halfbands' delay) */
+    float in_hx[ENG_HB_D], in_hu[2 * ENG_HB_D], in_hd[ENG_HB_D];   /* (0.17) the insert's 2x oversampling: the input,
+                                              * the 2x stream, the dry line (HB_D samples: the halfbands' delay; 0.26:
+                                              * that long, no longer room for 31 taps) */
     lfo_t lfo[2];
     /* filters */
     float bw_hp, bw_lp, bw_lpp;   /* base-width one-poles' states */
@@ -282,5 +284,10 @@ void synth_lock(int trk, const plock_t *locks, int nlock, int lock_key);
 #define NFADE 3                    /* (0.17) faders: stolen voices fading out at once (was one: a second steal cut the first) */
 void synth_fader(voice_t *fader, const voice_t *v, int f);   /* (0.14) a stolen BRAIDS voice: fader f its own oscillator */
 #define BR_NOSLOT 0xFFu
-#define BR_AREA (27u * 1024u - 256u)      /* (0.14) the pool's room for the BRAIDS oscillators (13: 0.17 an oscillator for
-                                     * each of the three faders) and two delay buffers (0.21: the waveshaper gone) */
+#if defined(PLAT_HOST) || defined(__APPLE__) || defined(__EMSCRIPTEN__) || defined(__linux__) || defined(_WIN32)
+#define BR_AREA (27u * 1024u - 256u)    /* (the host's 64-bit oscillators: 15 x 688 + 2 x 8200 = 26720 B) */
+#else
+#define BR_AREA (25u * 1024u + 64u)  /* (0.14) the pool's room for the BRAIDS oscillators (13: 0.17 an oscillator for
+                                     * each of the three faders) and two delay buffers (0.21: the waveshaper gone);
+                                     * 0.26: 15 x 616 + 2 x 8200 = 25640 B used, no longer 27 KB - 256 */
+#endif

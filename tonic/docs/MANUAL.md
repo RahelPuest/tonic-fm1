@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.25.fwsc
+python3 base/tools/fm1_install.py tonic-0.26.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -101,6 +101,7 @@ python3 base/tools/fm1_install.py tonic-0.25.fwsc
 | 0.23 | PERFORM's second bank, MIDI out in time with the sound, the CPU guard (after mono2k) |
 | 0.24 | LFO without the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages |
 | 0.25 | starts on every FM-1: on some, every start crashed (pc 02017644, then safe mode) |
+| 0.26 | 3.6 KB less memory, the same sound |
 
 ## 3. The concepts
 
