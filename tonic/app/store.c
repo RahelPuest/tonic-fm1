@@ -37,7 +37,8 @@ typedef struct {
     uint8_t pchg;                 /* (0.17) the pattern change: SEQ START JUMP */
     uint8_t ins_lq;               /* (0.17) GLO > SYSTEM > INSHQ OFF: the inserts at the base rate */
     uint8_t mute_bar;             /* (0.18) the MUTE screen's mutes at the next bar */
-    uint8_t rsv[24];
+    uint8_t no_zoom, no_accel, perf_page;   /* (0.20) MENU: no value pop-up, no knob acceleration, PERFORM stays */
+    uint8_t rsv[21];
 } settings_t;
 static settings_t set;
 
@@ -561,6 +562,9 @@ static void store_boot(void)
         if (set.pchg > 2) set.pchg = 0;
         set.ins_lq = set.ins_lq ? 1 : 0;
         set.mute_bar = set.mute_bar ? 1 : 0;
+        set.no_zoom = set.no_zoom ? 1 : 0;
+        set.no_accel = set.no_accel ? 1 : 0;
+        set.perf_page = set.perf_page ? 1 : 0;
     }
     bank_load(OBJ_POOL, pool, 16);
     bank_load(OBJ_LIB0, lib, 16);

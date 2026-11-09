@@ -1,10 +1,10 @@
-# SONG: A01 twice, then A02 once, END STOP
+# SONG (0.20: on SEQ): A01 twice, then A02 once, END STOP
 wait 1500
-tap GLO
+tap SEQ
 wait 30
-spin SELECT 20
+spin SELECT 11
 wait 30
-expect row 20
+expect row 11
 spin K2 0
 spin K3 1
 wait 30
@@ -12,7 +12,7 @@ spin K1 1
 wait 30
 spin K2 1
 wait 30
-expect row 20
+expect row 11
 spin SELECT 1
 wait 30
 spin K1 1

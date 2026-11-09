@@ -37,11 +37,11 @@ key w11 up
 key w12 up
 wait 3000
 expect voices 0
-tap GLO
+tap SEQ
 wait 30
-spin SELECT 4
+spin SELECT 8
 wait 30
-expect row 4
+expect row 8
 spin K3 20
 wait 30
 expect tvoices 12

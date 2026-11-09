@@ -94,9 +94,8 @@ static plock_t clip_lock[NLOCK] PLAT_POOL;
 static void lock_compact_safe(void);
 static int page_held(void);
 /* (0.18) the MENU (HOME held): the settings of the device rather than the pattern */
-static const item_t MENU_IT[] = {GL(GL_TMODE_), GL(GL_MET_), GL(GL_CLKIN_), GL(GL_CLKOUT_), GL(GL_QUANT_), GL(GL_VELS_),
-                                 GL(GL_VELF_), GL(GL_MIDIIN_), GL(GL_TRKCH_), GL(GL_PCHG_), GL(GL_MUTEB_), GL(GL_INSHQ_),
-                                 GL(GL_THEME_)};
+static const item_t MENU_IT[] = {GL(GL_THEME_), GL(GL_ZOOM_), GL(GL_ACCEL_), GL(GL_PHOLD_), GL(GL_INSHQ_)};   /* (0.20:
+                                                      * the device's, as Hortator's menu; the rest on GLO) */
 #define NMENU ((int)(sizeof MENU_IT / sizeof MENU_IT[0]))
 static void control_all(const item_t *it, int v);
 static int step_held_any(void) { return ui.held != 0 || ui.steprec; }
@@ -239,6 +238,9 @@ static int item_get(const item_t *it, int *locked)
         case GL_PCHG_: return set.pchg;
         case GL_INSHQ_: return !set.ins_lq;
         case GL_MUTEB_: return set.mute_bar;
+        case GL_ZOOM_: return !set.no_zoom;
+        case GL_ACCEL_: return !set.no_accel;
+        case GL_PHOLD_: return set.perf_page;
         default: return set.midi_out[it->id - GL_MIDI0_];
         }
     case IK_MOD: {
@@ -416,6 +418,9 @@ static void item_set_raw(const item_t *it, int v)
         case GL_PCHG_: set.pchg = (uint8_t)v; set_dirty = 1; break;
         case GL_INSHQ_: set.ins_lq = (uint8_t)!v; eng.ins_lq = set.ins_lq; set_dirty = 1; break;
         case GL_MUTEB_: set.mute_bar = (uint8_t)v; set_dirty = 1; break;
+        case GL_ZOOM_: set.no_zoom = (uint8_t)!v; set_dirty = 1; break;
+        case GL_ACCEL_: set.no_accel = (uint8_t)!v; set_dirty = 1; break;
+        case GL_PHOLD_: set.perf_page = (uint8_t)v; set_dirty = 1; break;
         case GL_MTRK_:
             set.midi_only = (uint8_t)(v ? set.midi_only | 1u << ui.trk : set.midi_only & ~(1u << ui.trk));
             eng_midi_only = set.midi_only;
@@ -513,6 +518,8 @@ static void knob(int k, int d, uint32_t dt)
         ui.redraw = 1;
         return;
     }
+    if (set.no_accel)                                /* (0.20) MENU > ACCEL OFF: a detent a step */
+        dt = 1000u;
     if (r.hi - r.lo > 40) {
         if (dt < 25) step = r.q > 1 ? r.q * 2 : 4;
         else if (dt < 60) step = r.q > 1 ? r.q : 2;
@@ -1187,7 +1194,7 @@ static void hold_end(int sel)
         ui.perf_chain_n = 0;
         if (b == B_REC)
             eng.fill = 0;
-        if (b != B_HOME && ui.ov != OV_MENU)
+        if (b != B_HOME && ui.ov != OV_MENU && !(b == B_FX && set.perf_page))   /* (0.20: PERF PAGE: it stays) */
             ui.ov = OV_NONE;
         ui.redraw = 1;
         return;
@@ -1206,7 +1213,12 @@ static void hold_end(int sel)
             group_button(G_HOME, 0);
         }
         break;
-    case B_FX: group_button(G_FX, sel); break;
+    case B_FX:
+        if (ui.ov == OV_PERF)                        /* (0.20) PERF PAGE: a tap on FX closes it */
+            ui.ov = OV_NONE;
+        else
+            group_button(G_FX, sel);
+        break;
     case B_GLO: group_button(G_GLO, sel); break;
     case B_SEQ: group_button(G_TRIG, sel); break;
     case B_EDIT:
@@ -1344,6 +1356,8 @@ static void buttons(uint32_t b)
                 ui.ov = OV_NONE;
         } else if (ui.ov == OV_TOOLS) {              /* TOOLS: the step page */
             ui.spage = (uint8_t)clamp(ui.spage + d, 0, page_count() - 1);
+        } else if (ui.ov == OV_PERF && set.perf_page && d < 0 && ui.hold_btn != B_FX) {
+            ui.ov = OV_NONE;                         /* (0.20) PERF PAGE: OCT- closes it */
         } else if (ui.ov == OV_MUTE || ui.ov == OV_PERF) {
         } else if (ui.grp == G_SAVE && ui.confirm) {
             ui.confirm = 0;

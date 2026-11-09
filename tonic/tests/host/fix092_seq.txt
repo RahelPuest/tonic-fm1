@@ -72,8 +72,8 @@ expect track 1
 midi 85 3C 00
 wait 2500
 expect voices 0
-# a MONO sound over MIDI: overlapping notes released in either order
-tap GLO
+# a MONO sound over MIDI: overlapping notes released in either order (0.20: SETUP on EDIT)
+tap EDIT
 wait 30
 spin SELECT 7
 wait 30
@@ -93,9 +93,11 @@ expect voices 0
 spin K1 -2
 wait 30
 # live recording, the track's own LEN 4 (TRACK length mode): a chord within a pass stacks, the next pass replaces
-spin SELECT -5
+tap SEQ
 wait 30
-expect row 2
+spin SELECT 6
+wait 30
+expect row 6
 spin K1 -12
 wait 30
 expect len 4
@@ -137,9 +139,9 @@ wait 200
 expect ntrig 1
 expect nnote1 2
 # KEYBOARD KCHRD: step recording writes the chord; KCHRD changed while a key is held leaves nothing on
-spin SELECT 20
+spin SELECT 4
 wait 30
-expect row 22
+expect row 10
 spin K4 2
 wait 100
 press SEL
@@ -169,9 +171,9 @@ key w3 up
 wait 2500
 expect voices 0
 # SONG: 3 rows of REPT 1 (A01 A02 A03), END LOOP: each pattern plays once, then again from the top
-spin SELECT -2
+spin SELECT 1
 wait 30
-expect row 20
+expect row 11
 spin K1 1
 wait 30
 spin K2 1

@@ -302,20 +302,17 @@ static void o_tabs(const row_t *cur)
         }
         b++;
     }
-    x = a > 0 ? 5 : 0;
-    o_ink = K_DIM;
-    if (a > 0) o_ts(0, 11, "<", 1);
-    if (b < n) o_ts(OW - 4, 11, ">", 1);
-    for (i = a; i < b; i++) {
-        if (i == me) {
-            o_ink = K_ACC;
-            o_box(x, 10, w[i], 7);
-            o_ts(x + 2, 11, tt[i], 0);
-        } else {
-            o_ink = K_DIM;
-            o_ts(x + 2, 11, tt[i], 1);
-        }
-        x += w[i] + 2;
+    (void)a, (void)b, (void)x;
+    {   /* (0.20) uncluttered: the page shown alone, and where it is among the button's pages (n/m) */
+        char c[8];
+        o_ink = K_ACC;
+        o_box(0, 10, w[me], 7);
+        o_ts(2, 11, tt[me], 0);
+        tx_num(c, me + 1);
+        tx_cat(c, "/");
+        tx_num(c + tx_len(c), n);
+        o_ink = K_DIM;
+        o_ts(OW - o_ws(c) - 1, 11, c, 1);
     }
     o_ink = K_FG;
 }
@@ -705,15 +702,9 @@ static void o_slot(const item_t *it, int x, int y, int w, int active)
             n[k] = item_name(it)[k];
         n[k] = 0;
         o_fit(n, w - 1);
-        if (active) {
-            o_ink = K_ACC;
-            o_rect(x - 1, y + 19, w, 7, 1);
-            o_ts_c(x - 1, w, y + 20, n, 0);
-        } else {
-            o_ink = K_DIM;
-            o_ts_c(x - 1, w, y + 20, n, 1);
-        }
-        o_ink = lk ? K_ACC : K_FG;                   /* a locked value in the accent colour */
+        o_ink = active ? K_FG : K_DIM;               /* (0.20) the names plain: the values show the row the knobs edit */
+        o_ts_c(x - 1, w, y + 20, n, 1);
+        o_ink = active ? K_ACC : lk ? K_ACC : K_FG;  /* a locked value in the accent colour */
     }
     if (isnd && id == P_ALGO && tsnd()->s[S_ENGINE] == ENG_FM) {   /* ALGO: the big number */
         char d[2] = {(char)('1' + val), 0};
@@ -741,9 +732,16 @@ static void o_slot(const item_t *it, int x, int y, int w, int active)
     if (it->kind == IK_SET && id >= S_DM1 && id <= S_DM8)   /* a kit's model: its flavour (the name has the rest) */
         tx_cpy(v, DM_VAR[val % NDM]);
     o_fit(v, w - 4);
-    if (lk) {
+    if (active) {                                    /* (0.20) the row the knobs edit: its values filled (accent; a
+                                                      * locked one in the ink) */
+        if (lk)
+            o_ink = K_FG;
         o_box(x, y + 2, w - 2, 11);
         o_ts_c(x, w - 2, y + 5, v, 0);
+        o_ink = K_ACC;
+    } else if (lk) {                                 /* the other row: a locked value framed in the accent */
+        o_frame(x, y + 2, w - 2, 11);
+        o_ts_c(x, w - 2, y + 5, v, 1);
     } else {
         o_frame(x, y + 2, w - 2, 11);
         o_ts_c(x, w - 2, y + 5, v, 1);
@@ -779,6 +777,7 @@ static void o_row(const row_t *rr, int x0, int pitch, int y, int active)
     }
     if (graph >= 0) {
         int n = graph == 0 ? 3 : 4, j;
+        o_ink = active ? K_ACC : K_FG;
         if (graph == 0) {
             int b = it[0].id == P_AATK ? P_AATK : P_BATK;
             o_env(x0, y + 1, 3 * pitch - 2, 16, s->p[b], s->p[b + 1], s->p[b + 2], 0, 0, b == P_AATK ? 0 : 1);
@@ -810,12 +809,11 @@ static void o_row(const row_t *rr, int x0, int pitch, int y, int active)
             for (q = 0; q < 5 && nm[q]; q++)
                 t[q] = nm[q];
             t[q] = 0;
-            if (active) {
-                o_rect(x0 + j * pitch - 1, y + 19, pitch, 7, 1);
-                o_ts_c(x0 + j * pitch - 1, pitch, y + 20, t, 0);
-            } else
-                o_ts_c(x0 + j * pitch - 1, pitch, y + 20, t, 1);
+            o_ink = active ? K_FG : K_DIM;           /* (0.20) the names plain; the picture in the accent when its
+                                                      * row is the one the knobs edit */
+            o_ts_c(x0 + j * pitch - 1, pitch, y + 20, t, 1);
         }
+        o_ink = K_FG;
     }
 }
 
@@ -1183,6 +1181,7 @@ static void o_page(void)
     if (ui.grp == G_FX)                              /* (0.17) the pattern's effects: no track in the header */
         tx_cpy(name, "FX ");
     tx_cat(name, ui.grp == G_FX || ui.grp == G_GLO ? r->title : tsnd()->name[0] ? tsnd()->name : "-");
+    right[0] = 0;                                    /* (0.20: the page's n/m beside its name, below) */
     o_header(name, right);
     o_tabs(r);
     if (is_roll(r)) {                                /* ROLL: the piano roll, its knobs' row under it */
@@ -1296,11 +1295,10 @@ static void o_keys(void)
     o_steps(75);
     o_ink = K_FG;
     /* the pages of steps, the mode */
-    o_ts(1, 84, "PAGE", 1);
-    for (t = 0; t < 4; t++)
+    for (t = 0; t < 4 && ttrk()->len > 16; t++)      /* (0.20: the step pages as dots, only with more than one) */
         if (t * 16 < ttrk()->len) {
-            if (t == ui.spage) o_rect(19 + t * 6, 84, 4, 5, 1);
-            else o_frame(19 + t * 6, 84, 4, 5);
+            if (t == ui.spage) o_rect(1 + t * 6, 84, 4, 5, 1);
+            else o_frame(1 + t * 6, 84, 4, 5);
         }
     if (eng.rec_live && (plat_ms() / 300u) & 1u)
         o_rect(119 - o_ws(mode) - 5, 85, 3, 3, 1);
@@ -1350,20 +1348,6 @@ static void o_keys(void)
             }
         } else
             o_ts(34, 104, (g->flags & TF_LOCK) ? "LOCK TRIG" : "EMPTY", 1);
-    } else if (ui.grp == G_TRIG || ui.grp == G_HOME || ui.grp == G_SYN || ui.grp == G_ARP) {
-        /* a hint for where you are [0.9.1] */
-        const row_t *r = cur_row();
-        const char *h = ui.grid ? (drum_trk() ? "BLK8+KEY: PICK A PAD" : "HOLD A STEP: KNOBS LOCK IT") :
-                        "REC GRID   REC+PLAY LIVE";
-        if (r && r->it[0].kind == IK_EUC)
-            h = "TURNS WRITE  SCL+HOME: UNDO";
-        else if (ui.grp == G_SYN && drum_trk())
-            h = "KEYS 1-8: THE PADS  OCT: PAD";
-        else if (ui.grp == G_SYN)
-            h = "K4 ON THE LAST ROW: ENGINE";
-        else if (ui.grp == G_ARP)
-            h = "CHORD WORKS WITHOUT THE ARP";
-        o_ink = K_DIM, o_ts(1, 104, h, 1);
     }
     else if (ui.grp == G_LFO) {                      /* the LFO's value now */
         const row_t *r = cur_row();
@@ -1387,17 +1371,7 @@ static void o_keys(void)
             if (on) o_rect(x, 113 - clamp(o, -2, 4), 6, 2, 1);
             if (k == ui.arp_step) o_hline(x, 119, 6, 0);
         }
-    } else {
-        o_ink = K_DIM;
-        tx_cpy(b, "SWING ");
-        tx_num(b + 6, pcur->swing);
-        tx_cat(b, "%");
-        o_ts(1, 113, b, 1);
-        if (set.chain_n > 1)
-            o_ts(44, 113, "CHAIN", 1);
-        if (store_unsaved())
-            o_ts(120 - o_ws("UNSAVED") - 1, 113, "UNSAVED", 1);
-    }
+    }   /* (0.20: no swing, chain, unsaved lines: GLO, the patterns' screen and SAVE's LED tell) */
 }
 
 /* ------------------------------------------------------------------ other screens --- */
@@ -1418,7 +1392,6 @@ static void o_home(void)
     }
     o_ts(120 - o_ws(b) - 1, 13, b, 1);
     o_ts(40, 13, "HOME", 1);
-    o_ts(40, 21, "K1-4 LEVEL SEL BPM", 1);
     for (t = 0; t < NTRK; t++) {
         int y = 32 + t * 8, lvl = pcur->trk[t].tp[P_TLVL - NSP], m = eng.mute >> t & 1u, meter;
         char n[16];
@@ -1801,8 +1774,9 @@ static void o_popup(void)
 {
     const row_t *r = cur_row();
     const item_t *it;
-    char v[24], n[16];
+    char v[24], n[32];
     int lk, val, k;
+    const char *ln;
     if (!r || ui.touch_k > 3)
         return;
     it = &r->it[ui.touch_k];
@@ -1810,18 +1784,19 @@ static void o_popup(void)
         return;
     val = item_get(it, &lk);
     item_fmt(it, val, v);
-    for (k = 0; k < 15 && item_name(it)[k]; k++)
-        n[k] = item_name(it)[k];
+    ln = long_name(it);                              /* (0.20) the whole name, not the slot's short one */
+    for (k = 0; k < 28 && ln[k]; k++)
+        n[k] = ln[k];
     n[k] = 0;
     o_rect(0, 72, OW, 33, 0);
     o_frame(0, 72, OW, 33);
-    o_ink = K_DIM;
+    o_ink = K_FG;
     o_ts(4, 75, n, 1);
     o_ink = K_ACC;
     if (lk)
-        o_ts(120 - o_ws("LOCK") - 4, 75, "LOCK", 1);
+        o_ts(120 - o_ws("LOCK") - 4, 99, "LOCK", 1);
     else if ((it->kind == IK_SND || it->kind == IK_TRK) && !ui.held && page_held())
-        o_ts(120 - o_ws("ALL TRACKS") - 4, 75, "ALL TRACKS", 1);   /* (0.17) CONTROL ALL: the page button held */
+        o_ts(120 - o_ws("ALL TRACKS") - 4, 99, "ALL TRACKS", 1);   /* (0.17) CONTROL ALL: the page button held */
     o_ink = K_FG;
     while (o_wm(v, 2) > OW - 8 && v[0])
         v[tx_len(v) - 1] = 0;
@@ -1932,7 +1907,7 @@ static void ui_draw(void)
         o_keys_roll();
     else if (ui.grp != G_SAVE)
         o_keys();
-    if (touch && !ui.ov && ui.grp != G_HOME && ui.grp != G_SAVE && !(ui.grp == G_TRIG && is_roll(cur_row())))
+    if (touch && !ui.ov && !set.no_zoom && ui.grp != G_HOME && ui.grp != G_SAVE && !(ui.grp == G_TRIG && is_roll(cur_row())))
         o_popup();
     if (ui.plist_on)
         o_plist();

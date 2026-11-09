@@ -28,7 +28,7 @@ TONIC turns the M-VAVE FM-1 into a four-track FM groovebox modelled on the origi
 18. Effects and the mixer
 19. Ducking and the DJ filter
 20. Held buttons: PERFORM, patterns, MUTE, TOOLS, MENU
-21. GLO: tempo, scale, voices, setup, modulation, MIDI
+21. GLO: tempo, clock, velocity, MIDI
 22. Saving and the SAVE page
 23. MIDI
 24. Shortcuts at a glance
@@ -87,7 +87,7 @@ python3 base/tools/fm1_install.py tonic-0.16.fwsc
 | **Pool** | 16 sounds kept with the project, for sound locks. |
 | **Library** | 32 user sound slots, browsed with PRESETS after the factory sounds. |
 
-The **twelve voices** are shared (eight before 0.11). A track takes a free voice for each note and steals the oldest when all are busy (GLO > VOICE sets how). A stolen note fades out in a few milliseconds; since 0.17 up to three fade at once, so a chord or a kit hitting several pads no longer cuts the older notes dead. You can also reserve voices for a track; if the reserved voices add up to all twelve, the other tracks get none.
+The **twelve voices** are shared (eight before 0.11). A track takes a free voice for each note and steals the oldest when all are busy (SEQ > VOICE sets how). A stolen note fades out in a few milliseconds; since 0.17 up to three fade at once, so a chord or a kit hitting several pads no longer cuts the older notes dead. You can also reserve voices for a track; if the reserved voices add up to all twelve, the other tracks get none.
 
 ## 4. The panel
 
@@ -100,21 +100,21 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 | **ALGORITHM** knob | The active track, T1–T4. |
 | **PRESETS** knob | The track's sound: a list (factory sounds, then the user library; SCL: by group), OCT+ loads. On HOME: the pattern. With a step held: a sound lock. In step recording: the active step. On SAVE: the slot. |
 | **MASTER** | The output volume. |
-| **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID (with EUC ACC and EUC NOTE), TRACK (length and speed). Held: TOOLS. |
-| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2; a kit: a page a pad, LEVEL, KIT; BRAIDS: its page). Held: the preset list, playing each sound as you move. |
+| **SEQ** | The TRIG page; pressed again: TRIG 2, the piano roll, RTRG, EUCLID (with EUC ACC), and everything that is the track's own: TRACK (length, speed, transpose, quantize), VOICE, KEYS (the keyboard scale), SONG. Held: TOOLS. |
+| **EDIT** | SYN1, SYN1 2, SYN2, SYN2 2: the FM engine (under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; a kit: a page a pad, LEVEL, KIT; BRAIDS: its page); then the sound's SETUP (play mode, key scaling, octave) and PORTA, with every engine but the kit. Held: the preset list, playing each sound as you move. |
 | **ENV** | FLTR, FLTR 2, AMP, AMP 2, LOFI, INSRT. Held + a knob: all four tracks. |
-| **LFO** | LFO1, LFO2, MENV. Held + a knob: all four tracks. |
+| **LFO** | LFO1, LFO2, MENV, then the modulation pages (VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND). Held + a knob: all four tracks. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER, DUCK, PUMP, COMP. Held: PERFORM. |
 | **ARP** | The arpeggiator, CHORD, SCALE (the sound's scale). Held + a knob: all four tracks. |
-| **GLO** | Tempo, length, voices, sound setup, portamento, modulation, song (and the pattern change, CHNG), keyboard, MIDI, system. Held: MUTE. |
-| **HOME** | Tap: the home screen. Held: the MENU (it stays until OCT− or HOME). SCL+HOME: undo. |
+| **GLO** | Only what is the whole project's or the device's (as on Hortator): GLOBAL (tempo, swing, metronome, clock in and out, live quantize, velocity, mute timing) and MIDI. Held: MUTE. |
+| **HOME** | Tap: the home screen. Held: the MENU, the screen's and the knobs' settings (it stays until OCT− or HOME). SCL+HOME: undo. |
 | **SAVE** | The SAVE page. Held: the patterns. SCL+SAVE saves now. |
 | **PLAY** | Start / stop. |
 | **REC** | Grid recording on / off. Held: a FILL while held. |
 | **OCT− / OCT+** | The keyboard's octave; with a step held, its note; in grid recording, the step page. |
 | **SCL** | FUNC: the second function of the other controls. |
 
-**Rows and pages.** A Digitone page has eight parameters; TONIC shows them as two rows of four, and K1–K4 turn the lit row. Press the page button again for the next row (on its release: held, most buttons do something else, see below). SCL + page button goes back one row; SELECT also steps through the rows. The top right of the screen shows which page of the button's pages you are on, for example 2/5. Each engine keeps its own place on EDIT and SEQ: switching to a track with another engine shows the page you last used with that engine (TONIC 0.17).
+**Rows and pages.** A Digitone page has eight parameters; TONIC shows them as two rows of four, and K1–K4 turn the lit row. Press the page button again for the next row (on its release: held, most buttons do something else, see below). SCL + page button goes back one row; SELECT also steps through the rows. The top right of the tab line shows which of the button's rows you are on, for example 2/5. Each engine keeps its own place on EDIT and SEQ: switching to a track with another engine shows the page you last used with that engine (TONIC 0.17).
 
 **Holding ENV, LFO or ARP**: turning a knob changes that parameter on all four tracks (the pop-up says **ALL TRACKS**); REC randomizes the row, OCT− sets it to its defaults, SCL undoes that. The other buttons have screens of their own when held (section 20).
 
@@ -125,31 +125,31 @@ The **twelve voices** are shared (eight before 0.11). A track takes a free voice
 TONIC draws the Digitone's screen layout at the LCD's full resolution and in colour.
 
 - **Header:** the pattern, then a bar in the active track's colour with its sound and the row number.
-- **Tabs:** under the header, the pages of the button you pressed (for example SYN1 · SYN1 2 · SYN2 · SYN2 2); the page shown is highlighted. GLO has too many for one line: < and > show that more are there.
+- **Tabs:** under the header, the name of the page shown in a box, and at the right which row of the button's it is (for example 3/11). (0.20: only the page shown, the screen is quieter.)
 - **Left column:** meters for T1–T4 in their colours and the master (M: green, yellow, red near full scale). The active track's number is highlighted.
-- **Middle:** the page's two rows of four values. The row the knobs edit has its names on an accent bar; locked values are shown in the accent colour.
+- **Middle:** the page's two rows of four values. The names are plain text; the row the knobs edit has its **values in filled boxes** (0.20: the boxes, not the names, are lit, so the eye goes to the value). A locked value has a box in the ink colour (in the edited row) or an accent frame (in the other row).
 - **Moving pictures:**
   - A dot runs along the envelopes (operator A and B, filter, amp) where the track's sound is now.
   - A dot runs along the LFO wave at its phase.
   - The filter row shows the filter's curve. It follows the cutoff as the filter envelope moves it; the set cutoff is dotted.
   - On SYN1 the algorithm's lines grow thicker with the modulation (LEV × envelope).
 - **Bottom band:** the 16 steps in the track's colour (the playhead moves along them), the step pages, the tracks in their colours and the tempo.
-- **Mode line:** what the keys do now (KEYS, GRID, PERFORM …).
+- **Mode line:** what the keys do now (KEYS, GRID, PERFORM …). Since 0.20 without hint lines; the step page dots show only when the track is longer than 16 steps.
 - **CPU figure** (HOME, top right): how much of its time the sound takes. **CPU2** (TONIC 0.16): the FM-1's second core renders part of the voices, the same sound with about a third less load. If the second core ever fails to answer, TONIC goes on with one core (the figure then reads CPU); after a crash on it, it stays on one core until the FM-1 is switched off and on. **XR** counts the audio blocks that came too late.
-- **Colours:** GLO > SYSTEM > THEME (or the MENU, HOME held). Since 0.19 after Hortator's (and the Machinedrum's) two-colour screens: each colour as the ground, then its inverse (**INV**: the colour on black or white): **RED**, **R INV**, **BLUE**, **B INV**, **GREEN**, **G INV**, **AMBER**, **A INV**; and TONIC's own **OLED** (white on black, the tracks in four colours, the default) and **PAPER** (dark on light, the tracks in colours). The two-colour themes draw the tracks in the ink, as the Machinedrum does. A theme chosen before 0.19 keeps its look (AMBER is now A INV, PHOSPHOR G INV). The theme is kept with the device's settings.
+- **Colours:** the MENU (HOME held) > THEME. Since 0.19 after Hortator's (and the Machinedrum's) two-colour screens: each colour as the ground, then its inverse (**INV**: the colour on black or white): **RED**, **R INV**, **BLUE**, **B INV**, **GREEN**, **G INV**, **AMBER**, **A INV**; and TONIC's own **OLED** (white on black, the tracks in four colours, the default) and **PAPER** (dark on light, the tracks in colours). The two-colour themes draw the tracks in the ink, as the Machinedrum does. A theme chosen before 0.19 keeps its look (AMBER is now A INV, PHOSPHOR G INV). The theme is kept with the device's settings.
 
-![A page in the PAPER theme](img/theme_paper.png "GLO > SYSTEM > THEME: PAPER")
+![A page in the PAPER theme](img/theme_paper.png "MENU > THEME: PAPER")
 ![The ten themes](img/themes.png "OLED, RED, R INV, BLUE, B INV / GREEN, G INV, AMBER, A INV, PAPER")
 
-When you turn a knob, a **pop-up** shows the parameter's name and value large for a moment.
+When you turn a knob, a **pop-up** shows the parameter's **full name** (for example FILTER ENV DEPTH for ENV, OP A LEVEL for LEV A) and its value large for a moment. MENU > ZOOM OFF turns the pop-up off.
 
 ![The value pop-up after turning the tempo](img/popup.png "The value pop-up")
 
 ## 6. Playing the keys
 
 - In **keyboard mode** (REC dark), the 27 keys play the active track chromatically from the keyboard's octave. OCT− and OCT+ move it. SCL + white key 1–4 picks the track.
-- **Velocity and pressure:** the keys are velocity-sensitive. GLO > TEMPO > VEL picks KEYS (as played) or FIXED (GLO > LENGTH > FIXVL).
-- **Keyboard scale and chords:** GLO > KEYBOARD maps the keys to a scale with a root. FOLD leaves out the notes outside the scale, and CHORD plays a chord per key (ON, MAJ, MIN, 7TH, MIN7, MAJ7, DIM, DIM7).
+- **Velocity and pressure:** the keys are velocity-sensitive. GLO > GLOBAL > VEL picks KEYS (as played) or FIXED (GLO > GLOBAL > FIXVL).
+- **Keyboard scale and chords:** SEQ > KEYS maps the keys to a scale with a root. FOLD leaves out the notes outside the scale, and CHORD plays a chord per key (ON, MAJ, MIN, 7TH, MIN7, MAJ7, DIM, DIM7).
 - **Transpose:** SCL+OCT transposes the track by a semitone. SAVE held + OCT transposes the whole pattern.
 
 Scales: CHROM, MAJOR, MINOR, DORIA (Dorian), PHRYG, LYDIA, MIXO, LOCRI, PENTA (major pentatonic), PENTm (minor pentatonic), HARMm (harmonic minor), WHOLE. The sound's scale (ARP > SCALE) uses the same names, with OFF in place of CHROM.
@@ -253,7 +253,7 @@ Switching ENGINE sets the SYN pages to that engine's defaults. The FLTR, AMP and
 
 ![The SHAPE page](img/va_shape.png "EDIT under VA: SHAPE (FOLD, RING)")
 
-The LFOs and the modulation pages reach the VA parameters under their VA names (WAV1, SUB, TUNE 2, DETN, PW, MIX, PENV, MENV, PITCH 2, SYNC, NOIS, XMOD, DRFT, FOLD, RING). Unison (GLO > VOICE) with DETN and DRFT makes supersaw-style stacks.
+The LFOs and the modulation pages reach the VA parameters under their VA names (WAV1, SUB, TUNE 2, DETN, PW, MIX, PENV, MENV, PITCH 2, SYNC, NOIS, XMOD, DRFT, FOLD, RING). Unison (SEQ > VOICE) with DETN and DRFT makes supersaw-style stacks.
 
 > The FM and VA parameters share their places in the sound. A parameter lock on a SYN page therefore means the engine's own parameter: a lock of RAT A on an FM sound would be the unused slot on a VA sound. When a sound lock plays a sound of the other engine, the SYN locks of that step act on its parameters.
 
@@ -518,8 +518,6 @@ Press **REC** (lit) for grid recording. The white keys are steps 1–16 of the s
 | EUC ACC | AROT | 0–LEN−1 | Turns the accents. |
 | EUC ACC | GHOST | 0–100 % | Ghost notes: the empty steps get soft notes, each with this chance. |
 | EUC ACC | PROB | 1–100 % | The hits' own chance to play (as the TRIG page's PROB). |
-| EUC NOTE | NOTES | FIXED, UP, UP DN, RAND, CHORD | (A melodic track.) FIXED: the track's NOTE (a hit on an existing trig keeps its note). The others walk the notes of the keyboard scale (GLO > KEYBOARD) up from NOTE: upwards, up and down, at random, or through the sound's CHORD (SCL3 if it has none). An instant bassline or melody. |
-| EUC NOTE | RANGE | 1–3 | Octaves the notes span. |
 | KIT 1-4, KIT 5-8 | 1 BD … 8 CB | 0–LEN | (A kit.) Each pad's HITS on one page: a whole beat in a few turns. The lanes below show the beat. |
 
 - Each turn rewrites the track at once.
@@ -555,7 +553,7 @@ Press **REC** (lit) for grid recording. The white keys are steps 1–16 of the s
 
 - PLAY (while holding REC) toggles quantize, at any time while live recording (TONIC 0.17: no time limit). The mode line shows **LIVE REC Q** while it quantizes.
 - PLAY alone leaves live recording; PLAY again stops.
-- **Quantize afterwards:** GLO > LENGTH (second row), K4 **MICRO** shows the track's largest micro timing. Turning it down shrinks every offset in proportion, and 0 puts all trigs on the grid.
+- **Quantize afterwards:** SEQ > TRACK (second row), K2 **MICRO** shows the track's largest micro timing. Turning it down shrinks every offset in proportion, and 0 puts all trigs on the grid.
 
 **Step recording:** SCL+REC. The keys are a keyboard again. Play a note or a chord and it is written to the active step, which then moves on. PRESETS moves the active step, and knob turns lock it.
 
@@ -635,7 +633,7 @@ Press SEQ until the third row: the active track's notes as a piano roll.
 
 ## 16. Pattern length, speed, chains and songs
 
-**SEQ > TRACK** (and GLO > LENGTH, called SCALE before 0.17): length and speed are always the track's own (TONIC 0.12). Shortening LEN while playing brings the track back inside its new length at once (0.17: no burst of steps).
+**SEQ > TRACK** (on GLO before 0.20): length and speed are always the track's own (TONIC 0.12). Shortening LEN while playing brings the track back inside its new length at once (0.17: no burst of steps).
 
 ![The TRACK page](img/seq_track.png "SEQ > TRACK: LEN, SCALE of the track; MLEN, CHLEN of the pattern")
 
@@ -646,13 +644,11 @@ Press SEQ until the third row: the active track's notes as a piano roll.
 | TRNSP | The track's transposition, ±36 semitones. |
 | MLEN | Master length: every track restarts after it (INF: never). |
 | CHLEN | Change length: when a cued pattern takes over (OFF: at the master length; with MLEN INF too, at track 1's end). |
-
-| FIXVL | The velocity of the keys when VEL is FIXED. |
 | MICRO | Quantize after recording (section 12). |
 
 Patterns from before 0.12 with one length for all tracks (the former MODE PTRN) play as they did; the first LEN or SCALE turned on one track makes them per track, with MLEN INF and CHLEN OFF, so they keep changing at track 1's end.
 
-**Changing patterns:** turn PRESETS on HOME, or hold **SAVE** and press a white key (section 20). When the new pattern starts is set by GLO > SONG > **CHNG** (TONIC 0.17):
+**Changing patterns:** turn PRESETS on HOME, or hold **SAVE** and press a white key (section 20). When the new pattern starts is set by SEQ > SONG > **CHNG** (TONIC 0.17):
 
 | CHNG | The new pattern starts |
 | --- | --- |
@@ -664,13 +660,13 @@ Chains and songs always change at the pattern's end. Step 1 of the new pattern p
 
 **Chains:** hold SAVE and press several pattern keys in turn. They play one after the other and loop.
 
-**Song mode** (GLO > SONG): up to 32 rows, each with a pattern, a repeat count and the tracks muted in it.
+**Song mode** (SEQ > SONG): up to 32 rows, each with a pattern, a repeat count and the tracks muted in it.
 
 - Row 1: ROW picks the row to edit (a higher row lengthens the song), PTN its pattern, REPT how often it plays, MUTE which tracks are silent. A row's mutes (and END STOP) take effect exactly at the change, with the new row's first step (TONIC 0.17). Starting song mode keeps your chain; the chain simply does not play while SONG is on.
 - Row 2: SONG switches song mode on, ROWS sets the song's length, and END loops or stops at the end.
 - With song mode on, PLAY starts the song from its first row.
 
-**Tempo and swing:** GLO > TEMPO, or turn SELECT on HOME. Swing runs from 50 to 80 %. TEMPO sets whether the tempo is the project's or each pattern's own. Tap tempo is SAVE held + black key 6: two taps set the tempo; up to four are averaged.
+**Tempo and swing:** GLO > GLOBAL, or turn SELECT on HOME. Swing runs from 50 to 80 %. TEMPO sets whether the tempo is the project's or each pattern's own. Tap tempo is SAVE held + black key 6: two taps set the tempo; up to four are averaged.
 
 ## 17. The arpeggiator
 
@@ -693,7 +689,7 @@ ARP turns held notes, from the keys or from trigs, into a pattern. It belongs to
 
 | Param | Range | What it does |
 | --- | --- | --- |
-| CHORD | OFF, MAJ, MIN, SUS2, SUS4, 7TH, MAJ7, MIN7, DIM, AUG, POWER, OCT, SCL3, SCL4, 6TH, MIN6, ADD9, MAJ9, MIN9, 7SUS4, 9TH, QUART (quartal), CLUST (cluster) | The chord on each note. **SCL3 / SCL4** build it from the track's keyboard scale (GLO > KEYBOARD, SCALE and ROOT): the three or four notes a third apart in that scale, so every key gives the chord that fits the key (in C major: C → C E G, D → D F A, B → B D F). With the scale CHROM they use C major's pattern from ROOT. QUART stacks fourths (modern, open); CLUST is three neighbouring semitones. |
+| CHORD | OFF, MAJ, MIN, SUS2, SUS4, 7TH, MAJ7, MIN7, DIM, AUG, POWER, OCT, SCL3, SCL4, 6TH, MIN6, ADD9, MAJ9, MIN9, 7SUS4, 9TH, QUART (quartal), CLUST (cluster) | The chord on each note. **SCL3 / SCL4** build it from the track's keyboard scale (SEQ > KEYS, SCALE and ROOT): the three or four notes a third apart in that scale, so every key gives the chord that fits the key (in C major: C → C E G, D → D F A, B → B D F). With the scale CHROM they use C major's pattern from ROOT. QUART stacks fourths (modern, open); CLUST is three neighbouring semitones. |
 | INV | 0–3 | Inversion: the lowest 1, 2 or 3 notes of the chord move an octave up. |
 | VOICE | CLOSE, OPEN, DROP2, WIDE | CLOSE: as stacked. OPEN: the second note an octave up (wider, a "piano" spread). DROP2: the second highest note an octave down (the jazz pianist's voicing). WIDE: every other note an octave up, over two octaves (pads, strings). |
 | BASS | OFF / ON | The root an octave below as well. |
@@ -725,7 +721,7 @@ INV, VOICE, BASS and STRUM work on them as on the named chords. The named chord 
 
 ![Chords by degrees](img/chord_scale.png "ARP > CHORD with SCALE MAJOR, ROOT C: CHORD TRIAD")
 
-A chord of up to six notes uses that many voices, out of the twelve. A note let go ends the whole chord. GLO > KEYBOARD's own CHORD is something else: it makes the keys play several notes, and those notes are recorded into the trigs; the sound's CHORD plays a chord on whatever note comes in.
+A chord of up to six notes uses that many voices, out of the twelve. A note let go ends the whole chord. SEQ > KEYS's own CHORD is something else: it makes the keys play several notes, and those notes are recorded into the trigs; the sound's CHORD plays a chord on whatever note comes in.
 
 RNG, the step offsets and the modes work on the whole set of chord notes; MODE UP with RNG 2 plays the chord, then the chord an octave higher. Two modes are made for chords (0.8): **RAND** picks among the notes at random; **CHRD** plays the whole chord on every arp step (rhythmic chord stabs, strummed if STRUM is set), RNG moving it up an octave each step.
 
@@ -844,10 +840,10 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 ![The MENU](img/menu.png "HOME held: the device's settings")
 
 - **PERFORM's knobs** stay where you leave them on every page. **THROW** sends the dry mix into the delay and the reverb (a dub throw); it is not saved, turn it back to 0 to stop. K1, K2 and K4 are the pattern's own DJ filter, ducking depth and overdrive (FX > MIXER and DUCK), saved with it.
-- **PATTERNS:** a pattern key cues the pattern (as GLO > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
-- **MUTE:** the track boxes are filled when heard, open when muted, half filled when silent because another track is soloed (an **S** marks a soloed track). With **NEXT BAR** (black 11, or MENU > MUTE) a mute made while playing blinks and lands on the next bar's first step. Solo is not saved; mutes are.
+- **PATTERNS:** a pattern key cues the pattern (as SEQ > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
+- **MUTE:** the track boxes are filled when heard, open when muted, half filled when silent because another track is soloed (an **S** marks a soloed track). With **NEXT BAR** (black 11, or GLO > GLOBAL > MUTE) a mute made while playing blinks and lands on the next bar's first step. Solo is not saved; mutes are.
 - **TOOLS:** DUPLICATE makes the track twice as long (up to 64 steps), the new half a copy with its locks; REVERSE plays the steps back to front (their micro timing mirrored); CLEAR TRACK asks for a second press within 2 s. The grid's own black-key functions (section 11) are still there.
-- **MENU:** the device's settings in one list: tempo mode, metronome, clock in and out, live quantize, velocity, fixed velocity, MIDI in, track channels, CHNG, MUTE (at once / next bar), INSHQ and the theme; it also says whether the second CPU core runs.
+- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate). It also says whether the second CPU core runs. Tempo, clock, velocity and MIDI are on GLO.
 
 ### Momentary effects (TONIC 0.7)
 
@@ -866,22 +862,27 @@ On PERFORM (**FX held**), **press a black key 1–9**: its effect lasts as long 
 
 The effects act on the sequencer and the master; MIDI notes going out follow the sequencer (ROLL and HALFTIME change them too; MIDI clock out slows with HALFTIME and TAPE). Nothing is saved: the pattern is as it was.
 
-## 21. GLO: tempo, scale, voices, setup, modulation, MIDI
+## 21. GLO: tempo, clock, velocity, MIDI
 
 | Page | Parameters |
 | --- | --- |
-| **TEMPO** | BPM (30–300), SWING (50–80 %), TEMPO (PROJ: one tempo for the project / PTRN: each pattern its own), METRO (metronome on / off); CKIN, CKOUT (MIDI clock in / out), QUANT (live recording quantized), VEL (FIXED / KEYS). |
-| **SCALE** | See section 16. |
-| **VOICE** | STEAL (CYCLE, TRACK, LO, HI: which voice goes when all are busy), REUSE (a repeated note takes its own voice again), VOICE (voices reserved for the track, up to 12; DYN shares), UNISN (unison: 1–4 voices a note), SPRD (unison detune and width), LAYER (the track's notes also play other tracks' sounds). |
-| **SETUP** | KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2), PLAY (POLY, POLY M (one LFO for all voices), MONO, LEGATO), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones). |
-| **PORTA** | TYPE (TRACK, VOICE, LEGATO), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones), GATE. |
-| **VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND** | Four destinations each, with a depth of ±128. Velocity, mod wheel, aftertouch, breath and pitch bend (from MIDI) move any listed parameter. |
-| **SONG** | See section 16. |
-| **KEYBOARD** | SCALE (CHROM, MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENT+, PENT−, HMIN, WHOLE), ROOT, FOLD, KCHRD (the keys play chords, recorded as notes; section 6; not the sound's CHORD, section 17). |
-| **SYSTEM** | THEME: OLED, RED, R INV, BLUE, B INV, GREEN, G INV, AMBER, A INV, PAPER; INSHQ (the inserts at twice the rate). |
-| **MIDI** | CH T1–CH T4 (each track's out channel), AUTO (the auto channel: it plays the active track), TRKCH (channels 1–4 play tracks 1–4), EXT (the active track plays only over MIDI, an external track). |
+| **GLOBAL** | BPM (30–300), SWING (50–80 %), TEMPO (PROJ: one tempo for the project / PTRN: each pattern its own), METRO (metronome on / off); CKIN, CKOUT (MIDI clock in / out), QUANT (live recording quantized), VEL (FIXED / KEYS); FIXVL (the fixed velocity), MUTE (at once / NEXT BAR). |
+| **MIDI** | CH T1–CH T4 (each track's out channel); AUTO (the auto channel: it plays the active track), TRKCH (channels 1–4 play tracks 1–4), EXT (the active track plays only over MIDI, an external track). |
 
-![The GLO TEMPO page](img/glo.png "GLO > TEMPO")
+Since 0.20 GLO holds only what is the whole project's or the device's, as on Hortator. The rest went to where it belongs:
+
+| Now | Parameters |
+| --- | --- |
+| **SEQ > TRACK** | LEN, SCALE (speed), MLEN, CHLEN; TRNSP, MICRO (the track's micro timing, turned down to quantize). |
+| **SEQ > VOICE** | STEAL (CYCLE, TRACK, LO, HI: which voice goes when all are busy), REUSE (a repeated note takes its own voice again), VOICE (voices reserved for the track, up to 12; DYN shares), UNISN (unison: 1–4 voices a note); SPRD (unison detune and width), LAYER (the track's notes also play other tracks' sounds). |
+| **SEQ > KEYS** | SCALE (CHROM, MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENT+, PENT−, HMIN, WHOLE), ROOT, FOLD, KCHRD (the keys play chords, recorded as notes; section 6; not the sound's CHORD, section 17). |
+| **SEQ > SONG** | ROW, PTN, REPT, MUTE; SONG, ROWS, END, CHNG (the pattern change). See section 16. |
+| **EDIT > SETUP** | PLAY (POLY, POLY M (one LFO for all voices), MONO, LEGATO), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
+| **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGATO), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages (FM, VA, BRAIDS). |
+| **LFO > VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND** | Four destinations each, with a depth of ±128. Velocity, mod wheel, aftertouch, breath and pitch bend (from MIDI) move any listed parameter. |
+| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ (section 20). |
+
+![The GLO page](img/glo.png "GLO > GLOBAL")
 
 ## 22. Saving and the SAVE page
 
@@ -924,8 +925,8 @@ The FM-1's TRS jack is a MIDI input only and both FM-1s are USB devices, so two 
 
 | Leader | Follower |
 | --- | --- |
-| **TONIC**: GLO > TEMPO (row 2) **CKOUT ON**, PLAY on TONIC | **Hortator**: GLO 1/7 **CLK USB** |
-| **Hortator**: SYSTEM 2/7 **SYNC USB**, PLAY on Hortator | **TONIC**: GLO > TEMPO (row 2) **CKIN ON** |
+| **TONIC**: GLO > GLOBAL (row 2) **CKOUT ON**, PLAY on TONIC | **Hortator**: GLO 1/7 **CLK USB** |
+| **Hortator**: SYSTEM 2/7 **SYNC USB**, PLAY on Hortator | **TONIC**: GLO > GLOBAL (row 2) **CKIN ON** |
 
 Both send Start, 24 clocks a quarter note with the first on step 1, and Stop; a PLAY always starts from the top (no Song Position). Routed through a computer, the clock comes a few milliseconds late on the follower: shift it in the router, or start the follower's pattern with a small micro timing. A USB-MIDI host box adds well under a millisecond.
 
@@ -1008,9 +1009,9 @@ The full comparison is in `docs/FEATURES.md`; the research behind the curves is 
 | A sound is a plain sine | LEV A and LEV B (SYN2) are 0. FM needs them up. |
 | A kit's drums are cut short | The AMP envelope's REL is low: it gates the kit by the note length. REL INF (127) lets each pad ring. |
 | The grid places the wrong drum | The grid places the picked pad, shown at the bottom right (GRID 4 CH). Pick another: black 8 + white key 1–8 in the grid, or SCL + OCT. |
-| Notes cut off | All 12 voices are busy: shorter releases, fewer chord notes, or reserve voices (GLO > VOICE). |
+| Notes cut off | All 12 voices are busy: shorter releases, fewer chord notes, or reserve voices (SEQ > VOICE). |
 | Nothing is saved | Saving waits for the sequencer to stop and the sound to fade. Use SCL+SAVE to save at once. |
-| The pattern doesn't change | Changes happen at the pattern's end (or CHLEN). Check MLEN and CHLEN in GLO > LENGTH, and GLO > SONG > CHNG. |
+| The pattern doesn't change | Changes happen at the pattern's end (or CHLEN). Check MLEN and CHLEN in SEQ > TRACK, and SEQ > SONG > CHNG. |
 | A trig doesn't play | A condition or PROB (hold the step and look at COND), a mute, or the track's length. |
 | The FM-1 won't start TONIC | After a failed start (a crash or a hang in the first 30 s) TONIC starts once more on an empty pattern slot and says **LAST START FAILED / A01 LEFT** (the pattern it left out stays as it is: go back to it on purpose). After two failed starts SAFE MODE comes up; install again from there (section 2). |
 | CPU instead of CPU2 on HOME | The second core was given up (it did not answer in time, or crashed); TONIC runs on one core until the FM-1 is switched off and on. |

@@ -182,15 +182,18 @@ expect lock5_31 468
 expect micro5 1
 expect len 32
 expect nnote2 3
-# ---- quantize after recording: GLO, SCALE row 2, K4 (MICRO) down to 0
-tap GLO
+# ---- quantize after recording: (0.20) SEQ TRACK row 7, K2 (QUANT) down to 0
+tap SEQ
 wait 30
-spin SELECT 3
+spin SELECT 7
 wait 30
-expect row 3
-spin K4 -5
+expect row 7
+spin K2 -5
 wait 30
 expect micro5 0
+spin SELECT -7
+wait 30
+expect row 0
 expect note4 63
 # ---- trig conditions in the OS's order: from none, one right is FILL, two left of that is 99 %
 tap REC
@@ -199,6 +202,9 @@ expect grid 1
 tap SEQ
 wait 30
 expect group 0
+spin SELECT -1
+wait 30
+expect row 0
 key w5 down
 wait 400
 spin K4 1

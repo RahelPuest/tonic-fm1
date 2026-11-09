@@ -10,9 +10,9 @@ sound 85
 wait 50
 tap SEQ
 wait 30
-spin SELECT -1
+spin SELECT 6
 wait 30
-expect row 7
+expect row 6
 shot seq_track.png
 spin K1 -8
 wait 30

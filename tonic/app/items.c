@@ -28,7 +28,7 @@ enum { TF_LEN_, TF_SCALE_, TF_TRANSP_, TF_VOICES_, TF_UNI_, TF_SPREAD_, TF_LAYER
 enum { PF_BPM_, PF_SWING_, PF_LMODE_, PF_MLEN_, PF_CHLEN_, PF_STEAL_, PF_REUSE_ };
 enum { GL_TMODE_, GL_CLKIN_, GL_CLKOUT_, GL_QUANT_, GL_VELS_, GL_VELF_, GL_MET_, GL_MIDI0_, GL_MIDI1_, GL_MIDI2_,
        GL_MIDI3_, GL_MIDIIN_, GL_TRKCH_, GL_MTRK_, GL_SROW_, GL_SPAT_, GL_SREP_, GL_SMUTE_, GL_SON_, GL_SLEN_,
-       GL_SEND_, GL_THEME_, GL_PCHG_, GL_INSHQ_, GL_MUTEB_ };
+       GL_SEND_, GL_THEME_, GL_PCHG_, GL_INSHQ_, GL_MUTEB_, GL_ZOOM_, GL_ACCEL_, GL_PHOLD_ };
 enum { AS_STEP_, AS_OFS_, AS_ON_ };
 enum { VW_LO_, VW_ZOOM_ };              /* the piano roll's view (not saved) */
 /* the euclidean generator [TONIC 0.6, 0.8]: cycle, hits, rotation, a named rhythm; accents' hits and rotation, ghost
@@ -46,10 +46,15 @@ static const row_t R_TRIG[] = {
     {"RTRG", {T_(P_RTRG), T_(P_RTIM), T_(P_RVEL), NO}},
     {T_EUC, {EU(EU_LEN_), EU(EU_PULS_), EU(EU_ROT_), EU(EU_PAT_)}},   /* [TONIC 0.6, 0.8] */
     {T_EUC2, {EU(EU_AH_), EU(EU_AR_), EU(EU_GHOST_), EU(EU_PROB_)}},
-    {"EUC NOTE", {EU(EU_NMODE_), EU(EU_NRANGE_), NO, NO}},
     {"TRACK", {TF(TF_LEN_), TF(TF_SCALE_), PF(PF_MLEN_), PF(PF_CHLEN_)}},   /* [TONIC 0.12] the track's length, its scale */
+    {"TRACK", {TF(TF_TRANSP_), TF(TF_QUANT_), NO, NO}},                     /* (0.20) all the track's own on SEQ */
+    {"VOICE", {PF(PF_STEAL_), PF(PF_REUSE_), TF(TF_VOICES_), TF(TF_UNI_)}},
+    {"VOICE", {TF(TF_SPREAD_), TF(TF_LAYER_), NO, NO}},
+    {"KEYS", {TF(TF_KSCALE_), TF(TF_KROOT_), TF(TF_KFOLD_), TF(TF_KCHORD_)}},
+    {"SONG", {GL(GL_SROW_), GL(GL_SPAT_), GL(GL_SREP_), GL(GL_SMUTE_)}},   /* (0.20: on SEQ, as Hortator's) */
+    {"SONG", {GL(GL_SON_), GL(GL_SLEN_), GL(GL_SEND_), GL(GL_PCHG_)}},
 };
-/* a kit's SEQ rows: the same, with the pads' hits at a glance in place of EUC NOTE [TONIC 0.8] */
+/* a kit's SEQ rows: the same, with the pads' hits at a glance after EUC ACC [TONIC 0.8] */
 static const row_t R_TRIG_DR[] = {
     {"TRIG", {T_(P_NOTE), T_(P_TVEL), T_(P_TLEN), T_(P_PROB)}},
     {"TRIG", {T_(P_FLTT), T_(P_LFOT), T_(P_PTIM), T_(P_PORT)}},
@@ -59,7 +64,13 @@ static const row_t R_TRIG_DR[] = {
     {T_EUC2, {EU(EU_AH_), EU(EU_AR_), EU(EU_GHOST_), EU(EU_PROB_)}},
     {T_EUCK, {EU(EU_KIT0_), EU(EU_KIT0_ + 1), EU(EU_KIT0_ + 2), EU(EU_KIT0_ + 3)}},
     {T_EUCK2, {EU(EU_KIT0_ + 4), EU(EU_KIT0_ + 5), EU(EU_KIT0_ + 6), EU(EU_KIT0_ + 7)}},
-    {"TRACK", {TF(TF_LEN_), TF(TF_SCALE_), PF(PF_MLEN_), PF(PF_CHLEN_)}},
+    {"TRACK", {TF(TF_LEN_), TF(TF_SCALE_), PF(PF_MLEN_), PF(PF_CHLEN_)}},   /* [TONIC 0.12] the track's length, its scale */
+    {"TRACK", {TF(TF_TRANSP_), TF(TF_QUANT_), NO, NO}},                     /* (0.20) all the track's own on SEQ */
+    {"VOICE", {PF(PF_STEAL_), PF(PF_REUSE_), TF(TF_VOICES_), TF(TF_UNI_)}},
+    {"VOICE", {TF(TF_SPREAD_), TF(TF_LAYER_), NO, NO}},
+    {"KEYS", {TF(TF_KSCALE_), TF(TF_KROOT_), TF(TF_KFOLD_), TF(TF_KCHORD_)}},
+    {"SONG", {GL(GL_SROW_), GL(GL_SPAT_), GL(GL_SREP_), GL(GL_SMUTE_)}},   /* (0.20: on SEQ, as Hortator's) */
+    {"SONG", {GL(GL_SON_), GL(GL_SLEN_), GL(GL_SEND_), GL(GL_PCHG_)}},
 };
 static const row_t R_SYN[] = {
     {"SYN1", {S_(P_ALGO), S_(P_RATC), S_(P_RATA), S_(P_RATB)}},
@@ -69,6 +80,10 @@ static const row_t R_SYN[] = {
     {"SYN2", {S_(P_BATK), S_(P_BDEC), S_(P_BEND), S_(P_BLEV)}},
     {"SYN2 2", {S_(P_ADEL), S_(P_ATRG), S_(P_ARST), S_(P_PHRT)}},
     {"SYN2 2", {S_(P_BDEL), S_(P_BTRG), S_(P_BRST), ST(S_ENGINE)}},
+    {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},   /* (0.20: the sound's own, on EDIT) */
+    {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
+    {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},           /* (0.20: with the engine) */
+    {"PORTA", {ST(S_PGATE), NO, NO, NO}},
 };
 /* the DRUM engine's SYN pages [TONIC]: a row a pad (MODEL TUNE DEC TONE), the pads' levels, the engine */
 /* the DRUM engine's SYN pages [TONIC; 0.12.1: a page a pad]: a pad's MODEL TUNE DEC TONE, its two controls of the model,
@@ -109,15 +124,23 @@ static const row_t R_VA[] = {
     {T_VENV2, {S_(P_ADEL), S_(P_ATRG), S_(P_ARST), S_(P_PHRT)}},
     {T_VENV2, {S_(P_BDEL), S_(P_BTRG), S_(P_BRST), ST(S_ENGINE)}},
     {T_SHAPE, {S_(V_FOLD), S_(V_RING), NO, NO}},
+    {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},   /* (0.20: the sound's own, on EDIT) */
+    {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
+    {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},           /* (0.20: with the engine) */
+    {"PORTA", {ST(S_PGATE), NO, NO, NO}},
 };
-#define NVA_ROWS 8
+#define NVA_ROWS 12
 /* the BRAIDS engine's SYN page [TONIC 0.14]: Braids' MODEL, TIMBRE and COLOR, a TUNE; the engine */
 static const char T_BRAID[] = "BRAIDS";
 static const row_t R_BR[] = {
     {T_BRAID, {S_(P_RATB), S_(P_ALEV), S_(P_BLEV), S_(P_HARM)}},
     {T_BRAID, {S_(P_DTUN), S_(P_FDBK), S_(P_OFSC), ST(S_ENGINE)}},   /* (0.15) SYNC SIGN SUB */
+    {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},   /* (0.20: the sound's own, on EDIT) */
+    {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
+    {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},           /* (0.20: with the engine) */
+    {"PORTA", {ST(S_PGATE), NO, NO, NO}},
 };
-#define NBR_ROWS 2
+#define NBR_ROWS 6
 #define BR_ENGINE_ROW 1
 #define DRM_ENGINE_ROW 18
 static const row_t R_ENV[] = {
@@ -137,6 +160,16 @@ static const row_t R_LFO[] = {
     {"LFO2", {S_(P_L2WAV), S_(P_L2SPH), S_(P_L2MOD), S_(P_L2DEP)}},
     {"MENV", {S_(P_MATK), S_(P_MDEC), S_(P_MSUS), S_(P_MREL)}},      /* [TONIC 0.12] the modulation envelope */
     {"MENV", {S_(P_MDEL), S_(P_MDST), S_(P_MDEP), NO}},
+    {"VEL MOD", {MD(0, 0), MD(0, 1), MD(1, 0), MD(1, 1)}},     /* (0.20: the modulation with the LFOs) */
+    {"VEL MOD", {MD(2, 0), MD(2, 1), MD(3, 0), MD(3, 1)}},
+    {"MODWHEEL", {MD(4, 0), MD(4, 1), MD(5, 0), MD(5, 1)}},
+    {"MODWHEEL", {MD(6, 0), MD(6, 1), MD(7, 0), MD(7, 1)}},
+    {"AFTERTCH", {MD(8, 0), MD(8, 1), MD(9, 0), MD(9, 1)}},
+    {"AFTERTCH", {MD(10, 0), MD(10, 1), MD(11, 0), MD(11, 1)}},
+    {"BREATH", {MD(12, 0), MD(12, 1), MD(13, 0), MD(13, 1)}},
+    {"BREATH", {MD(14, 0), MD(14, 1), MD(15, 0), MD(15, 1)}},
+    {"PITCHBND", {MD(16, 0), MD(16, 1), MD(17, 0), MD(17, 1)}},
+    {"PITCHBND", {MD(18, 0), MD(18, 1), MD(19, 0), MD(19, 1)}},
 };
 static const row_t R_FX[] = {
     {"CHORUS", {F_(P_CDEP), F_(P_CSPD), F_(P_CHPF), F_(P_CWID)}},
@@ -160,39 +193,20 @@ static const row_t R_ARP[] = {
     {"SCALE", {ST(S_SCALE), ST(S_SCROOT), NO, NO}},                     /* (0.12) the sound's scale: notes snap to it,
                                                                          * its chords by degrees */
 };
+/* (0.20) GLO: what is global, as on Hortator (the track's own on SEQ, the sound's on EDIT and LFO, the device's in
+ * the MENU: HOME held) */
 static const row_t R_GLO[] = {
-    {"TEMPO", {PF(PF_BPM_), PF(PF_SWING_), GL(GL_TMODE_), GL(GL_MET_)}},
-    {"TEMPO", {GL(GL_CLKIN_), GL(GL_CLKOUT_), GL(GL_QUANT_), GL(GL_VELS_)}},
-    {"LENGTH", {TF(TF_LEN_), TF(TF_SCALE_), TF(TF_TRANSP_), NO}},   /* (0.12: always per track; 0.17: LENGTH, LEN on K1 */
-    {"LENGTH", {PF(PF_MLEN_), PF(PF_CHLEN_), GL(GL_VELF_), TF(TF_QUANT_)}},   /* as on SEQ > TRACK) */
-    {"VOICE", {PF(PF_STEAL_), PF(PF_REUSE_), TF(TF_VOICES_), TF(TF_UNI_)}},
-    {"VOICE", {TF(TF_SPREAD_), TF(TF_LAYER_), NO, NO}},
-    {"SETUP", {ST(S_KSA), ST(S_KSB1), ST(S_KSB2), ST(S_OCT)}},
-    {"SETUP", {ST(S_PLAYMODE), ST(S_MONOPRIO), ST(S_VEL2VOL), ST(S_PBDEP)}},
-    {"PORTA", {ST(S_PTYPE), ST(S_PSLOPE), ST(S_PAMT), ST(S_PSTYLE)}},
-    {"PORTA", {ST(S_PGATE), NO, NO, NO}},
-    {"VEL MOD", {MD(0, 0), MD(0, 1), MD(1, 0), MD(1, 1)}},
-    {"VEL MOD", {MD(2, 0), MD(2, 1), MD(3, 0), MD(3, 1)}},
-    {"MODWHEEL", {MD(4, 0), MD(4, 1), MD(5, 0), MD(5, 1)}},
-    {"MODWHEEL", {MD(6, 0), MD(6, 1), MD(7, 0), MD(7, 1)}},
-    {"AFTERTCH", {MD(8, 0), MD(8, 1), MD(9, 0), MD(9, 1)}},
-    {"AFTERTCH", {MD(10, 0), MD(10, 1), MD(11, 0), MD(11, 1)}},
-    {"BREATH", {MD(12, 0), MD(12, 1), MD(13, 0), MD(13, 1)}},
-    {"BREATH", {MD(14, 0), MD(14, 1), MD(15, 0), MD(15, 1)}},
-    {"PITCHBND", {MD(16, 0), MD(16, 1), MD(17, 0), MD(17, 1)}},
-    {"PITCHBND", {MD(18, 0), MD(18, 1), MD(19, 0), MD(19, 1)}},
-    {"SONG", {GL(GL_SROW_), GL(GL_SPAT_), GL(GL_SREP_), GL(GL_SMUTE_)}},
-    {"SONG", {GL(GL_SON_), GL(GL_SLEN_), GL(GL_SEND_), GL(GL_PCHG_)}},   /* (0.17) CHNG: how a pattern change comes */
-    {"KEYBOARD", {TF(TF_KSCALE_), TF(TF_KROOT_), TF(TF_KFOLD_), TF(TF_KCHORD_)}},
+    {"GLOBAL", {PF(PF_BPM_), PF(PF_SWING_), GL(GL_TMODE_), GL(GL_MET_)}},
+    {"GLOBAL", {GL(GL_CLKIN_), GL(GL_CLKOUT_), GL(GL_QUANT_), GL(GL_VELS_)}},
+    {"GLOBAL", {GL(GL_VELF_), GL(GL_MUTEB_), NO, NO}},
     {"MIDI", {GL(GL_MIDI0_), GL(GL_MIDI1_), GL(GL_MIDI2_), GL(GL_MIDI3_)}},
     {"MIDI", {GL(GL_MIDIIN_), GL(GL_TRKCH_), GL(GL_MTRK_), NO}},
-    {"SYSTEM", {GL(GL_THEME_), GL(GL_INSHQ_), NO, NO}},   /* (0.17: SYSTEM, was DISPLAY; INSHQ the inserts at 2x) */
 };
 
 enum { G_TRIG, G_SYN, G_ENV, G_LFO, G_FX, G_ARP, G_GLO, G_HOME, G_SAVE, NG };
 static const struct { const row_t *rows; uint8_t n; } GROUP[NG] = {
 #define NR(r) sizeof r / sizeof r[0]
-    {R_TRIG, NR(R_TRIG)}, {R_SYN, 7}, {R_ENV, NR(R_ENV)}, {R_LFO, NR(R_LFO)}, {R_FX, NR(R_FX)}, {R_ARP, NR(R_ARP)},
+    {R_TRIG, NR(R_TRIG)}, {R_SYN, NR(R_SYN)}, {R_ENV, NR(R_ENV)}, {R_LFO, NR(R_LFO)}, {R_FX, NR(R_FX)}, {R_ARP, NR(R_ARP)},
     {R_GLO, NR(R_GLO)}, {0, 0}, {0, 0},
 #undef NR
 };
@@ -279,7 +293,8 @@ static const char *const L_VELS[] = {"FIXED", "KEYS"};
 static const char *const L_CLK[] = {"OFF", "ON"};
 static const char *const L_SEND[] = {"LOOP", "STOP"};
 static const char *const L_PCHG[] = {"SEQ", "START", "JUMP"};
-static const char *const L_MUTEB[] = {"NOW", "BAR"};   /* (0.18) the MUTE screen's mutes: at once, or at the next bar */   /* (0.17) at the end, at once from step 1, at once in place */
+static const char *const L_MUTEB[] = {"NOW", "BAR"};
+static const char *const L_PHOLD[] = {"HOLD", "PAGE"};   /* (0.20) PERFORM while FX is held, or until FX again */   /* (0.18) the MUTE screen's mutes: at once, or at the next bar */   /* (0.17) at the end, at once from step 1, at once in place */
 static const char *const L_NOTES[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 /* (0.12) the sound's scales (KSCALE_MASK, CHROM as OFF) */
 static const char *const L_SCALE12[NKSCALE] = {"OFF", "MAJOR", "MINOR", "DORIA", "PHRYG", "LYDIA", "MIXO", "LOCRI",
@@ -310,6 +325,7 @@ static const char *const L_KCHORD[] = {"OFF", "ON", "MAJ", "MIN", "7TH", "MIN7",
 /* text without a libc */
 static void tx_cpy(char *d, const char *s) { while ((*d++ = *s++)) ; }
 static int tx_len(const char *s) { int n = 0; while (s[n]) n++; return n; }
+static void tx_cat(char *d, const char *s) { while (*d) d++; while (*s) *d++ = *s++; *d = 0; }
 
 /* a kit's pad as its knobs are named: its number and its model's letters, "1 BD" [TONIC] */
 static const char *pad_label(int k)
@@ -333,7 +349,7 @@ static const char *item_name(const item_t *it)
                                       "ROOT", "FOLD", "KCHRD", "MICRO"};
     static const char *const PFN[] = {"BPM", "SWING", "MODE", "MLEN", "CHLEN", "STEAL", "REUSE"};
     static const char *const GLN[] = {"TEMPO", "CKIN", "CKOUT", "QUANT", "VEL", "FIXVL", "METRO",
-                                      "CH T1", "CH T2", "CH T3", "CH T4", "AUTO", "TRKCH", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE"};   /* EXT: the active track plays out over MIDI only */
+                                      "CH T1", "CH T2", "CH T3", "CH T4", "AUTO", "TRKCH", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE", "ZOOM", "ACCEL", "PERF"};   /* EXT: the active track plays out over MIDI only */
     static const char *const STN[NSS] = {"KS A", "KS B1", "KS B2", "KTRK", "TYPE", "SLOPE", "AMT", "STYLE",
                                          "GATE", "PLAY", "PRIO", "V>VOL", "PBDEP", "OCT", "MODE", "SPD", "RNG",
                                          "LEN", "STEPS", "ENG", "PAD 1", "PAD 2", "PAD 3", "PAD 4",
@@ -373,6 +389,152 @@ static const char *item_name(const item_t *it)
     default: return "";
     }
 }
+/* (0.20) a parameter's whole name, for the pop-up while it turns (the slots keep the short names) */
+static const char *const LONG_P[NPARAM] = {
+    [P_ALGO] = "ALGORITHM", [P_RATC] = "RATIO C", [P_RATA] = "RATIO A", [P_RATB] = "RATIO B", [P_HARM] = "HARMONICS",
+    [P_DTUN] = "DETUNE", [P_FDBK] = "FEEDBACK", [P_MIX] = "MIX X / Y", [P_OFSC] = "RATIO C OFFSET",
+    [P_OFSA] = "RATIO A OFFSET", [P_OFSB1] = "RATIO B1 OFFSET", [P_OFSB2] = "RATIO B2 OFFSET",
+    [P_AATK] = "OP A ATTACK", [P_ADEC] = "OP A DECAY", [P_AEND] = "OP A END LEVEL", [P_ALEV] = "OP A LEVEL",
+    [P_BATK] = "OP B ATTACK", [P_BDEC] = "OP B DECAY", [P_BEND] = "OP B END LEVEL", [P_BLEV] = "OP B LEVEL",
+    [P_ADEL] = "OP A DELAY", [P_ATRG] = "OP A TRIG", [P_ARST] = "OP A RESET", [P_PHRT] = "PHASE RESET",
+    [P_BDEL] = "OP B DELAY", [P_BTRG] = "OP B TRIG", [P_BRST] = "OP B RESET",
+    [P_FATK] = "FILTER ATTACK", [P_FDEC] = "FILTER DECAY", [P_FSUS] = "FILTER SUSTAIN", [P_FREL] = "FILTER RELEASE",
+    [P_FREQ] = "FILTER FREQUENCY", [P_RESO] = "FILTER RESONANCE", [P_FTYP] = "FILTER TYPE",
+    [P_FENV] = "FILTER ENV DEPTH", [P_FDEL] = "FILTER ENV DELAY", [P_BASE] = "BASE", [P_WDTH] = "WIDTH",
+    [P_EATK] = "AMP ATTACK", [P_EDEC] = "AMP DECAY", [P_ESUS] = "AMP SUSTAIN", [P_EREL] = "AMP RELEASE",
+    [P_DRV] = "OVERDRIVE", [P_PAN] = "PAN", [P_VOL] = "VOLUME", [P_CHR] = "CHORUS SEND", [P_DEL] = "DELAY SEND",
+    [P_REV] = "REVERB SEND", [P_AENR] = "AMP ENV RESET",
+    [P_L1SPD] = "LFO 1 SPEED", [P_L1MUL] = "LFO 1 MULTIPLIER", [P_L1FAD] = "LFO 1 FADE", [P_L1DST] = "LFO 1 DESTINATION",
+    [P_L1WAV] = "LFO 1 WAVEFORM", [P_L1SPH] = "LFO 1 START PHASE", [P_L1MOD] = "LFO 1 TRIG MODE", [P_L1DEP] = "LFO 1 DEPTH",
+    [P_L2SPD] = "LFO 2 SPEED", [P_L2MUL] = "LFO 2 MULTIPLIER", [P_L2FAD] = "LFO 2 FADE", [P_L2DST] = "LFO 2 DESTINATION",
+    [P_L2WAV] = "LFO 2 WAVEFORM", [P_L2SPH] = "LFO 2 START PHASE", [P_L2MOD] = "LFO 2 TRIG MODE", [P_L2DEP] = "LFO 2 DEPTH",
+    [P_SRR] = "SAMPLE RATE REDUCTION", [P_BRR] = "BIT REDUCTION", [P_ITYP] = "INSERT TYPE", [P_IAMT] = "INSERT AMOUNT",
+    [P_ITON] = "INSERT TONE", [P_IMIX] = "INSERT MIX", [P_MDEL] = "MOD ENV DELAY", [P_MATK] = "MOD ENV ATTACK",
+    [P_MDEC] = "MOD ENV DECAY", [P_MSUS] = "MOD ENV SUSTAIN", [P_MREL] = "MOD ENV RELEASE",
+    [P_MDST] = "MOD ENV DESTINATION", [P_MDEP] = "MOD ENV DEPTH",
+    [P_NOTE] = "TRIG NOTE", [P_TVEL] = "TRIG VELOCITY", [P_TLEN] = "TRIG LENGTH", [P_PROB] = "TRIG PROBABILITY",
+    [P_FLTT] = "FILTER TRIG", [P_LFOT] = "LFO TRIG", [P_PTIM] = "PORTAMENTO TIME", [P_PORT] = "PORTAMENTO",
+    [P_TLVL] = "TRACK LEVEL", [P_RTRG] = "RETRIG", [P_RTIM] = "RETRIG RATE", [P_RVEL] = "RETRIG VELOCITY CURVE",
+    [P_CDEP] = "CHORUS DEPTH", [P_CSPD] = "CHORUS SPEED", [P_CHPF] = "CHORUS HIGH-PASS", [P_CWID] = "CHORUS WIDTH",
+    [P_CDEL] = "CHORUS TO DELAY", [P_CREV] = "CHORUS TO REVERB", [P_CVOL] = "CHORUS VOLUME",
+    [P_DTIM] = "DELAY TIME", [P_DPP] = "DELAY PING-PONG", [P_DWID] = "DELAY WIDTH", [P_DFB] = "DELAY FEEDBACK",
+    [P_DHPF] = "DELAY HIGH-PASS", [P_DLPF] = "DELAY LOW-PASS", [P_DREV] = "DELAY TO REVERB", [P_DVOL] = "DELAY VOLUME",
+    [P_RPRE] = "REVERB PRE-DELAY", [P_RDEC] = "REVERB DECAY", [P_RFRQ] = "REVERB DAMPING FREQ", [P_RGAI] = "REVERB DAMPING GAIN",
+    [P_RHPF] = "REVERB HIGH-PASS", [P_RLPF] = "REVERB LOW-PASS", [P_RVOL] = "REVERB VOLUME",
+    [P_MOVD] = "MASTER OVERDRIVE", [P_PVOL] = "PATTERN VOLUME", [P_MFLT] = "DJ FILTER", [P_SCSRC] = "DUCKING SOURCE",
+    [P_SCDEP] = "DUCKING DEPTH", [P_SCREL] = "DUCKING RELEASE", [P_SCFX] = "DUCK THE FX TOO", [P_CPAMT] = "COMPRESSOR AMOUNT",
+    [P_CPATK] = "COMPRESSOR ATTACK", [P_CPREL] = "COMPRESSOR RELEASE", [P_CPMIX] = "COMPRESSOR MIX",
+    [P_SCPAD] = "DUCKING PAD", [P_SCATK] = "DUCKING ATTACK", [P_SCKEEP] = "TRACK NOT DUCKED",
+};
+static const char *const LONG_S[NSS] = {
+    [S_KSA] = "KEYTRACK A", [S_KSB1] = "KEYTRACK B1", [S_KSB2] = "KEYTRACK B2", [S_FKTRK] = "FILTER KEYTRACK",
+    [S_PTYPE] = "PORTAMENTO TYPE", [S_PSLOPE] = "PORTAMENTO SLOPE", [S_PAMT] = "PORTAMENTO AMOUNT",
+    [S_PSTYLE] = "PORTAMENTO STYLE", [S_PGATE] = "PORTAMENTO GATE", [S_PLAYMODE] = "PLAY MODE",
+    [S_MONOPRIO] = "MONO PRIORITY", [S_VEL2VOL] = "VELOCITY TO VOLUME", [S_PBDEP] = "PITCH BEND DEPTH",
+    [S_OCT] = "OCTAVE", [S_ARPMODE] = "ARP MODE", [S_ARPSPD] = "ARP SPEED", [S_ARPRNG] = "ARP RANGE",
+    [S_ARPLEN] = "ARP NOTE LENGTH", [S_ARPSTEPS] = "ARP STEPS", [S_ENGINE] = "ENGINE", [S_ARPCHD] = "CHORD",
+    [S_ARPINV] = "CHORD INVERSION", [S_CHVOIC] = "CHORD VOICING", [S_CHBASS] = "CHORD BASS NOTE", [S_CHSTRM] = "STRUM TIME",
+    [S_CHSDIR] = "STRUM DIRECTION", [S_SCALE] = "SCALE", [S_SCROOT] = "SCALE ROOT", [S_SCHD] = "SCALE CHORD",
+};
+static const char *const LONG_GL[] = {"TEMPO: PROJECT OR PATTERN", "MIDI CLOCK IN", "MIDI CLOCK OUT", "LIVE REC QUANTIZE",
+    "KEY VELOCITY", "FIXED VELOCITY", "METRONOME", "MIDI CHANNEL T1", "MIDI CHANNEL T2", "MIDI CHANNEL T3",
+    "MIDI CHANNEL T4", "MIDI IN AUTO CHANNEL", "MIDI IN TRACK CHANNELS", "TRACK OUT OVER MIDI ONLY", "SONG ROW",
+    "SONG ROW PATTERN", "SONG ROW REPEATS", "SONG ROW MUTES", "SONG MODE", "SONG ROWS", "SONG END", "SCREEN THEME",
+    "PATTERN CHANGE", "INSERTS AT 2X RATE", "MUTES AT ONCE / NEXT BAR", "VALUE POP-UP", "KNOB ACCELERATION",
+    "PERFORM: HOLD OR PAGE"};
+static const char *const LONG_TF[] = {"TRACK LENGTH", "TRACK SPEED", "TRACK TRANSPOSE", "RESERVED VOICES", "UNISON VOICES",
+    "UNISON SPREAD", "LAYER TRACKS", "KEYBOARD SCALE", "KEYBOARD ROOT", "KEYBOARD FOLD", "KEYBOARD CHORD", "QUANTIZE MICRO TIMING"};
+static const char *const LONG_PF[] = {"TEMPO", "SWING", "LENGTH MODE", "MASTER LENGTH", "CHANGE LENGTH", "VOICE STEALING",
+    "VOICE REUSE"};
+static const char *const LONG_EU[NEU_] = {"EUCLID LENGTH", "EUCLID HITS", "EUCLID ROTATION", "EUCLID STYLE", "ACCENT HITS",
+    "ACCENT ROTATION", "GHOST NOTES", "HIT CHANCE", "NOTE MODE", "NOTE RANGE"};
+static const char *long_name(const item_t *it)
+{
+    static char b[32];
+    int eng = tsnd()->s[S_ENGINE];
+    switch (it->kind) {
+    case IK_SND:
+        if (drum_trk()) {                            /* a kit: the pad and what of it */
+            int k, j;
+            for (k = 0; k < NPAD; k++)
+                for (j = 0; j < 4; j++)
+                    if (DRP[k][j] == it->id) {
+                        static const char *const W[4] = {" TUNE", " DECAY", " TONE", " LEVEL"};
+                        tx_cpy(b, "PAD ");
+                        tx_cat(b, pad_label(k));
+                        tx_cat(b, W[j]);
+                        return b;
+                    }
+            if (it->id >= P_DA1 && it->id <= P_DPN8) {
+                int pd = (it->id - P_DA1) % 8, w = (it->id - P_DA1) / 8;
+                tx_cpy(b, "PAD ");
+                tx_cat(b, pad_label(pd));
+                tx_cat(b, " ");
+                tx_cat(b, w == 2 ? "PAN" : dr_ctl_name(tsnd()->s[S_DM1 + pd] % NDM, w));
+                return b;
+            }
+        }
+        if (eng == ENG_BR)                           /* (Braids' knobs in FM places) */
+            switch (it->id) {
+            case P_RATB: return "BRAIDS MODEL";
+            case P_ALEV: return "BRAIDS TIMBRE";
+            case P_BLEV: return "BRAIDS COLOR";
+            case P_HARM: return "BRAIDS TUNE";
+            case P_DTUN: return "BRAIDS HARD SYNC";
+            case P_FDBK: return "SIGNATURE SHAPER";
+            case P_OFSC: return "SUB OSCILLATOR";
+            default: break;
+            }
+        if (eng == ENG_VA)
+            switch (it->id) {
+            case V_WAV1: return "OSC 1 WAVEFORM";
+            case V_WAV2: return "OSC 2 WAVEFORM";
+            case V_SUB: return "SUB OSCILLATOR";
+            case V_TUNE2: return "OSC 2 TUNE";
+            case V_DETN: return "OSC 2 DETUNE";
+            case V_PW: return "PULSE WIDTH";
+            case V_MIX: return "OSC 1 / 2 MIX";
+            case V_SYNC: return "HARD SYNC";
+            case V_NOIS: return "NOISE";
+            case V_XMOD: return "CROSS MODULATION";
+            case V_DRFT: return "ANALOG DRIFT";
+            case V_PENV: return "PITCH ENV DEPTH";
+            case V_MENV: return "MOD ENV TO PW";
+            case V_FOLD: return "WAVEFOLDER";
+            case V_RING: return "RING MODULATION";
+            case P_AATK: return "PITCH ENV ATTACK";
+            case P_ADEC: return "PITCH ENV DECAY";
+            case P_AEND: return "PITCH ENV END";
+            case P_BATK: return "MOD ENV ATTACK";
+            case P_BDEC: return "MOD ENV DECAY";
+            case P_BEND: return "MOD ENV END";
+            case P_PHRT: return "OSC PHASE RESET";
+            default: break;
+            }
+        return it->id < NPARAM && LONG_P[it->id] ? LONG_P[it->id] : item_name(it);
+    case IK_TRK: case IK_FX: return it->id < NPARAM && LONG_P[it->id] ? LONG_P[it->id] : item_name(it);
+    case IK_SET: return it->id >= S_DM1 && it->id <= S_DM8 ? (tx_cpy(b, "PAD "), tx_cat(b, pad_label(it->id - S_DM1)),
+                                                               tx_cat(b, " MODEL"), b)
+                                                            : it->id < NSS && LONG_S[it->id] ? LONG_S[it->id] : item_name(it);
+    case IK_GLB: return it->id < (int)(sizeof LONG_GL / sizeof LONG_GL[0]) ? LONG_GL[it->id] : item_name(it);
+    case IK_TRKF: return it->id < (int)(sizeof LONG_TF / sizeof LONG_TF[0]) ? LONG_TF[it->id] : item_name(it);
+    case IK_PAT: return it->id < (int)(sizeof LONG_PF / sizeof LONG_PF[0]) ? LONG_PF[it->id] : item_name(it);
+    case IK_EUC: return it->id < NEU_ ? LONG_EU[it->id] : (tx_cpy(b, "EUCLID HITS PAD "), tx_cat(b, pad_label(it->id - EU_KIT0_)), b);
+    case IK_LVL: tx_cpy(b, "TRACK "); b[6] = (char)('1' + (it->id & 3)); b[7] = 0; tx_cat(b, " LEVEL"); return b;
+    case IK_ARPS: return it->id == AS_STEP_ ? "ARP STEP" : it->id == AS_OFS_ ? "ARP STEP OFFSET" : "ARP STEP ON";
+    case IK_MOD: {
+        static const char *const SRC[5] = {"VELOCITY", "MOD WHEEL", "AFTERTOUCH", "BREATH", "PITCH BEND"};
+        int slot = it->id >> 1;
+        tx_cpy(b, SRC[(slot / 4) % 5]);
+        tx_cat(b, (it->id & 1) ? " DEPTH " : " DEST ");
+        b[tx_len(b) + 1] = 0;
+        b[tx_len(b)] = (char)('1' + slot % 4);
+        return b;
+    }
+    default: return item_name(it);
+    }
+}
+
 
 /* the COND knob runs in the OS's list order [FIRMWARE 0x401a75f0]: 1 % .. 99 %, then none (100 %), FILL !FILL PRE
  * !PRE NEI !NEI 1ST !1ST, 1:2 .. 8:8; the trig keeps its C_* value */
@@ -493,6 +655,8 @@ static range_t item_range(const item_t *it)
         case GL_PCHG_: r.hi = 2; r.fmt = F_LIST; r.list = L_PCHG; break;
         case GL_INSHQ_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
         case GL_MUTEB_: r.hi = 1; r.fmt = F_LIST; r.list = L_MUTEB; break;
+        case GL_ZOOM_: case GL_ACCEL_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
+        case GL_PHOLD_: r.hi = 1; r.fmt = F_LIST; r.list = L_PHOLD; break;
         case GL_VELS_: r.hi = 1; r.fmt = F_LIST; r.list = L_VELS; break;
         case GL_VELF_: r.lo = 1; break;
         default: r.hi = 16; r.fmt = 249; break;       /* MIDI channels: 1..16, OFF */
@@ -586,7 +750,6 @@ static void tx_ratio(char *b, float r)
     } else
         tx_fix(b, x, 100, x >= 1000 ? 0 : 2);
 }
-static void tx_cat(char *d, const char *s) { while (*d) d++; while (*s) *d++ = *s++; *d = 0; }
 
 static void tx_len_idx(char *b, int li)
 {

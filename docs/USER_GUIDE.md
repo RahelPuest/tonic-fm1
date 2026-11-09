@@ -17,13 +17,13 @@ is live recording; SCL (the second page button) is FUNC; the page buttons open t
 | **PRESETS** knob | The track's sound (factory, then user library), a list window opens at the track's own sound: turning moves the cursor, OCT+ loads, OCT− closes; SCL+PRESETS: by group. HOME: the pattern. With a step held: a sound lock. Step recording: the active step. SAVE: the slot. |
 | **MASTER** | Volume. |
 | **SEQ** | TRIG page: NOTE, VEL, LEN, PROB / FLT.T, LFO.T, PTIM, PORT. Pressed a third time: the **piano roll** (below); a fourth: **RTRG** (retrig: on, rate, velocity fade). |
-| **EDIT** | SYN1 (ALGO, C, A, B / HARM, DTUN, FDBK, MIX), SYN1 2 (ratio offsets), SYN2 (operator envelopes A and B), SYN2 2 (delays, trig mode, reset, phase reset, **ENGINE** FM / VA / DRUM). Under VA: OSC, OSC 2, ENV, ENV 2; under DRUM: the kit's pads, LEVEL, KIT (below). |
+| **EDIT** | SYN1 (ALGO, C, A, B / HARM, DTUN, FDBK, MIX), SYN1 2 (ratio offsets), SYN2 (operator envelopes A and B), SYN2 2 (delays, trig mode, reset, phase reset, **ENGINE** FM / VA / DRUM). Under VA: OSC, OSC 2, ENV, ENV 2, SHAPE; then SETUP and PORTA (not on a kit); under DRUM: the kit's pads, LEVEL, KIT (below). |
 | **ENV** | FLTR (envelope / FREQ, RESO, TYPE, ENV), FLTR 2 (delay, BASE, WIDTH, key track), AMP (ADSR / DRV, PAN, VOL, AENR), AMP 2 (chorus, delay, reverb sends), LOFI (SRR sample-rate reduction, BRR bit reduction). |
-| **LFO** | LFO1, LFO2 (SPD, MULT, FADE, DEST / WAVE, SPH, MODE, DEP). |
+| **LFO** | LFO1, LFO2 (SPD, MULT, FADE, DEST / WAVE, SPH, MODE, DEP), MENV, the modulation pages. |
 | **FX** | CHORUS, DELAY, REVERB, MIXER (track levels, master overdrive, pattern volume, the DJ filter FILT), DUCK and PUMP (sidechain ducking, volume shaping), COMP. |
 | **ARP** | The arpeggiator (MODE, SPD, RNG, LEN / STEPS and each step's offset). |
-| **GLO** | TEMPO (BPM, swing, tempo mode, metronome, clock, quantize, velocity), SCALE (length mode, track length, speed, transpose, master and change length, MICRO: quantize after recording), VOICE (stealing, reuse, locked voices, unison, spread, layer), SETUP (key scaling, octave, play mode, note priority, velocity to volume, pitch bend), PORTA, VEL MOD / MODWHEEL / AFTERTCH / BREATH / PITCHBND (four destinations each), SONG, KEYBOARD (scale, root, fold, chord), MIDI (channels, MIDI tracks), DISPLAY (THEME: OLED, AMBER, PHOSPHOR, BLUE, PAPER). |
-| **HOME** | Tap: the overview (patterns, tracks, levels with K1–K4). **Hold: the MENU** (settings). The other held screens: see *Performing*. |
+| **GLO** | (0.20, as Hortator) only the project's and the device's: GLOBAL (BPM, swing, tempo mode, metronome, clock in / out, quantize, velocity, fixed velocity, mute timing) and MIDI (channels, MIDI tracks). The rest is where it belongs: the track's length, speed, transpose, MICRO, voices, keyboard scale and song on **SEQ** (TRACK, VOICE, KEYS, SONG); the sound's SETUP (play mode, priority, velocity to volume, pitch bend, key scaling, octave) and PORTA on **EDIT** after the engine's pages; the modulation pages (VEL MOD / MODWHEEL / AFTERTCH / BREATH / PITCHBND) on **LFO**. |
+| **HOME** | Tap: the overview (patterns, tracks, levels with K1–K4). **Hold: the MENU**: THEME (ten), ZOOM (the value pop-up), ACCEL (knob acceleration), PERF (PERFORM while FX is held, or as a page), INSHQ. The other held screens: see *Performing*. |
 | **SAVE** | The save page. **SCL+SAVE**: save everything now. |
 | **PLAY** | Start / stop. SCL+PLAY: stop and cut the effects' tails. |
 | **REC** | Grid recording on / off. **REC+PLAY**: live recording (PLAY again while holding REC: quantize on/off). **SCL+REC**: step recording. |
@@ -52,7 +52,7 @@ the parameters the Digitone shows with two decimals); a fast turn moves in whole
    dotted multipliers); MODE: free, trigged, held, one-shot, half. LFO2 can also move LFO1. DEP, as on the
    Digitone, moves the destination by 2 of its units per DEP step: on PITCH, DEP 0.25 is a half-semitone vibrato and
    1.00 is ±2 semitones (the knob moves in 1/16 steps near zero).
-6. Play it on the keys (velocity-sensitive; GLO > TEMPO > VEL sets fixed velocity instead). GLO > SETUP and the
+6. Play it on the keys (velocity-sensitive; GLO > GLOBAL > VEL sets fixed velocity instead). EDIT > SETUP and the
    modulation pages route velocity, mod wheel, aftertouch, breath and pitch bend from MIDI to any parameter.
 7. Keep it: SAVE > SOUND > LIBRARY (32 user slots, chosen with PRESETS) or SOUND > POOL (16 slots: the sounds a
    pattern can sound-lock).
@@ -79,7 +79,7 @@ A short tap of the page button steps to its next row as before.
 
 **Live recording** (hold REC, press PLAY): play the keys; notes are written with their timing (quantized if set) and
 length; chords on one step become chords. Turning a knob records locks. PLAY leaves live recording, PLAY again stops.
-To quantize afterwards: GLO, SCALE (second row), K4 **MICRO** shows the track's largest micro timing; turning it down
+To quantize afterwards: SEQ > TRACK (second row), K2 **MICRO** shows the track's largest micro timing; turning it down
 shrinks every offset on the track in proportion, 0 puts all trigs on the grid.
 
 **Piano roll** (SEQ, third page): the active track's notes, steps across and pitch upwards; each note is a bar as
@@ -92,12 +92,14 @@ turn.
 **Step recording** (SCL+REC): the keys are a keyboard again; play a note or a chord and it is written to the active
 step, which then moves on. PRESETS moves the active step; knob turns lock the active step.
 
-**Lengths and speed:** GLO > SCALE: per-pattern or per-track length (2–64 steps), speed (1/8X–2X), master length
+**Lengths and speed:** SEQ > TRACK: per-pattern or per-track length (2–64 steps), speed (1/8X–2X), master length
 and change length. Different track lengths make polymeters.
 
-**Swing, tempo:** GLO > TEMPO, or SELECT on HOME.
+**Swing, tempo:** GLO > GLOBAL, or SELECT on HOME.
 
-**Song:** GLO > SONG. ROW picks the row to edit (a higher row lengthens the song), PTN its pattern, REPEAT how
+**The screen** (0.20): the edited row's values sit in filled boxes, the names stay plain; the tab line shows only the page shown and its row (3/11). Turning a knob, the pop-up shows the parameter's full name (FILTER ENV DEPTH, OP A LEVEL). MENU > ZOOM OFF turns the pop-up off, ACCEL OFF makes every detent one step.
+
+**Song:** SEQ > SONG. ROW picks the row to edit (a higher row lengthens the song), PTN its pattern, REPEAT how
 often it plays, MUTE which tracks are muted in it; on the second row SONG switches song mode on, ROWS sets the
 song's length, END loops or stops at the end. With song mode on, PLAY starts the song from its first row.
 
@@ -138,7 +140,7 @@ song's length, END loops or stops at the end. With song mode on, PLAY starts the
   LEV, and SRR / BRR on any sound.
 - **SHAPE** (VA, 0.6): FOLD (a wavefolder) and RING (ring modulation OSC1 × OSC2), 0–63; both 0 is the VA as before.
 - **EUCLID** (SEQ's fifth page on, 0.6 / 0.8): LEN, HITS, ROT, STYLE (named rhythms); EUC ACC: ACC, AROT, GHOST,
-  PROB; EUC NOTE (a melodic track): NOTES (FIXED, UP, UP DN, RAND, CHORD), RANGE; a kit: KIT 1-4 / 5-8, every
+  PROB (EUC NOTE is gone since 0.20); a kit: KIT 1-4 / 5-8, every
   pad's HITS. Each turn writes the track (a kit: the picked pad); undo takes it back; the circle shows the rhythm.
 - **CHORD** (ARP group, 0.6 / 0.8): CHORD (22 chords, SCL3 / SCL4 from the keyboard scale), INV, VOICE (CLOSE, OPEN,
   DROP2, WIDE), BASS / STRUM (ms), DIR: every note of the sound becomes that chord, with the arp off too (keys, trigs,
@@ -197,6 +199,6 @@ with `python3 base/tools/fm1_backup.py backup FILE` (and `restore FILE`).
 USB MIDI in and out (the FM-1's TRS jack is MIDI in only). Channels 1–4 play tracks 1–4 (GLO > MIDI > TRK CH); the
 auto channel plays the active track. CC numbers follow the Digitone's for the sound parameters (CC 90 ALGO, 23 FREQ,
 7 VOL, …: Appendix B of its manual), 94 mutes, 95 is the track level; program change picks a pattern. The sequencer's
-notes go out on each track's MIDI channel (GLO > MIDI), and MIDI clock in and out can be switched on (GLO > TEMPO).
+notes go out on each track's MIDI channel (GLO > MIDI), and MIDI clock in and out can be switched on (GLO > GLOBAL).
 **EXT** (GLO > MIDI; MIDI TRK before 0.9.1) makes the active track a MIDI track: its trigs, chords, locks of NOTE/VEL/LEN, conditions,
 micro timing and arpeggios play an external instrument over USB-MIDI, and no internal voice.
