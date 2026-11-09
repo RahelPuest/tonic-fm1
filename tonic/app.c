@@ -10,11 +10,6 @@
 #include <stdint.h>
 #endif
 
-#if defined(__has_include)
-#if __has_include("tonic_cpu1test.h")
-#include "tonic_cpu1test.h"                         /* tools/cpu1test_build.sh: the CPU1 test firmware */
-#endif
-#endif
 /* the engine's buffers: HARM tables, chorus, reverb, delay (the delay takes what is left) */
 #define ENGINE_POOL (210u * 1024u + (NVOICE - 8u) * 1028u + BR_AREA - 32768u + ENG_DUAL_BYTES + ENG_FXRAM_BYTES - 2016u)   /* (of the delay line: 12 KB went to undo, 6 KB to the
                                          * full-resolution screen, 2 KB to the drum kits' sounds; 0.11: each voice past
@@ -22,13 +17,7 @@
                                          * undo's pattern copy came back, COPY's buffer went to RAMTEXT: as long; 0.14:
                                          * the BRAIDS area in, the reverb's 32 KB at 16 bits out: as long; 0.17: the
                                          * chorus line and the pre-delay in, the 2016 B the delay's rounding left out) */
-#ifdef TONIC_CPU1TEST
-static uint8_t engine_pool[ENGINE_POOL - 24u * 1024u] PLAT_POOL;   /* (the test's buffer and core 1's stacks) */
-#undef ENGINE_POOL
-#define ENGINE_POOL (210u * 1024u + (NVOICE - 8u) * 1028u + BR_AREA - 32768u + ENG_DUAL_BYTES + ENG_FXRAM_BYTES - 2016u - 24u * 1024u)
-#else
 static uint8_t engine_pool[ENGINE_POOL] PLAT_POOL;
-#endif
 
 static void demo_check(void);
 static int step_held_any(void);
@@ -44,9 +33,6 @@ static void mark_dirty(void);
 #include "draw.c"
 #include "midi.c"
 #include "app/cpu1.c"                               /* (0.16) the second core */
-#ifdef TONIC_CPU1TEST
-#include "app/cpu1test.c"
-#endif
 
 #if defined(__has_include)
 #if __has_include("tonic_bench.h")
@@ -140,11 +126,7 @@ void app_init(void)
 #ifdef TONIC_BENCH
     bench_setup();
 #endif
-#ifdef TONIC_CPU1TEST
-    c1t_init();                                      /* (the CPU1 test runs first) */
-#else
     c1_engine_start();                               /* (0.16) part of the voices on the second core */
-#endif
 }
 
 static void mo_render(uint32_t n, int begin);
@@ -153,9 +135,6 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     mo_render(n, 1);
     engine_render(lr, n, master_q12);
     mo_render(n, 0);
-#ifdef TONIC_CPU1TEST
-    c1t_audio();                                     /* (the CPU1 test: core 1 in the audio block) */
-#endif
 }
 void app_panic(void) { engine_panic(); }
 void app_overload(void) { engine_shed(); }
@@ -169,11 +148,6 @@ void app_ui_init(void)
 
 void app_frame(void)
 {
-#ifdef TONIC_CPU1TEST
-    if (c1t_frame())                                 /* (the CPU1 test's page first; no saving while it runs) */
-        return;
-#endif
-    c1_poll();                                       /* (0.17) a fault on core 1 noted */
     if (boot_skipped >= 0) {                         /* (0.17) after a failed start: say which pattern was left out */
         char b[16];
         pat_name(boot_skipped, b);
@@ -205,10 +179,6 @@ void app_frame(void)
 
 void app_input_only(void)
 {
-#ifdef TONIC_CPU1TEST
-    if (c1t.active)                                  /* (the CPU1 test's page takes no input but HOME) */
-        return;
-#endif
     ui_input();
     midi_poll();
 }
@@ -466,7 +436,7 @@ int app_expect(const char *what, int *got)
     else if (!strcmp(what, "mlen")) *got = pcur->mlen;
     else if (!strcmp(what, "chlen")) *got = pcur->chlen;
     else if (!strncmp(what, "set", 3) && what[3] >= '0' && what[3] <= '9') *got = tsnd()->s[atoi(what + 3) % NSS];   /* setID */
-    else if (!strcmp(what, "nlock")) { int i, n = 0; for (i = 0; i < pcur->nlock; i++) n += pcur->lock[i].f.param != P_NONE; *got = n; }
+    else if (!strcmp(what, "nlock")) { int i, n = 0; for (i = 0; i < pcur->nlock; i++) n += pcur->lock[i].f.param != PRM_NONE; *got = n; }
     else if (!strcmp(what, "ntrig")) { int s, n = 0; for (s = 0; s < NSTEP; s++) n += (pcur->trig[ui.trk][s].flags & (TF_NOTE | TF_LOCK)) != 0; *got = n; }
     else if (!strcmp(what, "steprec")) *got = ui.steprec;
     else if (!strcmp(what, "stepcur")) *got = ui.step_cur;

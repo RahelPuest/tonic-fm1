@@ -10,7 +10,7 @@ void track_init(track_t *t);
 /* the lock pool: one value per (track, step, parameter) */
 int lock_get(const pattern_t *p, int trk, int step, int param, int16_t *val);   /* 1 = locked */
 int lock_set(pattern_t *p, int trk, int step, int param, int val);   /* 0 ok, -1 the pool is full */
-void lock_clear(pattern_t *p, int trk, int step, int param);         /* param P_NONE: every lock of the step */
+void lock_clear(pattern_t *p, int trk, int step, int param);         /* param PRM_NONE: every lock of the step */
 int lock_count(const pattern_t *p, int trk, int step);
 void lock_compact(pattern_t *p);                  /* drop free entries (main loop, never while the render reads) */
 void trig_flags_update(pattern_t *p, int trk, int step);   /* TF_PLOCK / TF_SLOCK from the pool */

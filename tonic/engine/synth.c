@@ -37,10 +37,10 @@ const char *const DEST_NAME[ND] = {
     "I AMT", "I TON", "I MIX",
 };
 const uint8_t DEST_PARAM[ND] = {
-    P_NONE,
+    PRM_NONE,
     P_ALGO, P_RATC, P_RATA, P_RATB, P_HARM, P_DTUN, P_FDBK, P_MIX,
     P_AATK, P_ADEC, P_AEND, P_ALEV, P_BATK, P_BDEC, P_BEND, P_BLEV, P_ADEL, P_BDEL,
-    P_NONE, P_NONE, P_NONE, P_NONE, P_NONE, P_NONE, P_NONE, P_NONE,
+    PRM_NONE, PRM_NONE, PRM_NONE, PRM_NONE, PRM_NONE, PRM_NONE, PRM_NONE, PRM_NONE,
     P_OFSC, P_OFSA, P_OFSB1, P_OFSB2,
     P_FREQ, P_RESO, P_FENV, P_FATK, P_FDEC, P_FSUS, P_FREL, P_BASE, P_WDTH, P_FDEL,
     P_EATK, P_EDEC, P_ESUS, P_EREL, P_DRV, P_PAN, P_VOL, P_REV, P_DEL, P_CHR,
@@ -48,7 +48,7 @@ const uint8_t DEST_PARAM[ND] = {
     P_SRR, P_BRR,
     P_D5TUN, P_D5DEC, P_D5TON, P_D5LEV, P_D6TUN, P_D6DEC, P_D6TON, P_D6LEV,
     P_D7TUN, P_D7DEC, P_D7TON, P_D7LEV, P_D8TUN, P_D8DEC, P_D8TON, P_D8LEV,
-    P_NONE, P_NONE, P_NONE, P_NONE,
+    PRM_NONE, PRM_NONE, PRM_NONE, PRM_NONE,
     P_IAMT, P_ITON, P_IMIX,
 };
 
@@ -814,7 +814,7 @@ static void voice_control(voice_t *v, int core)
             for (j = 0; j < NMSLOT; j++)
                 if (s->mdst[k][j] && s->mdst[k][j] < ND) {
                     int d = s->mdst[k][j];
-                    float sp = DEST_PARAM[d] != P_NONE ? spanof(DEST_PARAM[d]) : d == D_PITCH || d == D_PITCHAB2 ? 24.0f : 127.0f;
+                    float sp = DEST_PARAM[d] != PRM_NONE ? spanof(DEST_PARAM[d]) : d == D_PITCH || d == D_PITCHAB2 ? 24.0f : 127.0f;
                     if (other && DEST_PARAM[d] <= P_BRST) {   /* the VA / DRUM engine's range */
                         const pdesc_t *pd = param_desc(eng, DEST_PARAM[d]);
                         sp = (float)(pd->hi - pd->lo) / (float)pd->q;
@@ -2124,8 +2124,7 @@ ENG_RAMCODE void voice_block(voice_t *v, float *dl, float *dr, float *sc, float 
             /* (0.17) the shapers at twice the rate: up through a 15-tap halfband, shaped, down through it again;
              * HB_D samples late in all, so the dry signal waits as long (MIX without a comb). The scratch is the
              * core's own (both cores render voices) */
-            char here;
-            float *sc = ins_scr[(uintptr_t)&here - eng_c1_stack_lo < eng_c1_stack_hi - eng_c1_stack_lo];
+            float *sc = ins_scr[ENG_CORE()];
             float *xe = sc, *ue = sc + HB_D + CR, *u = ue + 2 * HB_D;
             int j;
             for (i = 0; i < HB_D; i++)

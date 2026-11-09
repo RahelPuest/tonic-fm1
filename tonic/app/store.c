@@ -38,7 +38,10 @@ typedef struct {
     uint8_t ins_lq;               /* (0.17) GLO > SYSTEM > INSHQ OFF: the inserts at the base rate */
     uint8_t mute_bar;             /* (0.18) the MUTE screen's mutes at the next bar */
     uint8_t no_zoom, no_accel, perf_page;   /* (0.20) MENU: no value pop-up, no knob acceleration, PERFORM stays */
-    uint8_t rsv[21];
+    uint8_t bt_off;               /* (0.27) MENU > BT OFF: no Bluetooth (an older record: 0, on) */
+    uint8_t ble_ok;               /* (0.27) ble below holds the radio's address */
+    uint8_t rsv[19];
+    struct plat_ble_rec ble;      /* (0.27) Bluetooth's record (APP_BLE_STORE): our address; older records end before */
 } settings_t;
 static settings_t set;
 
@@ -184,13 +187,13 @@ static int pack_squeeze(pattern_t *p)
 {
     int n = pattern_pack(p, pack_buf, PLAT_STORE_MAX), i, dropped = 0;
     while (n < 0 && p->nlock) {
-        for (i = p->nlock - 1; i >= 0 && p->lock[i].f.param == P_NONE; i--)
+        for (i = p->nlock - 1; i >= 0 && p->lock[i].f.param == PRM_NONE; i--)
             ;
         if (i < 0)
             break;
         {
             plock_t l = p->lock[i];
-            l.f.param = P_NONE;
+            l.f.param = PRM_NONE;
             p->lock[i].w = l.w;
         }
         dropped = 1;
@@ -609,3 +612,20 @@ void app_backup_restored(void)
     store_boot();
     demo_check();
 }
+
+/* (0.27) Bluetooth's record in the settings (APP_BLE_STORE): its address made once, kept across starts */
+int app_ble_load(struct plat_ble_rec *r)
+{
+    if (!set.ble_ok)
+        return 0;
+    *r = set.ble;
+    return 1;
+}
+int app_ble_save(const struct plat_ble_rec *r)
+{
+    set.ble = *r;
+    set.ble_ok = 1;
+    set_dirty = 1;
+    return 0;
+}
+int app_bt_at_boot(void) { return !set.bt_off; }

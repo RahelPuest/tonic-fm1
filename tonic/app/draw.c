@@ -1962,6 +1962,9 @@ static void o_menu(void)                             /* HOME held: the settings 
     }
     o_ink = K_DIM;
     tx_cpy(v, engine_dual_on() ? "TWO CPU CORES" : "ONE CPU CORE");
+    o_ts(0, 93, v, 1);
+    tx_cpy(v, set.bt_off ? "BLUETOOTH OFF" : plat_ble_connected() ? "BLUETOOTH CONNECTED" :   /* (0.27) */
+              plat_ble_state() == BLE_FAILED ? "BLUETOOTH FAILED" : "BLUETOOTH: CONNECT TONIC");
     o_ts(0, 100, v, 1);
     o_ts(0, 108, "SELECT ROW  KNOB VALUE", 1);
     o_ts(0, 115, "OCT- OR HOME: CLOSE", 1);

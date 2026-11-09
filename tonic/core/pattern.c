@@ -59,7 +59,7 @@ void pattern_init(pattern_t *p)
         }
     }
     for (i = 0; i < NLOCK; i++)
-        p->lock[i].f.param = P_NONE;
+        p->lock[i].f.param = PRM_NONE;
 }
 
 int pattern_empty(const pattern_t *p)
@@ -91,7 +91,7 @@ int lock_count(const pattern_t *p, int trk, int step)
     int i, n = 0;
     uint8_t key = LOCK_KEY(trk, step);
     for (i = 0; i < p->nlock; i++)
-        n += p->lock[i].f.param != P_NONE && p->lock[i].f.step == key;
+        n += p->lock[i].f.param != PRM_NONE && p->lock[i].f.step == key;
     return n;
 }
 
@@ -100,7 +100,7 @@ void trig_flags_update(pattern_t *p, int trk, int step)
     int i, pl = 0, sl = 0;
     uint8_t key = LOCK_KEY(trk, step);
     for (i = 0; i < p->nlock; i++)
-        if (p->lock[i].f.param != P_NONE && p->lock[i].f.step == key) {
+        if (p->lock[i].f.param != PRM_NONE && p->lock[i].f.step == key) {
             if (p->lock[i].f.param == P_SOUND)
                 sl = 1;
             else
@@ -123,7 +123,7 @@ int lock_set(pattern_t *p, int trk, int step, int param, int val)
             p->lock[i].w = l.w;
             return 0;
         }
-        if (fr < 0 && p->lock[i].f.param == P_NONE)
+        if (fr < 0 && p->lock[i].f.param == PRM_NONE)
             fr = i;
     }
     if (fr < 0) {
@@ -146,9 +146,9 @@ void lock_clear(pattern_t *p, int trk, int step, int param)
     int i;
     uint8_t key = LOCK_KEY(trk, step);
     for (i = 0; i < p->nlock; i++)
-        if (p->lock[i].f.step == key && p->lock[i].f.param != P_NONE && (param == P_NONE || p->lock[i].f.param == param)) {
+        if (p->lock[i].f.step == key && p->lock[i].f.param != PRM_NONE && (param == PRM_NONE || p->lock[i].f.param == param)) {
             plock_t l = p->lock[i];
-            l.f.param = P_NONE;
+            l.f.param = PRM_NONE;
             p->lock[i].w = l.w;
         }
     trig_flags_update(p, trk, step);
@@ -158,10 +158,10 @@ void lock_compact(pattern_t *p)
 {
     int i, j = 0;
     for (i = 0; i < p->nlock; i++)
-        if (p->lock[i].f.param != P_NONE)
+        if (p->lock[i].f.param != PRM_NONE)
             p->lock[j++].w = p->lock[i].w;
     for (i = j; i < p->nlock; i++)
-        p->lock[i].f.param = P_NONE;
+        p->lock[i].f.param = PRM_NONE;
     p->nlock = (uint16_t)j;
 }
 
@@ -490,10 +490,10 @@ int pattern_pack(const pattern_t *p, uint8_t *out, int max)
     }
     n = 0;
     for (i = 0; i < p->nlock; i++)
-        n += p->lock[i].f.param != P_NONE;
+        n += p->lock[i].f.param != PRM_NONE;
     w16(&w, n);
     for (i = 0; i < p->nlock; i++)
-        if (p->lock[i].f.param != P_NONE) {
+        if (p->lock[i].f.param != PRM_NONE) {
             w8(&w, p->lock[i].f.step);
             w8(&w, p->lock[i].f.param);
             w16(&w, p->lock[i].f.val);

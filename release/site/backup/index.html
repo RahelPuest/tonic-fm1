@@ -64,6 +64,10 @@ progress { width: 100%; height: 6px; margin: .2rem 0 1rem; accent-color: var(--t
 progress[hidden] { display: none; }
 ul.small, p.small { color: var(--muted); font-size: .92rem; }
 ul.small { padding-left: 1.1rem; margin: 0; }
+ul.ports { list-style: none; padding: 0; margin: 0 0 .6rem; }
+ul.ports li { display: flex; gap: .6rem; align-items: center; margin: 0 0 .4rem; }
+.ask { border-top: 1px solid var(--rule); margin-top: .9rem; padding-top: .8rem; }
+.ask p { color: var(--ink); }
 kbd { font: 600 .9em "Barlow Semi Condensed", "Barlow", sans-serif; border: 1px solid var(--rule); border-bottom-width: 2px;
       border-radius: 4px; padding: 0 .3em; background: var(--ground); }
 </style>
@@ -77,6 +81,13 @@ cable. This page works in Chrome or Edge, and there is nothing to install.</p>
 <!-- what is happening, in words: the status (polite) and, when something fails, the alert (read at once) -->
 <div class="status" id="statusBox"><p id="status" role="status">Plug the FM-1 running TONIC into this computer with a USB cable.</p><p id="alert" role="alert"></p></div>
 <progress id="bar" max="100" value="0" hidden aria-label="Backup progress"></progress>
+<section class="card" id="portpick" aria-labelledby="ph" hidden>
+  <h2 id="ph">Is the FM-1 under another name?</h2>
+  <p>A computer can show an FM-1's port under another device's name (a Mac remembers names by USB socket). This page asks
+  only the ports with an FM-1's usual names by itself. If your FM-1 is in this list, press Try on it.</p>
+  <ul id="portlist" class="ports"></ul>
+  <p id="pickstatus" role="status"></p>
+</section>
 
 <section class="card" aria-labelledby="bh">
   <h2 id="bh">Back up</h2>
@@ -95,6 +106,14 @@ cable. This page works in Chrome or Edge, and there is nothing to install.</p>
     <button id="restore" class="primary" type="button" disabled>Restore</button>
   </div>
   <p class="file" id="fileInfo" hidden></p>
+  <!-- asked in the page, not with confirm(): an iOS app showing pages (MIDIWeb) may not show confirm() and answers no -->
+  <div class="ask" id="ask" role="group" aria-labelledby="askText" hidden>
+    <p id="askText"></p>
+    <div class="row">
+      <button id="askYes" class="primary" type="button">Replace everything</button>
+      <button id="askNo" class="quiet" type="button">Cancel</button>
+    </div>
+  </div>
 </section>
 
 <ul class="small">
@@ -111,13 +130,15 @@ cable. This page works in Chrome or Edge, and there is nothing to install.</p>
 const FW = { name: "TONIC", id: "FM-1_47", magic: "TNT1", version: Number("1"), ext: "bak" };
 const PB = (() => {
   const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];   // fm1_install.py / fm1ota.js
+  // the one with the body 01: the whole identity (HS_QUERY gets NAME_ and three digits, M-UPGRADE 3.11's limit)
+  const HS_FULL = [0xF0, 0x00, 0x32, 0x45, 0x08, 0x00, 0x00, 0x40, 0x00, 0x7E, 0x01, 0xF7];
   const RS_REQ = 0x41, BU_REQ = 0x42, BU_END = 0x43;
   const OK_ADDR = 0xC0000000, ASK_ADDR = 0xC1000000, FAIL_ADDR = 0xCF000000;
   const NAME = FW.name, MAGIC = [...FW.magic].map((c) => c.charCodeAt(0)), VERSION = FW.version;   // app.h's
   const HEAD = 16, REC = 8, PAYLOAD_MAX = 3840, MAXDATA = 512;
   const PLAYING = 10, DECLINED = 11;
   const ID = FW.id;                                                // the firmware's package identity (its prefix)
-  const DELAY = { poll: 500, idle: 10000, ask: 75000, first: 3000, hs: 1000 };   // ms, as fm1_backup.py
+  const DELAY = { poll: 500, idle: 10000, ask: 75000, first: 3000, hs: 1000, hsFull: 600 };   // ms, as fm1_backup.py
   const ERRORS = {
     1: "the file's size", 2: "the transfer (a piece of the file did not arrive)", 3: "the file's head",
     4: "a part's header", 5: "a part's check (a byte changed on the way)", 6: "the whole file's check",
@@ -193,7 +214,8 @@ const PB = (() => {
     if (pkt.length < 2 || pkt[0] !== 0xF0 || pkt[pkt.length - 1] !== 0xF7) return null;
     const d = unpack7(pkt.slice(1, -1));
     if (d.length !== 34 || d[0] !== 0 || d[1] !== 0x59 || d[2] !== 0x11) return null;
-    const txt = String.fromCharCode(...d.slice(6, 33)).replace(/\0+$/, "");
+    const z = d.indexOf(0, 6);                   // the text up to its first zero (bytes after it may carry data)
+    const txt = String.fromCharCode(...d.slice(6, z < 0 || z > 33 ? 33 : z));
     return /^[^_]+_\d+$/.test(txt) ? txt : null;
   }
 
@@ -262,41 +284,183 @@ const PB = (() => {
     return `${used} of ${objs.length} parts with something saved (${total.toLocaleString("en")} bytes)`;
   }
 
+  // send a handshake -> the identity answered, null (no answer in ms), false (the send failed)
+  async function ask(link, query, ms) {
+    if (!link.send(query)) return false;
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      const p = await link.read(end - Date.now());
+      if (!p) break;
+      const id = parseIdentity(p);
+      if (id) return id;
+    }
+    return null;
+  }
+  // the identity (fm1ota.js handshake): HS_QUERY, then HS_FULL when the answer is NAME_ and three digits; the plain
+  // answer when nothing answers HS_FULL (M-VAVE's, an older build)
   async function handshake(link, tries = 2) {
     link.drain();
     for (let t = 0; t < tries; t++) {
-      if (!link.send(HS_QUERY)) return null;
-      const end = Date.now() + DELAY.hs;
-      while (Date.now() < end) {
-        const p = await link.read(end - Date.now());
-        if (!p) break;
-        const id = parseIdentity(p);
-        if (id) return id;
-      }
+      const id = await ask(link, HS_QUERY, DELAY.hs);
+      if (id === false) return null;
+      if (id === null) continue;
+      if (/^ota-/i.test(id) || !/^[^_]+_\d{3}$/.test(id)) return id;
+      const full = await ask(link, HS_FULL, DELAY.hsFull);
+      return full && full.split("_")[0] === id.split("_")[0] && full.startsWith(id) ? full : id;
     }
     return null;
   }
 
-  // the first MIDI port pair that answers as an FM-1 (ports named after the firmware first); a Link from makeLink(input, output)
-  const NAME_RE = new RegExp(NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-  async function find(access, makeLink) {
-    const ins = [...access.inputs.values()].filter((p) => p.state !== "disconnected" &&
-      (NAME_RE.test(p.name || "") || /fm-?1|felucca|composite|sinco|usb-midi/i.test(p.name || "")));   // never probe other gear
-    ins.sort((a, b) => NAME_RE.test(b.name) - NAME_RE.test(a.name));
-    const outs = [...access.outputs.values()];
-    const base = (s) => (s || "").replace(/\s+\d+$/, "");
-    let other = null;
-    for (const input of ins) {
-      const same = outs.filter((o) => base(o.name) === base(input.name));
-      const output = outs.find((o) => o.name === input.name) || (same.length === 1 ? same[0] : null) || (outs.length === 1 ? outs[0] : null);
-      if (!output) continue;
-      try { await input.open(); await output.open(); } catch (_) { continue; }
-      const link = makeLink(input, output);
-      const id = await handshake(link);
-      if (id && id.startsWith(ID)) return { link, id, name: input.name };
-      if (id) other = other || id;
-      link.close();
+  // finding FM-1s on Web MIDI: web/fm1ports.js, inlined by tools/make_site.py
+  // SPDX-License-Identifier: MPL-2.0
+// Copyright (C) 2026 Charles Vestal
+// Copyright (C) 2026 Chris Farrell (the FM-1's usual port names, and other ports asked only once allowed: from
+//   fm-static, github.com/seajaysec/fm-static, by his permission under MPL-2.0: seajaysec/fm-static#1)
+//
+// Finding FM-1s on Web MIDI, one copy for every page: fm1-base's installer (through fm1ota.js) and backup page, and
+// the FM-1 Screen Reader's page (fm1-reader web/reader.js). fm1-reader keeps a copy of this file, made and checked by
+// its tools/sync_announce.sh: change it here.
+//
+// A port is asked who it is in one of two ways:
+//  - The screen reader's HELLO (fm1-reader PROTOCOL.md): F0 7D 53 52 01 01 F7. 7D is the ID for non-commercial use,
+//    which other gear ignores, so a HELLO goes to every port, ASK_TRIES times while the port stays plugged in. Every
+//    firmware on fm1-base answers it (device/announce.c) with its name and the link to its words file, whatever its
+//    port is called. M-VAVE's firmware and the update loader don't.
+//  - The update protocol's identity query (fm1ota.js handshake): M-VAVE's own SysEx, which the stock firmware and the
+//    loader answer too. It goes only to an askable port: one with a usual name (PORT_NAMES), one the user picked, or
+//    one that answered a HELLO.
+// A HELLO answer is told from the HELLO itself by the name in it: a loopback (macOS's IAC bus, a DAW's MIDI through)
+// sends the HELLO back as it went out, with no name.
+
+// port names asked without being picked (any case, part of the name). "FM1": the Open firmware's "FM1 Community"
+// The FM-1 firmwares of the family name their own port after themselves (an FM-1 running one shows as that name alone):
+// "optimist", "sloop", "melodee", "loom-8" / "loom8", as tools/fm1ports.py asks them too.
+const PORT_NAMES = ["fm-1", "fm1", "felucca", "ota", "composite", "sinco", "usb-midi", "optimist", "sloop", "melodee", "loom-8", "loom8"];
+function usualName(name, names = PORT_NAMES) {
+  const n = (name || "").toLowerCase();
+  return names.some((p) => n.includes(p));
+}
+
+const livePorts = (map) => [...map.values()].filter((p) => p.state !== "disconnected");
+
+// an input's output: the one with its name; else the only one with its name but for a number at the end (Windows
+// numbers each port); else the only output there is. null: none
+function outputFor(access, input) {
+  const outs = livePorts(access.outputs);
+  const bare = (s) => (s || "").replace(/\s+\d+$/, "");
+  const same = outs.filter((o) => bare(o.name) === bare(input.name));
+  return outs.find((o) => o.name === input.name) || (same.length === 1 ? same[0] : null) ||
+    (outs.length === 1 ? outs[0] : null);
+}
+
+// every plugged-in input that has an output: [{ name, input, output }]
+function pairs(access) {
+  return livePorts(access.inputs).map((input) => ({ name: input.name || "", input, output: outputFor(access, input) }))
+    .filter((p) => p.output);
+}
+
+// ---------------------------------------------------------------- the screen reader's HELLO (fm1-reader PROTOCOL.md)
+const SR = [0x7D, 0x53, 0x52];
+const SR_HELLO = 1, SR_BYE = 2, SR_WHERE = 3, SR_SAY = 16, SR_VER = 1;
+const ASK_TRIES = 3;
+const srFrame = (cmd, ...args) => [0xF0, ...SR, cmd, ...args, 0xF7];
+const isSr = (d) => !!d && d[0] === 0xF0 && d[1] === SR[0] && d[2] === SR[1] && d[3] === SR[2];
+
+// a HELLO answer -> { name, words } (words: the https link to its words file, or ""), or null when it is none: a
+// HELLO sent back by a loopback has no name
+function srHello(d) {
+  if (!isSr(d) || d[4] !== SR_HELLO || d[d.length - 1] !== 0xF7) return null;
+  const [name = "", words = ""] = String.fromCharCode(...Array.from(d.slice(6, d.length - 1)).filter((b) => b < 128))
+    .split("\0");
+  if (!name) return null;
+  return { name, words: /^https:\/\/[^\s"']+\.json$/.test(words) ? words : "" };
+}
+
+// which outputs a HELLO goes to now: every output ASK_TRIES times after it appears, then only the ones that answered
+// (a reader keeps those listening). Other gear on the computer gets three short SysEx it ignores, not one every two
+// seconds. forget(id) when a port is unplugged or lost: it is asked again
+class Asking {
+  constructor(tries = ASK_TRIES) { this.tries = tries; this.n = new Map(); }
+  due(output, answered = false) {
+    const k = this.n.get(output.id) || 0;
+    if (!answered && k >= this.tries) return false;
+    this.n.set(output.id, k + 1);
+    return true;
+  }
+  forget(id) { this.n.delete(id); }
+  clear() { this.n.clear(); }
+}
+
+// one search: the port pairs that answer a HELLO -> [{ name, firmware, words, input, output }] (firmware: the name
+// and version it gives, e.g. "X0X 1.1"). Asks up to `tries` times, `ms` apart, stopping when every port has answered;
+// skip(name): ports not to ask. No BYE after it: a device stops by itself 5 s after the last HELLO, and a BYE would
+// also stop a reader page that is listening to it
+async function askAll(access, { ms = 500, tries = ASK_TRIES, skip = () => false } = {}) {
+  const ps = pairs(access).filter((p) => !skip(p.name));
+  const got = new Map();
+  const ears = ps.map((p) => [p, (e) => {
+    const h = srHello(e.data);
+    if (h && !got.has(p.input)) got.set(p.input, { name: p.name, firmware: h.name, words: h.words, input: p.input, output: p.output });
+  }]);
+  for (const [p, f] of ears) {
+    try { await p.input.open(); } catch (_) { /* taken: it answers nothing */ }
+    p.input.addEventListener("midimessage", f);
+  }
+  try {
+    for (let t = 0; t < tries && got.size < ps.length; t++) {
+      const sent = new Set();
+      for (const p of ps) {
+        if (got.has(p.input) || sent.has(p.output)) continue;
+        sent.add(p.output);
+        try { p.output.send(srFrame(SR_HELLO, SR_VER)); } catch (_) { /* unplugged */ }
+      }
+      await new Promise((r) => setTimeout(r, ms));
     }
+  } finally {
+    for (const [p, f] of ears) p.input.removeEventListener("midimessage", f);
+  }
+  return [...got.values()];
+}
+
+  // the first MIDI port pair that answers as an FM-1 (ports named after the firmware first); a Link from makeLink(input, output).
+  // Never probe other gear with the identity query: only ports with an FM-1's usual names (fm1ports.js PORT_NAMES, but
+  // the update loader's "ota": a backup is never made from it), the ones in allowed (the user's picks, web/fm1ota.js's
+  // allow), and the ones that answer the screen reader's HELLO (every fm1-base firmware does; asked when no other
+  // port answers); with only, that one port
+  const NAME_RE = new RegExp(NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  const USUAL = PORT_NAMES.filter((n) => n !== "ota");
+  // never a Bluetooth MIDI port: an FM-1 paired over Bluetooth shows one beside its USB port and it never answers
+  const BLUETOOTH_RE = /bluetooth/i;
+  const askable = (name, allowed) => !BLUETOOTH_RE.test(name || "") &&
+    (NAME_RE.test(name || "") || usualName(name, USUAL) || allowed.includes(name));
+  // the input port names the page does not ask by itself, that have an output (for Try)
+  function others(access, allowed = []) {
+    return [...new Set(pairs(access).map((p) => p.name).filter((n) => !askable(n, allowed) && !BLUETOOTH_RE.test(n)))];
+  }
+  async function find(access, makeLink, allowed = [], only = null) {
+    let other = null;
+    const ask = async (ins) => {
+      for (const input of ins) {
+        const output = outputFor(access, input);
+        if (!output) continue;
+        try { await input.open(); await output.open(); } catch (_) { continue; }
+        const link = makeLink(input, output);
+        const id = await handshake(link);
+        if (id && id.startsWith(ID)) return { link, id, name: input.name };
+        if (id) other = other || id;
+        link.close();
+      }
+      return null;
+    };
+    const ins = livePorts(access.inputs).filter((p) => !BLUETOOTH_RE.test(p.name || "") &&
+      (only != null ? p.name === only : askable(p.name, allowed)));
+    ins.sort((a, b) => NAME_RE.test(b.name) - NAME_RE.test(a.name));
+    let dev = await ask(ins);
+    if (!dev && only == null) {
+      const heard = await askAll(access, { skip: (n) => askable(n, allowed) || BLUETOOTH_RE.test(n) });
+      dev = await ask(heard.map((h) => h.input));
+    }
+    if (dev) return dev;
     if (other) throw fail("model", `The FM-1 runs other firmware (${other}), not ${NAME}. Install ${NAME} first.`);
     throw fail("notfound", `${NAME} not found. Plug the FM-1 in with a USB data cable, close other apps that use its MIDI, and try again.`);
   }
@@ -368,8 +532,8 @@ const PB = (() => {
     }
   }
 
-  return { HS_QUERY, RS_REQ, BU_REQ, BU_END, OK_ADDR, ASK_ADDR, FAIL_ADDR, VERSION, PLAYING, DECLINED, ID, NAME, MAGIC, DELAY, ERRORS,
-           pack7, unpack7, crc32, frame, parseFrame, response, parseRequest, parseIdentity, parse, split, join, summary, find, backup,
+  return { HS_QUERY, HS_FULL, RS_REQ, BU_REQ, BU_END, OK_ADDR, ASK_ADDR, FAIL_ADDR, VERSION, PLAYING, DECLINED, ID, NAME, MAGIC, DELAY, ERRORS,
+           pack7, unpack7, crc32, frame, parseFrame, response, parseRequest, parseIdentity, parse, split, join, summary, find, others, backup,
            restore };
 })();
 // --- backup protocol: end
@@ -425,8 +589,45 @@ function setBusy(on) {
   $("backup").disabled = on;
   $("restore").disabled = on || !picked;
   $("file").disabled = on;
+  if (on) $("ask").hidden = true;
 }
 window.addEventListener("beforeunload", (e) => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ports the user picked although their names are none of the usual ones (Try): remembered in this browser, shared with
+   the install page (its "fm1-ports") */
+const PICKED = "fm1-ports";
+let ports = [];
+try { ports = JSON.parse(localStorage.getItem(PICKED) || "[]").filter((x) => typeof x === "string"); } catch (_) { /* none */ }
+/* after "not found": the ports the page did not ask, each with Try */
+function showPorts() {
+  const names = access ? PB.others(access, ports) : [];
+  $("portlist").replaceChildren(...names.map((n) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "quiet"; b.textContent = "Try";
+    b.setAttribute("aria-label", `Try ${n}`);
+    b.addEventListener("click", () => tryPort(n, b));
+    const li = document.createElement("li"), sp = document.createElement("span");
+    sp.textContent = n;
+    li.append(sp, b);
+    return li;
+  }));
+  if (!names.length) { const li = document.createElement("li"); li.textContent = "No other MIDI ports."; $("portlist").append(li); }
+  $("portpick").hidden = false;
+}
+async function tryPort(name, button) {
+  if (busy) return;
+  button.disabled = true;
+  $("pickstatus").textContent = "Asking…";
+  let dev = null, err = null;
+  try { dev = await PB.find(access, (i, o) => new Link(i, o), ports, name); } catch (e) { err = e; }
+  button.disabled = false;
+  if (dev) dev.link.close();
+  if (!dev && !(err && err.code === "model")) { $("pickstatus").textContent = `No FM-1 answered on ${name}.`; return; }
+  if (!ports.includes(name)) ports.push(name);
+  try { localStorage.setItem(PICKED, JSON.stringify(ports)); } catch (_) { /* until the page is closed */ }
+  showPorts();
+  $("pickstatus").textContent = dev ? `Found ${FW.name} on ${name}. This browser remembers it. Press Back up or Restore again.` : err.message;
+}
 
 let access = null;
 async function connect() {
@@ -436,7 +637,9 @@ async function connect() {
     catch (_) { throw Object.assign(new Error("MIDI with SysEx was not allowed. Allow MIDI in the site settings (the address bar), then try again."), { code: "denied" }); }
   }
   say(`Looking for ${esc(FW.name)}&hellip;`);
-  return PB.find(access, (i, o) => new Link(i, o));
+  $("portpick").hidden = true;
+  try { return await PB.find(access, (i, o) => new Link(i, o), ports); }
+  catch (e) { if (e.code === "notfound") showPorts(); throw e; }
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -478,8 +681,14 @@ $("backup").addEventListener("click", async () => {
   }
 });
 
+// iOS turns accept into file types and has none for our extension, so it greys the backup out in Files: no filter
+// there (a wrong file is said on choosing it). iPadOS calls itself MacIntel, with touch.
+if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1))
+  $("file").removeAttribute("accept");
+
 $("file").addEventListener("change", async (e) => {
   picked = null;
+  $("ask").hidden = true;
   const f = e.target.files && e.target.files[0];
   const info = $("fileInfo");
   info.hidden = true;
@@ -504,9 +713,16 @@ $("file").addEventListener("change", async (e) => {
   setBusy(false);
 });
 
-$("restore").addEventListener("click", async () => {
+$("restore").addEventListener("click", () => {
   if (busy || !picked) return;
-  if (!confirm(`Replace everything on ${FW.name} with ${picked.name}?\n\n${FW.name} asks too, on its screen.`)) return;
+  $("askText").innerHTML = `Replace everything on ${esc(FW.name)} with <b>${esc(picked.name)}</b>? ${esc(FW.name)} asks too, on its screen.`;
+  $("ask").hidden = false;
+  $("askYes").focus();
+});
+$("askNo").addEventListener("click", () => { $("ask").hidden = true; $("restore").focus(); });
+$("askYes").addEventListener("click", async () => {
+  if (busy || !picked) return;
+  $("ask").hidden = true;
   setBusy(true);
   let dev = null;
   try {

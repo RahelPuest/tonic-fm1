@@ -63,7 +63,19 @@ typedef struct {
 void engine_dual(const eng_dual_t *d);
 int engine_dual_on(void);                       /* 1 while the second core renders (0: off, or given up) */
 uint32_t engine_dual_lost(void);                /* the times it did not finish in time (and was given up) */
-extern uintptr_t eng_c1_stack_lo, eng_c1_stack_hi;   /* its stack: Braids' noise keeps a state per core */
+/* which core runs this: 0 or 1, by the stack it runs on (0.27: the platform's second core's, felucca-bsp
+ * fm1_cpu1.S), for the scratch and Braids' noise state each core keeps */
+#if defined(PLAT_HOST) || defined(__APPLE__) || defined(__EMSCRIPTEN__) || defined(__linux__) || defined(_WIN32)
+#define ENG_CORE() 0u
+#else
+extern uint32_t fm1_cpu1_ustack[], fm1_cpu1_sstack_top[];
+static inline __attribute__((always_inline)) unsigned eng_core(void)
+{
+    volatile char here;
+    return (uintptr_t)&here - (uintptr_t)fm1_cpu1_ustack < (uintptr_t)fm1_cpu1_sstack_top - (uintptr_t)fm1_cpu1_ustack;
+}
+#define ENG_CORE() eng_core()
+#endif
 #define ENG_DUAL_MAXV 6                          /* voices on the second core at most */
 #define ENG_DUAL_BYTES (ENG_DUAL_MAXV * 5u * 32u * 4u)
 #define ENG_FXRAM_BYTES (1024u * 4u + 5520u * 2u)   /* (0.17) the chorus line and the reverb's pre-delay, from the pool */

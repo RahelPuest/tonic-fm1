@@ -8,11 +8,27 @@ o2 = ["engine/synth.c", "engine/fx.c", "engine/seq.c", "engine/engine.c", "core/
       "engine/mi/braids_voice.cc", "engine/mi/braids/macro_oscillator.cc", "engine/mi/braids/analog_oscillator.cc",
       "engine/mi/braids/digital_oscillator.cc", "engine/mi/braids/resources.cc", "engine/mi/stmlib/utils/random.cc"]   # (0.14: Braids, MIT)
 # o2_cflags = ["-O3"]   (0.13: -O2 again: smaller code for the XIP cache on the device; the same samples)
-asm = ["app/cpu1_entry.S"]   # (the CPU1 test firmware's core 1 entry; left out of other builds)
+cpu2 = true                    # (0.27) the second core, fm1-base's (0.16-0.26: TONIC's own)
+cpu2_fallback = true           # a failure of it: one core until power-off, no restart
+cpu2_stack = 4096              # its jobs' stack (0.17: 3180 B deep at most, measured)
+ram_layout = "packed"          # (0.27) one SRAM budget: RAM code, .data/.bss and the pool
+main_stack = 8192              # the main loop's stack: twice its static worst (4,012 B; was 24,320)
+stack_check = true             # the stacks' static worst checked against their sizes
+ir_pass = "tools/ir_copy.py"   # (its IR kept for that; the code the same)
+ram_code_allow = ["voice_block"]
+ble = true                     # (0.27) Bluetooth MIDI with a computer, a phone or a tablet
+ble_stack = "own"              # fm1-base's own stack (Henri David's): +10 KB of RAM, nothing of JieLi's
+ble_diag = false               # the link layer's diagnostics left out   # its BRAIDS and ENS blocks run from the flash, through a pointer
 words = "words.tsv"
 backup = true                  # backup and restore of the project over USB (base/tools/fm1_backup.py)
 # the site
 tagline = "a Digitone-style FM groovebox"
-repo = ""
+repo = "https://github.com/RahelPuest/tonic-fm1"
+author = "StefanPuest"
+description = "TONIC turns the M-VAVE FM-1 into a Digitone-style groovebox: four tracks, each an FM, VA, drum kit, Braids, supersaw or ensemble engine, with filters, envelopes and two LFOs; a 64-step sequencer with parameter locks, trig conditions, micro timing, euclid, arpeggiator, chains and songs; chorus, delay, reverb, compressor, inserts and performance effects; MIDI over USB and Bluetooth."
+tags = ["groovebox", "synth", "fm", "drum-machine", "sequencer", "midi"]
+install = "https://rahelpuest.github.io/tonic-fm1/install/"
+site = "https://rahelpuest.github.io/tonic-fm1/"
+screenshot = "docs/img/home.png"     # (relative to tonic/; a copy at the repository's docs/img/home.png for the hubs)
 licence = "MPL-2.0"
 credits = "Built on fm1-base and felucca-bsp (MPL-2.0)."

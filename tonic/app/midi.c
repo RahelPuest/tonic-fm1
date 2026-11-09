@@ -21,7 +21,7 @@ static void cc_map_init(void)
     };
     unsigned i;
     for (i = 0; i < 128; i++)
-        CC_PARAM[i] = P_NONE;
+        CC_PARAM[i] = PRM_NONE;
     for (i = 0; i < sizeof M / sizeof M[0]; i++)
         CC_PARAM[M[i][0]] = M[i][1];
 }
@@ -114,7 +114,7 @@ static void midi_poll(void)
             if (d1 == 94) { eng.mute = (uint8_t)(d2 ? eng.mute | 1u << t : eng.mute & ~(1u << t)); }
             else if (d1 == 95) { pcur->trk[t].tp[P_TLVL - NSP] = (int16_t)d2; mark_dirty(); }
             else if (d1 == 123) engine_all_off(t);
-            else if (CC_PARAM[d1] != P_NONE) {
+            else if (CC_PARAM[d1] != PRM_NONE) {
                 int p = CC_PARAM[d1], was = pcur->snd[t].p[p];
                 pcur->snd[t].p[p] = (int16_t)cc_value(t, p, (int)d2);
                 if (!pattern_fits()) {               /* (too big for the pattern: as it was) [0.9.2] */
@@ -162,7 +162,7 @@ static void mo_send(uint32_t pkt)
 {
     uint32_t f = mo_in ? 0 : plat_lock(), at = mo_in ? mo_base + eng_ofs : mo_total;
     if (mtx_w - mtx_r >= MTX)                        /* (full: at once, as before) */
-        plat_midi_send(pkt, TO_USB);
+        plat_midi_send(pkt, TO_USB | TO_BLE);   /* (0.27: and Bluetooth) */
     else {
         mtx[mtx_w % MTX].pkt = pkt;
         mtx[mtx_w % MTX].at = at;
@@ -178,7 +178,7 @@ static void mo_tick(void)                            /* app_tick: what is due by
     if (mo_ticks < 1000u)
         mo_ticks++;
     while (mtx_r != mtx_w && (int32_t)(pos - mtx[mtx_r % MTX].at) >= 0) {
-        plat_midi_send(mtx[mtx_r % MTX].pkt, TO_USB);
+        plat_midi_send(mtx[mtx_r % MTX].pkt, TO_USB | TO_BLE);
         __asm__ volatile("" ::: "memory");
         mtx_r++;
     }

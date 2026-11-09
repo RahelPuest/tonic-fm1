@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.26" src="https://img.shields.io/badge/version-0.26-orange">
+  <img alt="Version 0.27" src="https://img.shields.io/badge/version-0.27-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -57,6 +57,8 @@ FM-1's flash.
   voices, keys, song) on SEQ, SETUP and portamento with the engine on EDIT; a quieter screen with the edited values
   boxed and the full parameter name on every turn; a MENU for the screen and the knobs (pop-up, acceleration, PERFORM
   as a page).
+- **Bluetooth MIDI** (0.27): the FM-1 shows up as TONIC to a computer, phone or tablet; notes, CCs and clock in
+  and out as over USB; MENU > BT turns it off. On fm1-base's own Bluetooth stack, with fm1-base brought up to date.
 - **Starts on every FM-1** (0.25): a crash at every start on some FM-1s (pc 02017644, then safe mode) fixed.
 - **Only what the FM-1 has** (0.24): the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages gone from LFO, VEL MOD
   the last; MIDI pitch bend still bends by PBDEP.
@@ -112,7 +114,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.26.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.27.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.
@@ -157,7 +159,7 @@ The details, the toolchain, the AC79 SDK files the package needs and the tests a
 | Path | |
 | --- | --- |
 | `tonic/` | the app: `engine/` (synthesis, effects, sequencer), `core/` (parameters, patterns, tables), `app/` (interface, storage, MIDI), `tests/`, `docs/` (the manual) |
-| `base/` | [fm1-base](https://github.com/charlesvestal/fm1-base) (submodule; this repository uses [a fork](https://github.com/RahelPuest/fm1-base/tree/tonic-lowram) with one extra RAM section): platform layer, build tools, simulator, emulator, installer |
+| `base/` | [fm1-base](https://github.com/charlesvestal/fm1-base) (submodule; this repository uses [a fork](https://github.com/RahelPuest/fm1-base/tree/tonic-up) with two small changes: C++ units, fastmath inlined): platform layer, build tools, simulator, emulator, installer |
 | `docs/` | the documents above |
 | `release/` | every released firmware, `SHA256SUMS`, and `site/` (the installer, emulator and manual served on GitHub Pages) |
 

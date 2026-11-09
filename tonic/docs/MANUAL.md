@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.26.fwsc
+python3 base/tools/fm1_install.py tonic-0.27.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -102,6 +102,7 @@ python3 base/tools/fm1_install.py tonic-0.26.fwsc
 | 0.24 | LFO without the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages |
 | 0.25 | starts on every FM-1: on some, every start crashed (pc 02017644, then safe mode) |
 | 0.26 | 3.6 KB less memory, the same sound |
+| 0.27 | Bluetooth MIDI (MENU > BT), on the current fm1-base |
 
 ## 3. The concepts
 
@@ -917,7 +918,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 - **PATTERNS:** a pattern key cues the pattern (as SEQ > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
 - **MUTE:** the track boxes are filled when heard, open when muted, half filled when silent because another track is soloed (an **S** marks a soloed track). With **NEXT BAR** (black 11, or GLO > GLOBAL > MUTE) a mute made while playing blinks and lands on the next bar's first step. Solo is not saved; mutes are.
 - **TOOLS:** DUPLICATE makes the track twice as long (up to 64 steps), the new half a copy with its locks; REVERSE plays the steps back to front (their micro timing mirrored); CLEAR TRACK asks for a second press within 2 s. The grid's own black-key functions (section 11) are still there.
-- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate). It also says whether the second CPU core runs. Tempo, clock, velocity and MIDI are on GLO.
+- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate); **BT** (0.27: Bluetooth MIDI on / off, section 23). It also says whether the second CPU core runs and whether Bluetooth is connected. Tempo, clock, velocity and MIDI are on GLO.
 
 ### Momentary effects (TONIC 0.7)
 
@@ -975,7 +976,7 @@ Since 0.20 GLO holds only what is the whole project's or the device's, as on Hor
 | **EDIT > SETUP** | PLAY (POLY, POLYM (one LFO for all voices), MONO, LEGAT (legato)), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
 | **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages, every engine but the kit. |
 | **LFO > VEL MOD** | Four destinations, each with a depth of ±128: velocity moves any listed parameter. (0.24: MODWHEEL, AFTERTCH, BREATH and PITCHBND are gone, as the FM-1 has no wheel, no aftertouch and no breath input; a sound's old routings of them stay in it and do nothing, and an older TONIC plays them again.) |
-| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ (section 20). |
+| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ, BT (section 20). |
 
 ![The GLO page](img/glo.png "GLO > GLOBAL")
 
@@ -1004,7 +1005,13 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
 
 ## 23. MIDI
 
-- **USB MIDI in and out.** The FM-1's TRS jack is MIDI in only; there is no DIN out.
+- **USB MIDI in and out, and Bluetooth MIDI (0.27).** The FM-1's TRS jack is MIDI in only; there is no DIN out.
+- **Bluetooth MIDI (0.27):** the FM-1 shows up as **TONIC** to a computer, a phone or a tablet, and everything that goes in and out over USB goes over Bluetooth too (notes, CCs, clock). It is on at power-on unless MENU > **BT** is OFF; the MENU says BLUETOOTH CONNECTED while something listens. To connect:
+  - **Mac:** Audio MIDI Setup > Window > Show MIDI Studio > the Bluetooth button (Bluetooth Configuration) > TONIC > Connect.
+  - **iPhone / iPad:** in the app's own Bluetooth MIDI page (GarageBand: Settings > Advanced > Bluetooth MIDI Devices; AUM; Korg's BLE-MIDI connect). iOS has no system page for it.
+  - **Windows:** a DAW or a tool that pairs BLE MIDI devices (Windows' own Bluetooth settings do not make it a MIDI port).
+  - **Android:** an app with BLE MIDI (for example MIDI BLE Connect), then the DAW.
+  No pairing code is asked for. Bluetooth adds a few milliseconds and some jitter against USB; for clock sync, USB is the tighter.
 - **In:**
   - Notes on channels 1–4 play tracks 1–4 (with ROUT TRK); the CH channel plays the active track. Program change 0–31 selects a pattern (32 and up are ignored).
   - CC numbers follow the Digitone's for the sound parameters (CC MSB): for example 90 ALGO, 23 FREQ, 24 RESO, 7 VOL, 74 filter TYPE, 29 LFO1 DEP.

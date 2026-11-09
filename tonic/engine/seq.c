@@ -78,7 +78,7 @@ static int gather(const pattern_t *p, int t, int s, plock_t *out)   /* the locks
     uint8_t key = LOCK_KEY(t, s);
     for (i = 0; i < p->nlock && n < MAXL; i++) {
         plock_t l = p->lock[i];
-        if (l.f.param != P_NONE && l.f.step == key)
+        if (l.f.param != PRM_NONE && l.f.step == key)
             out[n++] = l;
     }
     return n;

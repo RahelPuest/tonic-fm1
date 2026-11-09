@@ -1,0 +1,16 @@
+# 0.27: MENU > BT (Bluetooth MIDI on / off) the menu's last row, the state under the cores' line
+wait 1500
+press HOME
+wait 800
+release HOME
+wait 30
+spin SELECT 5
+wait 300
+shot bt_menu.png
+spin K1 -1
+wait 300
+shot bt_off.png
+spin K1 1
+wait 300
+tap OCT-
+wait 300

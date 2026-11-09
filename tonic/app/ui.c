@@ -96,7 +96,7 @@ static plock_t clip_lock[NLOCK] PLAT_POOL;
 static void lock_compact_safe(void);
 static int page_held(void);
 /* (0.18) the MENU (HOME held): the settings of the device rather than the pattern */
-static const item_t MENU_IT[] = {GL(GL_THEME_), GL(GL_ZOOM_), GL(GL_ACCEL_), GL(GL_PHOLD_), GL(GL_INSHQ_)};   /* (0.20:
+static const item_t MENU_IT[] = {GL(GL_THEME_), GL(GL_ZOOM_), GL(GL_ACCEL_), GL(GL_PHOLD_), GL(GL_INSHQ_), GL(GL_BT_)};   /* (0.20:
                                                       * the device's, as Hortator's menu; the rest on GLO) */
 #define NMENU ((int)(sizeof MENU_IT / sizeof MENU_IT[0]))
 static void control_all(const item_t *it, int v);
@@ -239,6 +239,7 @@ static int item_get(const item_t *it, int *locked)
         case GL_THEME_: return theme_pos(set.theme);   /* (0.19: its place in the shown order) */
         case GL_PCHG_: return set.pchg;
         case GL_INSHQ_: return !set.ins_lq;
+        case GL_BT_: return !set.bt_off;
         case GL_MUTEB_: return set.mute_bar;
         case GL_ZOOM_: return !set.no_zoom;
         case GL_ACCEL_: return !set.no_accel;
@@ -418,6 +419,7 @@ static void item_set_raw(const item_t *it, int v)
         case GL_THEME_: set.theme = THEME_ORDER[v < 0 ? 0 : v >= NTHEME ? NTHEME - 1 : v]; set_dirty = 1; ob_valid = 0; break;
         case GL_PCHG_: set.pchg = (uint8_t)v; set_dirty = 1; break;
         case GL_INSHQ_: set.ins_lq = (uint8_t)!v; eng.ins_lq = set.ins_lq; set_dirty = 1; break;
+        case GL_BT_: set.bt_off = (uint8_t)!v; plat_ble_enable(v); set_dirty = 1; break;   /* (0.27) */
         case GL_MUTEB_: set.mute_bar = (uint8_t)v; set_dirty = 1; break;
         case GL_ZOOM_: set.no_zoom = (uint8_t)!v; set_dirty = 1; break;
         case GL_ACCEL_: set.no_accel = (uint8_t)!v; set_dirty = 1; break;
@@ -720,7 +722,7 @@ static void grid_white(int w, int down)
                 g->nnote = (uint8_t)n;
             } else {
                 g->flags = 0;
-                lock_clear(pcur, ui.trk, s, P_NONE);
+                lock_clear(pcur, ui.trk, s, PRM_NONE);
             }
             mark_dirty();
         }
@@ -739,13 +741,13 @@ static void step_save(int t, int s)
     step_bak.g = pcur->trig[t][s];
     step_bak.n = 0;
     for (i = 0; i < pcur->nlock && step_bak.n < 128; i++)
-        if (pcur->lock[i].f.param != P_NONE && pcur->lock[i].f.step == key)
+        if (pcur->lock[i].f.param != PRM_NONE && pcur->lock[i].f.step == key)
             step_bak.l[step_bak.n++] = pcur->lock[i];
 }
 static void step_restore(int t, int s)
 {
     int i;
-    lock_clear(pcur, t, s, P_NONE);
+    lock_clear(pcur, t, s, PRM_NONE);
     pcur->trig[t][s] = step_bak.g;
     for (i = 0; i < step_bak.n; i++)
         lock_set(pcur, t, s, step_bak.l[i].f.param, step_bak.l[i].f.val);
@@ -760,7 +762,7 @@ static void clip_copy(int from, int n)
         clip[s] = pcur->trig[ui.trk][from + s];
         for (i = 0; i < pcur->nlock && ui.clip_nlock < NLOCK; i++) {
             plock_t l = pcur->lock[i];
-            if (l.f.param != P_NONE && l.f.step == LOCK_KEY(ui.trk, from + s)) {
+            if (l.f.param != PRM_NONE && l.f.step == LOCK_KEY(ui.trk, from + s)) {
                 l.f.step = (uint8_t)s;
                 clip_lock[ui.clip_nlock++] = l;
             }
@@ -778,7 +780,7 @@ static int clip_paste(int to)                  /* (0: pasted; -1: nothing, or st
                                                            * was, and the paste stops there [0.9.2] */
         int ok = 1;
         step_save(ui.trk, to + s);
-        lock_clear(pcur, ui.trk, to + s, P_NONE);
+        lock_clear(pcur, ui.trk, to + s, PRM_NONE);
         pcur->trig[ui.trk][to + s] = clip[s];
         pcur->trig[ui.trk][to + s].flags &= (uint8_t)~(TF_PLOCK | TF_SLOCK);
         for (i = 0; i < ui.clip_nlock && ok; i++)
@@ -806,7 +808,7 @@ static void track_shift(int d)
         pcur->trig[t][s] = tmp[s];
     for (i = 0; i < pcur->nlock; i++) {              /* the locks move with their trigs */
         plock_t l = pcur->lock[i];
-        if (l.f.param != P_NONE && (l.f.step >> 6) == t && (l.f.step & 63) < L) {
+        if (l.f.param != PRM_NONE && (l.f.step >> 6) == t && (l.f.step & 63) < L) {
             l.f.step = (uint8_t)LOCK_KEY(t, ((l.f.step & 63) + d + L) % L);
             pcur->lock[i].w = l.w;
         }
@@ -858,7 +860,7 @@ static void grid_black(int b)
                 app_say("PASTE", "TRACK");
         } else {
             for (s = 0; s < NSTEP; s++) {
-                lock_clear(pcur, ui.trk, s, P_NONE);
+                lock_clear(pcur, ui.trk, s, PRM_NONE);
                 pcur->trig[ui.trk][s].flags = 0;
             }
             lock_compact_safe();
@@ -895,7 +897,7 @@ static void grid_black(int b)
         if (ui.held) {
             for (s = 0; s < NSTEP; s++)
                 if (ui.held >> s & 1u) {
-                    lock_clear(pcur, ui.trk, s, P_NONE);
+                    lock_clear(pcur, ui.trk, s, PRM_NONE);
                     pcur->trig[ui.trk][s].cond = 0;
                     pcur->trig[ui.trk][s].micro = 0;
                     pcur->trig[ui.trk][s].vel = 0;
@@ -905,7 +907,7 @@ static void grid_black(int b)
             app_say("CLEAR", "LOCKS");
         } else {
             for (s = cur_step_base(); s < cur_step_base() + 16; s++) {
-                lock_clear(pcur, ui.trk, s, P_NONE);
+                lock_clear(pcur, ui.trk, s, PRM_NONE);
                 pcur->trig[ui.trk][s].flags = 0;
             }
             app_say("CLEAR", "PAGE");
@@ -1470,7 +1472,7 @@ static void track_dup(void)                          /* the track twice as long,
         pcur->trig[ui.trk][L + s] = pcur->trig[ui.trk][s];
     for (i = 0; i < n; i++) {
         plock_t l = pcur->lock[i];
-        if (l.f.param != P_NONE && (l.f.step >> 6) == ui.trk && (l.f.step & 63) < L)
+        if (l.f.param != PRM_NONE && (l.f.step >> 6) == ui.trk && (l.f.step & 63) < L)
             if (lock_set(pcur, ui.trk, (l.f.step & 63) + L, l.f.param, l.f.val) < 0)
                 break;
     }
@@ -1492,7 +1494,7 @@ static void track_reverse(void)                      /* the steps back to front,
         pcur->trig[t][s] = tmp[s];
     for (i = 0; i < pcur->nlock; i++) {
         plock_t l = pcur->lock[i];
-        if (l.f.param != P_NONE && (l.f.step >> 6) == t && (l.f.step & 63) < L) {
+        if (l.f.param != PRM_NONE && (l.f.step >> 6) == t && (l.f.step & 63) < L) {
             l.f.step = (uint8_t)LOCK_KEY(t, L - 1 - (l.f.step & 63));
             pcur->lock[i].w = l.w;
         }
@@ -1511,7 +1513,7 @@ static void tool_key(int b)
     case 1: if (clip_paste(base) == 0) app_say("PASTE", "PAGE"); break;
     case 2:
         for (s = base; s < base + 16; s++) {
-            lock_clear(pcur, ui.trk, s, P_NONE);
+            lock_clear(pcur, ui.trk, s, PRM_NONE);
             pcur->trig[ui.trk][s].flags = 0;
         }
         lock_compact_safe();
@@ -1528,7 +1530,7 @@ static void tool_key(int b)
             break;
         }
         for (s = 0; s < NSTEP; s++) {
-            lock_clear(pcur, ui.trk, s, P_NONE);
+            lock_clear(pcur, ui.trk, s, PRM_NONE);
             pcur->trig[ui.trk][s].flags = 0;
         }
         lock_compact_safe();

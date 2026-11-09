@@ -72,7 +72,7 @@ enum {
 };
 #define NFXP (NPARAM - P_CDEP)
 #define P_SOUND 250               /* a sound lock: the value is the pool slot */
-#define P_NONE 255
+#define PRM_NONE 255
 
 /* sound setup (not lockable; saved with the sound) */
 enum {
@@ -120,7 +120,7 @@ enum { MS_VEL, MS_MW, MS_AT, MS_BC, MS_PB, NMS };
 typedef struct {
     int16_t p[NSP];
     uint8_t s[NSS];
-    uint8_t mdst[NMS][NMSLOT];    /* P_* or P_NONE */
+    uint8_t mdst[NMS][NMSLOT];    /* P_* or PRM_NONE */
     int8_t mdep[NMS][NMSLOT];
     int8_t arp_ofs[16];           /* arpeggiator step offsets, semitones */
     uint16_t arp_on;              /* bit i: arpeggiator step i active */
@@ -157,7 +157,7 @@ typedef union {
     uint32_t w;
     struct {
         uint8_t step;             /* bits 0..5 step, 6..7 track */
-        uint8_t param;            /* P_*, P_SOUND; P_NONE = free entry */
+        uint8_t param;            /* P_*, P_SOUND; PRM_NONE = free entry */
         int16_t val;
     } f;
 } plock_t;
@@ -191,7 +191,7 @@ typedef struct {
     track_t trk[NTRK];
     sound_t snd[NTRK];
     trig_t trig[NTRK][NSTEP];
-    uint16_t nlock;               /* entries used (some may be free: P_NONE) */
+    uint16_t nlock;               /* entries used (some may be free: PRM_NONE) */
     plock_t lock[NLOCK];
 } pattern_t;
 

@@ -10,19 +10,19 @@ git clone --recursive <this repository> digitone     # base/ and base/bsp/ are s
 cd digitone
 ```
 
-TONIC needs changes to fm1-base that are not upstream (the branch `tonic-lowram` of
-[RahelPuest/fm1-base](https://github.com/RahelPuest/fm1-base/tree/tonic-lowram), commit `3e953cd`, on fm1-base
-`6c0b47e`; the same changes are in `tonic/tools/base-lowram.patch`):
-- **`.ram_dsp`** (0.13, `PLAT_RAMCODE`): the voice and effect loops run from RAM instead of the XIP flash, out of the
-  flash cache's way. The build reports `.ram_dsp: N B of audio code in RAM`.
-- **`.hiram`** (0.13, `PLAT_HIRAM`): zeroed RAM after `.noinit` (the HARM tables), and **`.lowram`** (0.10.1,
-  `PLAT_LOWRAM`): zeroed RAM after `.ram_text` (COPY PATTERN's buffer).
+TONIC (0.27) builds on fm1-base `b0976f2` with two changes that are not upstream (the branch `tonic-up` of
+[RahelPuest/fm1-base](https://github.com/RahelPuest/fm1-base/tree/tonic-up); the same changes are in
+`tonic/tools/base-tonic.patch`):
 - C++ o2 units (0.14, for Braids): `.cc` files compiled without exceptions, RTTI or a C++ library.
 - `fastmath.h` always inlined: RAM code cannot call XIP functions (they are out of a call's reach); XIP code calls the
   RAM code through a pointer (`ENG_FAR`).
 
-On a fresh clone whose `base/` lacks the commits: `cd base && git checkout 6c0b47e && git apply
-../tonic/tools/base-lowram.patch`.
+What TONIC 0.13-0.26 added to fm1-base itself is upstream's now: the audio loops in RAM (`.app_ram`, PLAT_RAM_CODE),
+one SRAM budget (`ram_layout = "packed"`), the second core (`cpu2`), the stacks' static check (`stack_check`), and the
+own Bluetooth stack (`ble_stack = "own"`).
+
+On a fresh clone whose `base/` lacks the commits: `cd base && git checkout b0976f2 && git submodule update bsp &&
+git am ../tonic/tools/base-tonic.patch`.
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ From `tonic/`:
 ```sh
 . tools/env.sh                                 # toolchain, SDK, fribidi, emsdk
 python3 ../base/tools/build.py .               # build/tonic.fwsc (identity FM-1_4700) + build/tonic.bin
-python3 ../base/tools/build.py . --release 0.26  # build/tonic-0.26.fwsc (identity FM-1_47002600)
+python3 ../base/tools/build.py . --release 0.27  # build/tonic-0.27.fwsc (identity FM-1_47002700)
 python3 ../base/tools/build.py . --host        # build/host/tonic_host (the simulator)
 python3 ../base/tools/build.py . --web         # build/emu/ (the browser emulator)
 tools/bench_build.sh                           # build/bench/tonic-bench.fwsc (CPU benchmark firmware)
@@ -53,12 +53,12 @@ python3 tools/gen_curves.py                    # regenerate core/curves.h from t
 ```
 
 The device build checks the memory budget and prints it, e.g.
-`image 374264 B; RAM .data+.bss 89488 B of 98304; pool 333440 B of 344064`.
+`image 417772 B; SRAM 479184 B of 491264: RAM code 35088 B, .data+.bss 115172 B, pool 328924 B; free 12080 B (8192 kept spare)`.
 
 The installer site (installer page, emulator, manual, backup page):
-`python3 ../base/tools/make_site.py . build/tonic-0.26.fwsc 0.26 OUT_DIR` (needs a release build). Copy the
+`python3 ../base/tools/make_site.py . build/tonic-0.27.fwsc 0.27 OUT_DIR` (needs a release build). Copy the
 earlier packages into `OUT_DIR/firmware/` to keep them downloadable (the landing page links `tonic-0.1.fwsc`,
-`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc`, `tonic-0.12.fwsc`, `tonic-0.12.1.fwsc`, `tonic-0.13.fwsc`, `tonic-0.14.fwsc`, `tonic-0.15.fwsc`, `tonic-0.16.fwsc`, `tonic-0.17.fwsc`, `tonic-0.18.fwsc`, `tonic-0.19.fwsc`, `tonic-0.20.fwsc`, `tonic-0.21.fwsc`, `tonic-0.22.fwsc`, `tonic-0.23.fwsc`, `tonic-0.24.fwsc` and `tonic-0.25.fwsc`).
+`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc`, `tonic-0.12.fwsc`, `tonic-0.12.1.fwsc`, `tonic-0.13.fwsc`, `tonic-0.14.fwsc`, `tonic-0.15.fwsc`, `tonic-0.16.fwsc`, `tonic-0.17.fwsc`, `tonic-0.18.fwsc`, `tonic-0.19.fwsc`, `tonic-0.20.fwsc`, `tonic-0.21.fwsc`, `tonic-0.22.fwsc`, `tonic-0.23.fwsc`, `tonic-0.24.fwsc`, `tonic-0.25.fwsc` and `tonic-0.26.fwsc`).
 
 ## Tests
 

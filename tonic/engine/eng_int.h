@@ -5,15 +5,14 @@
 #include "tables.h"
 #include "fastmath.h"
 
-/* buffers in the RAM that .ram_text leaves (base/device/app.ld .lowram): only the device has it [TONIC 0.10.1] */
-#if defined(PLAT_HOST) || defined(__APPLE__) || defined(__EMSCRIPTEN__) || defined(__linux__) || defined(_WIN32)
+/* (0.27) one SRAM budget (fm1.toml ram_layout = "packed"): the buffers once placed in .lowram and .hiram are plain
+ * .bss; the audio loops run from RAM (fm1-base's .app_ram, PLAT_RAM_CODE; 0.13-0.26 our own .ram_dsp) */
 #define ENG_LOWRAM
 #define ENG_HIRAM
+#if defined(PLAT_HOST) || defined(__APPLE__) || defined(__EMSCRIPTEN__) || defined(__linux__) || defined(_WIN32)
 #define ENG_RAMCODE
 #else
-#define ENG_LOWRAM __attribute__((section(".lowram")))
-#define ENG_HIRAM __attribute__((section(".hiram")))       /* (0.13) zeroed RAM in NOINIT */
-#define ENG_RAMCODE __attribute__((section(".ram_dsp")))   /* (0.13) the audio loops run from RAM, not the XIP flash */
+#define ENG_RAMCODE __attribute__((section(".app_ram")))
 #endif
 /* (0.13) XIP code (0x02xxxxxx) calls the RAM code (0x01C0xxxx) beyond a call's reach: through a pointer the compiler
  * cannot fold back (as felucca-bsp's flash driver does) */
@@ -46,7 +45,7 @@ enum {
 };
 typedef char nd_is_ndest[ND == NDEST ? 1 : -1] __attribute__((unused));   /* (tonic.h NDEST: the destinations' count) */
 extern const char *const DEST_NAME[ND];
-extern const uint8_t DEST_PARAM[ND];      /* the parameter a destination moves (P_NONE: a macro) */
+extern const uint8_t DEST_PARAM[ND];      /* the parameter a destination moves (PRM_NONE: a macro) */
 const char *dest_name(int engine, int d);  /* a destination's name as the engine shows it */
 
 /* ------------------------------------------------------------------------- voices --- */

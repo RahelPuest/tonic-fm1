@@ -14,11 +14,10 @@
 #define APP_OVERLOAD                     /* the render past 90 % of its time: shed voices */
 #define APP_TICK                         /* (0.19) 1 kHz: MIDI in, the clock at once (app/midi.c) */
 void app_tick(void);
-#ifndef PLAT_HOST                                  /* (0.16) the second core: held at every start; a crash on it or on */
-#define APP_CSTART                                 /* core 0 stops it (app/cpu1.c) */
-#define APP_FAULT
-#endif
 void app_overload(void);
+#define APP_BLE_STORE                    /* (0.27) Bluetooth's address kept in the settings (store.c), no OBJ_BLE */
+int app_bt_at_boot(void);
+#define APP_BLE_AT_BOOT (app_bt_at_boot())   /* MENU > BT: on at power-on */
 
 /* the store: settings (with the project's header) in the settings sector pair, the panel calibration, the
  * project's sound pool, the user sound library, the 32 patterns. Two 4 KiB sectors each. */

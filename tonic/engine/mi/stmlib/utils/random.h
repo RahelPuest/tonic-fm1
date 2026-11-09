@@ -33,15 +33,22 @@
 
 namespace stmlib {
 
-extern "C" uintptr_t eng_c1_stack_lo, eng_c1_stack_hi;
+#if !(defined(PLAT_HOST) || defined(__APPLE__) || defined(__EMSCRIPTEN__) || defined(__linux__) || defined(_WIN32))
+extern "C" uint32_t fm1_cpu1_ustack[], fm1_cpu1_sstack_top[];
+#endif
 
 class Random {
  public:
   // TONIC [0.16]: a state per core (the second core renders voices too): which one, by the stack this runs on
+  // (0.27: the platform's second core's, felucca-bsp fm1_cpu1.S)
   static inline uint32_t& rs() {
+#if defined(PLAT_HOST) || defined(__APPLE__) || defined(__EMSCRIPTEN__) || defined(__linux__) || defined(_WIN32)
+    return rng_state_[0];
+#else
     volatile char here;
-    uintptr_t a = reinterpret_cast<uintptr_t>(&here);
-    return rng_state_[a - eng_c1_stack_lo < eng_c1_stack_hi - eng_c1_stack_lo];
+    uintptr_t a = reinterpret_cast<uintptr_t>(&here), lo = reinterpret_cast<uintptr_t>(fm1_cpu1_ustack);
+    return rng_state_[a - lo < reinterpret_cast<uintptr_t>(fm1_cpu1_sstack_top) - lo];
+#endif
   }
   static inline uint32_t state() { return rs(); }
 
