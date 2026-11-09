@@ -1,5 +1,6 @@
 # the screen: GLO > DISPLAY (the last row) THEME through its five (OLED AMBER PHOSPHOR BLUE PAPER) and back; the
-# theme is kept over a reboot; the pages draw with their tabs (screens for a look)
+# theme (0.19: in the shown order OLED RED R INV BLUE B INV GREEN G INV AMBER A INV PAPER; the stored index
+# as before) is kept over a reboot; the pages draw with their tabs (screens for a look)
 wait 1500
 tap PLAY
 wait 600
@@ -16,8 +17,12 @@ wait 30
 expect theme 0
 spin K1 1
 wait 30
-expect theme 1
+expect theme 5
 spin K1 3
+wait 30
+expect theme 7
+shot ui_bluinv.png
+spin K1 5
 wait 30
 expect theme 4
 shot ui_paper.png
@@ -26,7 +31,7 @@ wait 30
 expect theme 4
 spin K1 -3
 wait 30
-expect theme 1
+expect theme 2
 tap PLAY
 wait 3000
 tap SAVE
@@ -39,4 +44,4 @@ release SEL
 wait 200
 reboot
 wait 1500
-expect theme 1
+expect theme 2

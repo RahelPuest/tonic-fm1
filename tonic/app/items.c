@@ -250,8 +250,20 @@ static const struct { uint8_t len; uint16_t mask; } RHY[NRHY] = {
     {16, 1u | 1u << 3 | 1u << 7 | 1u << 10 | 1u << 12}, {16, 1u | 1u << 3 | 1u << 6 | 1u << 10 | 1u << 13},
     {16, 1u | 1u << 3 | 1u << 6 | 1u << 10 | 1u << 14}, {16, 1u | 1u << 4 | 1u << 8 | 1u << 12},
     {16, 1u << 2 | 1u << 6 | 1u << 10 | 1u << 14}, {16, 1u << 4 | 1u << 12}};
-#define NTHEME 5
-static const char *const L_THEME[NTHEME] = {"OLED", "AMBER", "PHOS", "BLUE", "PAPER"};
+/* (0.19) the screen's colours, after Hortator's (and the Machinedrum's) way: each colour as the ground, then INV, the
+ * colour as the ink on black or white; OLED (the tracks in colours) and PAPER as before. Stored by THEMES' index (an
+ * older setting keeps its look: AMBER is now A INV, PHOSPHOR G INV), shown and turned in THEME_ORDER */
+#define NTHEME 10
+static const uint8_t THEME_ORDER[NTHEME] = {0, 5, 6, 3, 7, 8, 2, 9, 1, 4};
+static const char *const L_THEME[NTHEME] = {"OLED", "RED", "R INV", "BLUE", "B INV", "GREEN", "G INV", "AMBER",
+                                            "A INV", "PAPER"};   /* (in THEME_ORDER; 5 letters: a value's room) */
+static int theme_pos(int stored)
+{
+    int i;
+    for (i = 0; i < NTHEME && THEME_ORDER[i] != stored; i++)
+        ;
+    return i < NTHEME ? i : 0;
+}
 static const char *const L_ZOOM[] = {"16", "32", "64"};
 static const char *const L_ARPMODE[NARP] = {"OFF", "TRUE", "UP", "DOWN", "CYCL", "RAND", "CHRD"};
 static const char *const L_PLAY[] = {"POLY", "POLY M", "MONO", "LEGATO"};

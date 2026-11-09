@@ -226,6 +226,7 @@ int app_expect(const char *what, int *got)
     else if (!strcmp(what, "ov")) *got = ui.ov;
     else if (!strcmp(what, "theme")) *got = set.theme;
     else if (!strcmp(what, "solo")) *got = eng.solo;
+    else if (!strcmp(what, "step")) *got = engine_step(ui.trk);   /* (0.19) the active track's playing step */
     else if (!strcmp(what, "pfx")) *got = eng.pfx;
     else if (!strcmp(what, "playing")) *got = eng.playing;
     else if (!strcmp(what, "live")) *got = eng.rec_live;

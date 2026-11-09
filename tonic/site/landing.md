@@ -15,7 +15,8 @@ fm1-emu. It is a custom firmware: installing is at your own risk; the installer 
 - [Source code on GitHub](https://github.com/RahelPuest/tonic-fm1).
 - Since 0.12 projects are saved in a new format: versions before 0.12 cannot read what 0.12 or later saved. Take a USB backup first if you
   may want to go back.
-- Earlier versions stay available: [0.17](firmware/tonic-0.17.fwsc) (HOME held: the performance layer; the help screens),
+- Earlier versions stay available: [0.18](firmware/tonic-0.18.fwsc) (five themes, the clock read with the screen),
+  [0.17](firmware/tonic-0.17.fwsc) (HOME held: the performance layer; the help screens),
   [0.16](firmware/tonic-0.16.fwsc) (before the full audit's fixes),
   [0.15](firmware/tonic-0.15.fwsc) (on one CPU core),
   [0.14](firmware/tonic-0.14.fwsc) (BRAIDS without SYNC, SIGN, SUB),

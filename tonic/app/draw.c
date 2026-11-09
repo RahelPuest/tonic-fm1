@@ -22,23 +22,35 @@ static uint8_t o_ink = 1;         /* the colour that what is drawn now takes (K_
 /* the colours: indices into the theme's palette [TONIC] */
 enum { K_BG, K_FG, K_DIM, K_ACC, K_T1, K_T2, K_T3, K_T4, K_MLO, K_MMID, K_MHI, NK };
 #define C3(r, g, b) RGB(r, g, b)
+/* two-colour themes (0.19, after Hortator's MD-style ones: its ground and ink): the dim a mix of the two, the tracks
+ * and the meters the ink, the accent and the meters' top set apart */
+#define TWO(bg, fg, dim, acc, hi) {bg, fg, dim, acc, fg, fg, fg, fg, fg, fg, hi}
 static const uint16_t THEMES[NTHEME][NK] = {
-    /* OLED: the Digitone's white, the tracks in four colours, a cyan accent */
+    /* 0 OLED: the Digitone's white, the tracks in four colours, a cyan accent */
     {C3(0, 0, 0), C3(226, 236, 255), C3(104, 112, 132), C3(80, 210, 255), C3(255, 104, 84), C3(255, 186, 56),
      C3(112, 222, 120), C3(124, 150, 255), C3(80, 220, 110), C3(250, 210, 60), C3(255, 70, 60)},
-    /* AMBER: a warm monochrome */
+    /* 1 A INV (was AMBER): a warm monochrome on black */
     {C3(10, 5, 0), C3(255, 176, 40), C3(120, 76, 20), C3(255, 236, 170), C3(255, 120, 50), C3(255, 204, 80),
      C3(214, 226, 110), C3(255, 150, 120), C3(255, 176, 40), C3(255, 220, 120), C3(255, 90, 40)},
-    /* PHOSPHOR: a green CRT */
-    {C3(0, 10, 2), C3(110, 255, 130), C3(40, 110, 54), C3(210, 255, 210), C3(70, 255, 150), C3(190, 255, 90),
-     C3(80, 230, 230), C3(230, 255, 170), C3(110, 255, 130), C3(220, 255, 120), C3(255, 120, 80)},
-    /* BLUE: white on night blue, an orange accent */
-    {C3(8, 14, 38), C3(226, 232, 255), C3(96, 110, 160), C3(255, 160, 60), C3(255, 110, 110), C3(255, 200, 80),
-     C3(120, 230, 160), C3(130, 190, 255), C3(110, 230, 140), C3(255, 210, 80), C3(255, 80, 70)},
-    /* PAPER: dark on light */
+    /* 2 G INV (was PHOSPHOR): green on black */
+    TWO(C3(0x0c, 0x12, 0x04), C3(0xb4, 0xd0, 0x44), C3(0x60, 0x71, 0x24), C3(0xe8, 0xff, 0x9c), C3(0xe8, 0xff, 0x9c)),
+    /* 3 BLUE: white on blue */
+    TWO(C3(0x24, 0x45, 0xc8), C3(0xea, 0xf1, 0xff), C3(0x87, 0x9b, 0xe0), C3(0xff, 0xd0, 0x60), C3(0xff, 0xd0, 0x60)),
+    /* 4 PAPER: dark on light, the tracks in colours */
     {C3(236, 238, 242), C3(24, 28, 44), C3(150, 154, 168), C3(0, 112, 220), C3(210, 50, 40), C3(196, 120, 0),
      C3(20, 140, 60), C3(40, 80, 210), C3(20, 150, 70), C3(200, 140, 0), C3(210, 40, 30)},
+    /* 5 RED: dark on red (Hortator's default, the Machinedrum's) */
+    TWO(C3(0xe0, 0x47, 0x2b), C3(0x38, 0x10, 0x0a), C3(0x8c, 0x2c, 0x1a), C3(0xff, 0xf0, 0xe0), C3(0xff, 0xf0, 0xe0)),
+    /* 6 R INV: red on black */
+    TWO(C3(0x17, 0x06, 0x05), C3(0xf0, 0x53, 0x2f), C3(0x84, 0x2d, 0x1a), C3(0xff, 0xb8, 0xa0), C3(0xff, 0xb8, 0xa0)),
+    /* 7 B INV: blue on white */
+    TWO(C3(0xf4, 0xf8, 0xff), C3(0x24, 0x45, 0xc8), C3(0x8c, 0x9e, 0xe4), C3(0xe0, 0x47, 0x2b), C3(0xe0, 0x47, 0x2b)),
+    /* 8 GREEN: dark on green */
+    TWO(C3(0xa3, 0xbf, 0x3c), C3(0x1c, 0x2a, 0x08), C3(0x60, 0x75, 0x22), C3(0xf4, 0xff, 0xe8), C3(0xf4, 0xff, 0xe8)),
+    /* 9 AMBER: dark on amber */
+    TWO(C3(0xff, 0xb0, 0x28), C3(0x2a, 0x16, 0x00), C3(0x95, 0x63, 0x14), C3(0xff, 0xff, 0xff), C3(0xff, 0xff, 0xff)),
 };
+#undef TWO
 static const uint8_t K_TRK[4] = {K_T1, K_T2, K_T3, K_T4};
 
 /* ------------------------------------------------------------------ the picture --- */

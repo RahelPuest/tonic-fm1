@@ -136,9 +136,10 @@ TONIC draws the Digitone's screen layout at the LCD's full resolution and in col
 - **Bottom band:** the 16 steps in the track's colour (the playhead moves along them), the step pages, the tracks in their colours and the tempo.
 - **Mode line:** what the keys do now (KEYS, GRID, PERFORM …).
 - **CPU figure** (HOME, top right): how much of its time the sound takes. **CPU2** (TONIC 0.16): the FM-1's second core renders part of the voices, the same sound with about a third less load. If the second core ever fails to answer, TONIC goes on with one core (the figure then reads CPU); after a crash on it, it stays on one core until the FM-1 is switched off and on. **XR** counts the audio blocks that came too late.
-- **Colours:** GLO > DISPLAY > THEME: OLED (white on black), AMBER, PHOSPHOR (green), BLUE, PAPER (dark on light). The theme is kept with the project's settings.
+- **Colours:** GLO > SYSTEM > THEME (or the MENU, HOME held). Since 0.19 after Hortator's (and the Machinedrum's) two-colour screens: each colour as the ground, then its inverse (**INV**: the colour on black or white): **RED**, **R INV**, **BLUE**, **B INV**, **GREEN**, **G INV**, **AMBER**, **A INV**; and TONIC's own **OLED** (white on black, the tracks in four colours, the default) and **PAPER** (dark on light, the tracks in colours). The two-colour themes draw the tracks in the ink, as the Machinedrum does. A theme chosen before 0.19 keeps its look (AMBER is now A INV, PHOSPHOR G INV). The theme is kept with the device's settings.
 
-![A page in the PAPER theme](img/theme_paper.png "GLO > DISPLAY > THEME: PAPER")
+![A page in the PAPER theme](img/theme_paper.png "GLO > SYSTEM > THEME: PAPER")
+![The ten themes](img/themes.png "OLED, RED, R INV, BLUE, B INV / GREEN, G INV, AMBER, A INV, PAPER")
 
 When you turn a knob, a **pop-up** shows the parameter's name and value large for a moment.
 
@@ -877,7 +878,7 @@ The effects act on the sequencer and the master; MIDI notes going out follow the
 | **VEL MOD, MODWHEEL, AFTERTCH, BREATH, PITCHBND** | Four destinations each, with a depth of ±128. Velocity, mod wheel, aftertouch, breath and pitch bend (from MIDI) move any listed parameter. |
 | **SONG** | See section 16. |
 | **KEYBOARD** | SCALE (CHROM, MAJOR, MINOR, DORIA, PHRYG, LYDIA, MIXO, LOCRI, PENT+, PENT−, HMIN, WHOLE), ROOT, FOLD, KCHRD (the keys play chords, recorded as notes; section 6; not the sound's CHORD, section 17). |
-| **DISPLAY** | THEME: OLED, AMBER, PHOSPHOR, BLUE, PAPER. |
+| **SYSTEM** | THEME: OLED, RED, R INV, BLUE, B INV, GREEN, G INV, AMBER, A INV, PAPER; INSHQ (the inserts at twice the rate). |
 | **MIDI** | CH T1–CH T4 (each track's out channel), AUTO (the auto channel: it plays the active track), TRKCH (channels 1–4 play tracks 1–4), EXT (the active track plays only over MIDI, an external track). |
 
 ![The GLO TEMPO page](img/glo.png "GLO > TEMPO")
@@ -915,7 +916,18 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
   - Mod wheel, breath, aftertouch and pitch bend go to the modulation pages.
 - **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when CKOUT is on (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
 - **MIDI tracks:** GLO > MIDI > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.
-- **Clock in:** with CKIN on, TONIC follows the incoming clock, start and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average.
+- **Clock in:** with CKIN on, TONIC follows the incoming clock, start, continue and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average. Since 0.19 the clocks are taken the moment they arrive (in the FM-1's 1 kHz timer, not with the screen), so it follows within about a millisecond; the first clock after Start is step 1, and Start and Stop go on to TONIC's own clock out.
+
+### Two FM-1s in time: TONIC and Hortator (0.19)
+
+The FM-1's TRS jack is a MIDI input only and both FM-1s are USB devices, so two of them need something in between that is a USB host: a computer (a DAW or a MIDI router passing one FM-1's clock to the other) or a USB-MIDI host box (a Kenton MIDI USB Host, a CME U6MIDI Pro, a Retrokits RK-006 …). Hortator's FM-Link is Bluetooth and only in its Bluetooth version; TONIC has no Bluetooth (its memory is used by the sound).
+
+| Leader | Follower |
+| --- | --- |
+| **TONIC**: GLO > TEMPO (row 2) **CKOUT ON**, PLAY on TONIC | **Hortator**: GLO 1/7 **CLK USB** |
+| **Hortator**: SYSTEM 2/7 **SYNC USB**, PLAY on Hortator | **TONIC**: GLO > TEMPO (row 2) **CKIN ON** |
+
+Both send Start, 24 clocks a quarter note with the first on step 1, and Stop; a PLAY always starts from the top (no Song Position). Routed through a computer, the clock comes a few milliseconds late on the follower: shift it in the router, or start the follower's pattern with a small micro timing. A USB-MIDI host box adds well under a millisecond.
 
 ## 24. Shortcuts at a glance
 

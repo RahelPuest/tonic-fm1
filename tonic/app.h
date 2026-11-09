@@ -12,6 +12,8 @@
 #define APP_BLOCK 256u                   /* frames per audio block (5.8 ms); the engine works in 32-sample steps */
 #define APP_TOUCH                        /* velocity and pressure from the keys (lib/touch.h) */
 #define APP_OVERLOAD                     /* the render past 90 % of its time: shed voices */
+#define APP_TICK                         /* (0.19) 1 kHz: MIDI in, the clock at once (app/midi.c) */
+void app_tick(void);
 #ifndef PLAT_HOST                                  /* (0.16) the second core: held at every start; a crash on it or on */
 #define APP_CSTART                                 /* core 0 stops it (app/cpu1.c) */
 #define APP_FAULT

@@ -1,0 +1,50 @@
+# 0.19: following a MIDI clock as Hortator (or a DAW) sends it: Start, 24 clocks a quarter, Stop; each clock moves the
+# sequencer 4 ticks (a 16th = 6 clocks; step N begins with clock 6N + 1, the first clock is step 1's); checked in the
+# middle of steps (the pattern is 16 long: step 16 is its step 1 again); Continue goes on; Stop goes on to the clock out
+wait 1500
+tap GLO
+wait 30
+spin SELECT 1
+wait 30
+expect row 1
+spin K1 1
+wait 30
+spin K2 1
+wait 30
+tap HOME
+wait 30
+expect playing 0
+midi FA
+wait 5
+expect playing 1
+expect step 0
+clock 9 21
+expect step 1
+clock 18 21
+expect step 4
+clock 72 21
+expect step 0
+clock 30 21
+expect step 5
+midi FC
+wait 10
+expect playing 0
+expect_out USB FC
+# Continue: on from where it stopped
+midi FB
+wait 5
+expect playing 1
+clock 6 21
+expect step 6
+midi FC
+wait 10
+# a new Start: from step 1 again
+midi FA
+wait 5
+clock 3 21
+expect step 0
+clock 6 21
+expect step 1
+midi FC
+wait 10
+expect playing 0

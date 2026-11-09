@@ -759,13 +759,15 @@ float engine_lfo_view(int trk, int lfo)
 /* MIDI clock: the tempo from the clocks' spacing (24 a quarter), start / stop */
 static uint32_t clk_last, clk_n;
 static float clk_avg;
-void engine_clock_tick(void)
+static volatile uint8_t rt_start, rt_stop;            /* (0.19) Start / Continue (1 / 2), Stop: for the render */
+static void clock_in_tick(void)
 {
     uint32_t now = eng_now;
     if (clk_n && now > clk_last) {                   /* (0.17) the intervals averaged, not the tempos */
         float iv = (float)(now - clk_last) * CRF * INV_SR;
-        clk_avg = clk_avg > 0.0f ? clk_avg + (iv - clk_avg) * 0.08f : iv;
-        if (eng.ext_clock) {
+        if (clk_avg <= 0.0f || iv < clk_avg * 4.0f)  /* (0.19: a gap, a stop between: not a tempo) */
+            clk_avg = clk_avg > 0.0f ? clk_avg + (iv - clk_avg) * 0.08f : iv;
+        {
             float bpm = 60.0f / (clk_avg * 24.0f);
             if (bpm > 20.0f && bpm < 400.0f)
                 eng.bpm = fm_floorf(bpm * 10.0f + 0.5f) * 0.1f;
@@ -773,11 +775,48 @@ void engine_clock_tick(void)
     }
     clk_last = now;
     clk_n++;
-    if (eng.ext_clock && eng.playing)
+    if (eng.playing || rt_start)                     /* (a clock right after Start counts, before the render took it) */
         seq_clk_rx++;
 }
-void engine_clock_start(int cont) { if (eng.ext_clock) { if (!cont) { seq_clk_rx = 0; qput(Q_START, 0, 0, 0); } eng.playing = 1; } }
-void engine_clock_stop(void) { if (eng.ext_clock) engine_stop(); }
+void engine_clock_rt(int what)
+{
+    if (!eng.ext_clock)
+        return;
+    switch (what) {
+    case 0: clock_in_tick(); break;
+    case 1: seq_clk_rx = 0; rt_stop = 0; rt_start = 1; break;   /* (the next clock is the first step's) */
+    case 2: if (!eng.playing) rt_start = 2; break;
+    default: rt_start = 0; rt_stop = 1; break;
+    }
+}
+/* (0.19) the clock's Start / Continue / Stop, at the render's block (the sequencer is the render's) */
+static void clock_in_transport(void)
+{
+    if (rt_stop) {
+        int k;
+        rt_stop = 0;
+        if (eng.playing) {
+            eng.playing = 0;
+            eng.rec_live = 0;
+            seq_release_all();
+            midi_all_off();
+            for (k = 0; k < NVOICE; k++)
+                if (vc[k].on)
+                    voice_release(&vc[k]);
+            if (eng_clock_cb)
+                eng_clock_cb(2);
+        }
+    }
+    if (rt_start) {
+        int c = rt_start;
+        rt_start = 0;
+        if (c == 1)
+            seq_start();
+        eng.playing = 1;
+        if (eng_clock_cb && c == 1)
+            eng_clock_cb(1);
+    }
+}
 
 /* ------------------------------------------------------------------------ init --- */
 void engine_init(void *pool, uint32_t pool_bytes)
@@ -1083,6 +1122,7 @@ void engine_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
         fxjob_t *j = &fj[cur];
         int i, t;
         j->has_fx = 0;
+        clock_in_transport();                        /* (0.19) MIDI clock's Start / Stop */
         q_drain();
         seq_block();
         if (seq_take_stop()) {                       /* (0.17) song END STOP: at the change point itself */

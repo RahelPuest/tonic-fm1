@@ -54,20 +54,39 @@ static int midi_track(int ch)
     return -1;
 }
 
-static void midi_poll(void)
+/* (0.19) MIDI in is taken in the 1 kHz tick (APP_TICK, the timer's interrupt, where USB's and the jack's packets
+ * arrive): the clock's messages act at once (a follower stays within a millisecond of its leader: Hortator, a DAW),
+ * the rest go through a ring to the main loop (one writer, one reader) */
+#define MRX 128
+static uint32_t mrx[MRX];
+static volatile uint32_t mrx_w, mrx_r;
+void app_tick(void)
 {
     uint32_t pkt;
     int port, n = 0;
-    while (n++ < 64 && plat_midi_in(&pkt, &port)) {
+    while (n++ < 32 && plat_midi_in(&pkt, &port)) {
+        uint32_t st = (pkt >> 8) & 0xFFu;
+        if (st == 0xF8 || st == 0xFA || st == 0xFB || st == 0xFC) {
+            engine_clock_rt(st == 0xF8 ? 0 : st == 0xFA ? 1 : st == 0xFB ? 2 : 3);
+            continue;
+        }
+        if (mrx_w - mrx_r < MRX) {
+            mrx[mrx_w % MRX] = pkt;
+            __asm__ volatile("" ::: "memory");
+            mrx_w++;
+        }
+    }
+}
+
+static void midi_poll(void)
+{
+    uint32_t pkt;
+    while (mrx_r != mrx_w) {
+        pkt = mrx[mrx_r % MRX];
+        __asm__ volatile("" ::: "memory");
+        mrx_r++;
         uint32_t st = (pkt >> 8) & 0xFFu, d1 = (pkt >> 16) & 0x7Fu, d2 = (pkt >> 24) & 0x7Fu;
         int ch = (int)(st & 15u), t;
-        switch (st) {
-        case 0xF8: engine_clock_tick(); continue;
-        case 0xFA: engine_clock_start(0); continue;
-        case 0xFB: engine_clock_start(1); continue;
-        case 0xFC: engine_clock_stop(); continue;
-        default: break;
-        }
         if (st < 0x80 || st >= 0xF0)
             continue;
         t = midi_track(ch);

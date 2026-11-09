@@ -235,7 +235,7 @@ static int item_get(const item_t *it, int *locked)
         case GL_SON_: return set.song_on;
         case GL_SLEN_: return set.song_n ? set.song_n : 1;
         case GL_SEND_: return set.song_end;
-        case GL_THEME_: return set.theme;
+        case GL_THEME_: return theme_pos(set.theme);   /* (0.19: its place in the shown order) */
         case GL_PCHG_: return set.pchg;
         case GL_INSHQ_: return !set.ins_lq;
         case GL_MUTEB_: return set.mute_bar;
@@ -412,7 +412,7 @@ static void item_set_raw(const item_t *it, int v)
         case GL_SON_: set.song_on = (uint8_t)v; if (!set.song_n) set.song_n = 1; break;
         case GL_SLEN_: set.song_n = (uint8_t)v; break;
         case GL_SEND_: set.song_end = (uint8_t)v; break;
-        case GL_THEME_: set.theme = (uint8_t)v; set_dirty = 1; ob_valid = 0; break;
+        case GL_THEME_: set.theme = THEME_ORDER[v < 0 ? 0 : v >= NTHEME ? NTHEME - 1 : v]; set_dirty = 1; ob_valid = 0; break;
         case GL_PCHG_: set.pchg = (uint8_t)v; set_dirty = 1; break;
         case GL_INSHQ_: set.ins_lq = (uint8_t)!v; eng.ins_lq = set.ins_lq; set_dirty = 1; break;
         case GL_MUTEB_: set.mute_bar = (uint8_t)v; set_dirty = 1; break;

@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.18" src="https://img.shields.io/badge/version-0.18-orange">
+  <img alt="Version 0.19" src="https://img.shields.io/badge/version-0.19-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -49,6 +49,8 @@ FM-1's flash.
 - **Held buttons** (0.18, after Hortator's way of playing the FM-1): a tap as ever, held a screen of its own: FX PERFORM
   (live effects on the black keys, filter / duck / throw / drive on the knobs), SAVE the patterns, GLO mute and solo,
   SEQ step tools, EDIT a preset list that plays as you browse, HOME a settings menu, REC a fill.
+- **Ten screen themes** (0.19) in Hortator's two-colour style (RED, BLUE, GREEN, AMBER and their INV) plus OLED and
+  PAPER, and **MIDI clock** in and out that keeps a TONIC FM-1 in time with a Hortator one (through a USB host).
 - **Twelve voices**, shared by the four tracks, with unison, reserved voices and four voice-stealing modes.
 - **Both CPU cores** (0.16, 0.17): the FM-1's second core renders part of the voices and their control step, and
   runs the effects of each block while the first core prepares the next; sample for sample the same sound.
@@ -91,7 +93,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.18.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.19.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.
