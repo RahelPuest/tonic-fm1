@@ -18,7 +18,8 @@ ir_pass = "tools/ir_copy.py"   # (its IR kept for that; the code the same)
 ram_code_allow = ["voice_block"]
 ble = true                     # (0.27) Bluetooth MIDI with a computer, a phone or a tablet
 ble_stack = "own"              # fm1-base's own stack (Henri David's): +10 KB of RAM, nothing of JieLi's
-ble_diag = false               # the link layer's diagnostics left out   # its BRAIDS and ENS blocks run from the flash, through a pointer
+ble_diag = false               # the link layer's diagnostics left out
+ble_central = 3                # (0.28) and it connects to Bluetooth MIDI devices itself (ROLE HOST), no pairing   # its BRAIDS and ENS blocks run from the flash, through a pointer
 words = "words.tsv"
 backup = true                  # backup and restore of the project over USB (base/tools/fm1_backup.py)
 # the site

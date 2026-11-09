@@ -16,6 +16,7 @@
 void app_tick(void);
 void app_overload(void);
 #define APP_BLE_STORE                    /* (0.27) Bluetooth's address kept in the settings (store.c), no OBJ_BLE */
+#define APP_BLE_PEERS                    /* (0.28) the saved Bluetooth devices are TONIC's (app/bt.c) */
 int app_bt_at_boot(void);
 #define APP_BLE_AT_BOOT (app_bt_at_boot())   /* MENU > BT: on at power-on */
 

@@ -1963,8 +1963,9 @@ static void o_menu(void)                             /* HOME held: the settings 
     o_ink = K_DIM;
     tx_cpy(v, engine_dual_on() ? "TWO CPU CORES" : "ONE CPU CORE");
     o_ts(0, 93, v, 1);
-    tx_cpy(v, set.bt_off ? "BLUETOOTH OFF" : plat_ble_connected() ? "BLUETOOTH CONNECTED" :   /* (0.27) */
-              plat_ble_state() == BLE_FAILED ? "BLUETOOTH FAILED" : "BLUETOOTH: CONNECT TONIC");
+    tx_cpy(v, MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_BT_ ? "OCT+: THE BLUETOOTH PAGE" :
+              !bt_on_now() ? "BLUETOOTH OFF" : plat_ble_connected() || plat_ble_device() == BLE_DEV_READY ?
+              "BLUETOOTH CONNECTED" : "BLUETOOTH ON");   /* (0.27, 0.28) */
     o_ts(0, 100, v, 1);
     o_ts(0, 108, "SELECT ROW  KNOB VALUE", 1);
     o_ts(0, 115, "OCT- OR HOME: CLOSE", 1);
@@ -2290,6 +2291,8 @@ static void ui_paint(uint32_t now, int touch)
         o_tools();
     else if (ui.ov == OV_MENU)
         o_menu();
+    else if (ui.ov == OV_BT)
+        bt_draw();
     else if (ui.ov == OV_ENG)
         o_engsel();
     else if (ui.grp == G_HOME)

@@ -29,10 +29,21 @@ static void mark_dirty(void);
 #include "store.c"
 #include "presets.c"
 #include "items.c"
+/* (0.28) app/bt.c, for the pages and MIDI before it */
+static void bt_enc(int e, int d);
+static void bt_oct(int d);
+static void bt_draw(void);
+static int bt_knob_take(int e);
+static int bt_on_now(void);
+static void bt_set_on(int on);
+static void bt_smc_push(uint32_t pkt);
+extern volatile uint32_t bt_to;
+extern volatile uint8_t bt_smc_in;
 #include "ui.c"
 #include "draw.c"
 #include "midi.c"
 #include "app/cpu1.c"                               /* (0.16) the second core */
+#include "app/bt.c"                                 /* (0.28) Bluetooth as Hortator has it */
 
 #if defined(__has_include)
 #if __has_include("tonic_bench.h")
@@ -119,6 +130,7 @@ void app_init(void)
     demo_check();
     eng_midi_out = midi_out_cb;
     eng_clock_cb = clock_out_cb;
+    bt_init();
     ui.grp = G_HOME;
     ui.row[G_ENV] = 1;                               /* FLTR: FREQ RESO TYPE ENV first */
     ui.roll_lo = -1;                                 /* the piano roll fits the notes */
@@ -168,6 +180,7 @@ void app_frame(void)
     }
     ui_input();
     midi_poll();
+    bt_poll();                                       /* (0.28) the Bluetooth links, the SMC-Mixer */
     pattern_cue_poll();
     chain_poll();                                    /* (0.17) a chain's next place (by its index) */
     song_poll();

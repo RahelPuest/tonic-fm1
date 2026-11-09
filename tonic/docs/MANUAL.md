@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.27.fwsc
+python3 base/tools/fm1_install.py tonic-0.28.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -103,6 +103,7 @@ python3 base/tools/fm1_install.py tonic-0.27.fwsc
 | 0.25 | starts on every FM-1: on some, every start crashed (pc 02017644, then safe mode) |
 | 0.26 | 3.6 KB less memory, the same sound |
 | 0.27 | Bluetooth MIDI (MENU > BT), on the current fm1-base |
+| 0.28 | Bluetooth as Hortator's: the Bluetooth page, devices the FM-1 connects itself, the SMC-Mixer, CLK and SYNC by input, THRU |
 
 ## 3. The concepts
 
@@ -918,7 +919,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 - **PATTERNS:** a pattern key cues the pattern (as SEQ > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
 - **MUTE:** the track boxes are filled when heard, open when muted, half filled when silent because another track is soloed (an **S** marks a soloed track). With **NEXT BAR** (black 11, or GLO > GLOBAL > MUTE) a mute made while playing blinks and lands on the next bar's first step. Solo is not saved; mutes are.
 - **TOOLS:** DUPLICATE makes the track twice as long (up to 64 steps), the new half a copy with its locks; REVERSE plays the steps back to front (their micro timing mirrored); CLEAR TRACK asks for a second press within 2 s. The grid's own black-key functions (section 11) are still there.
-- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate); **BT** (0.27: Bluetooth MIDI on / off, section 23). It also says whether the second CPU core runs and whether Bluetooth is connected. Tempo, clock, velocity and MIDI are on GLO.
+- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate); **BLUETOOTH** (on / off now; OCT+ on it opens the Bluetooth page, section 23). It also says whether the second CPU core runs and whether Bluetooth is connected. Tempo, clock, velocity and MIDI are on GLO.
 
 ### Momentary effects (TONIC 0.7)
 
@@ -960,9 +961,9 @@ On PERFORM, **OCT+** puts the second bank on black keys 1–9 and **OCT−** the
 
 | Page | Parameters |
 | --- | --- |
-| **GLOBAL** | (0.22, as Hortator's GLOBAL 1/7) BPM (30–300), SWG (swing, 50–80 %), CLK (INT: its own clock / MIDI: following MIDI clock), CH (the channel that plays the active track; OFF). |
-| **SYSTEM** | (as Hortator's SYSTEM 2/7) SYNC (MIDI clock out OFF / ON), ROUT (SEL: only CH plays, the active track / TRK: channels 1–4 also play tracks 1–4), EXT (the active track plays only over MIDI, an external track), TEMPO (PROJ: one tempo for the project / PTRN: each pattern its own). |
-| **GLOBAL** | (as Hortator's GLOBAL 3/7) MUTE (NOW / NEXT BAR), METRO (metronome off / on), VEL (FIXED / KEYS), QUANT (live recording quantized); FIXVL (the fixed velocity). |
+| **GLOBAL** | (0.22, as Hortator's GLOBAL 1/7) BPM (30–300), SWG (swing, 50–80 %), CLK (where the tempo comes from: INT its own clock; MIDI any input's MIDI clock; since 0.28 USB, TRS or BLE alone), CH (the channel that plays the active track; OFF). |
+| **SYSTEM** | (as Hortator's SYSTEM 2/7) SYNC (MIDI clock out: OFF, USB, BLE or BOTH; 0.28), ROUT (SEL: only CH plays, the active track / TRK: channels 1–4 also play tracks 1–4), EXT (the active track plays only over MIDI, an external track), TEMPO (PROJ: one tempo for the project / PTRN: each pattern its own). |
+| **GLOBAL** | (as Hortator's GLOBAL 3/7) MUTE (NOW / NEXT BAR), METRO (metronome off / on), VEL (FIXED / KEYS), QUANT (live recording quantized); FIXVL (the fixed velocity), THRU (0.28: notes and CCs from each MIDI input to the other outputs, USB and Bluetooth, never back where they came from). |
 | **MIDI** | CH T1–CH T4 (each track's out channel). |
 
 Since 0.20 GLO holds only what is the whole project's or the device's, as on Hortator. The rest went to where it belongs:
@@ -976,7 +977,7 @@ Since 0.20 GLO holds only what is the whole project's or the device's, as on Hor
 | **EDIT > SETUP** | PLAY (POLY, POLYM (one LFO for all voices), MONO, LEGAT (legato)), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
 | **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages, every engine but the kit. |
 | **LFO > VEL MOD** | Four destinations, each with a depth of ±128: velocity moves any listed parameter. (0.24: MODWHEEL, AFTERTCH, BREATH and PITCHBND are gone, as the FM-1 has no wheel, no aftertouch and no breath input; a sound's old routings of them stay in it and do nothing, and an older TONIC plays them again.) |
-| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ, BT (section 20). |
+| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ, BLUETOOTH (section 20; its page: section 23). |
 
 ![The GLO page](img/glo.png "GLO > GLOBAL")
 
@@ -1006,21 +1007,16 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
 ## 23. MIDI
 
 - **USB MIDI in and out, and Bluetooth MIDI (0.27).** The FM-1's TRS jack is MIDI in only; there is no DIN out.
-- **Bluetooth MIDI (0.27):** the FM-1 shows up as **TONIC** to a computer, a phone or a tablet, and everything that goes in and out over USB goes over Bluetooth too (notes, CCs, clock). It is on at power-on unless MENU > **BT** is OFF; the MENU says BLUETOOTH CONNECTED while something listens. To connect:
-  - **Mac:** Audio MIDI Setup > Window > Show MIDI Studio > the Bluetooth button (Bluetooth Configuration) > TONIC > Connect.
-  - **iPhone / iPad:** in the app's own Bluetooth MIDI page (GarageBand: Settings > Advanced > Bluetooth MIDI Devices; AUM; Korg's BLE-MIDI connect). iOS has no system page for it.
-  - **Windows:** a DAW or a tool that pairs BLE MIDI devices (Windows' own Bluetooth settings do not make it a MIDI port).
-  - **Android:** an app with BLE MIDI (for example MIDI BLE Connect), then the DAW.
-  No pairing code is asked for. Bluetooth adds a few milliseconds and some jitter against USB; for clock sync, USB is the tighter.
+- **Bluetooth MIDI (0.27; 0.28 as Hortator's Bluetooth version has it):** notes, CCs and clock go in and out over Bluetooth as over USB. The FM-1 holds one Bluetooth link at a time: either a computer, phone or tablet connects to it (**ROLE DEVICE**: it shows up as **TONIC**), or it connects a Bluetooth MIDI device itself (**ROLE HOST**: a controller, a keyboard, the SMC-Mixer, another TONIC). No pairing code is asked for. Bluetooth adds a few milliseconds and some jitter against USB: for tight clock sync USB is the better link.
 - **In:**
   - Notes on channels 1–4 play tracks 1–4 (with ROUT TRK); the CH channel plays the active track. Program change 0–31 selects a pattern (32 and up are ignored).
   - CC numbers follow the Digitone's for the sound parameters (CC MSB): for example 90 ALGO, 23 FREQ, 24 RESO, 7 VOL, 74 filter TYPE, 29 LFO1 DEP.
   - 94 mutes a track, 95 sets its level, and program change picks a pattern.
   - Pitch bend bends the track by the sound's PBDEP (EDIT > SETUP). Mod wheel, breath and aftertouch are ignored (0.24).
-- **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when SYNC is ON (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
+- **Out:** each track's notes on its channel (GLO > MIDI), and MIDI clock when SYNC is USB, BLE or BOTH (ON before 0.28) (0.17: its first clock on step 1, on the beat). Every note sent gets its note-off, also in MONO and when a voice is stolen; STOP sends All Notes Off (CC 123) on each channel in use.
 - **In time with the sound (0.23, after mono2k).** The sound is computed a block ahead of what you hear: a block (5.8 ms) is made while the one before plays. Before 0.23 a note or a clock went out when its block was computed, 6 to 12 ms before you heard it. Now each waits for the moment its own sample reaches the FM-1's output and goes out then, within a millisecond (the FM-1's 1 kHz timer sends it). An external synth, a drum machine or Hortator following the clock now plays with TONIC's own sound, not ahead of it. Through USB audio into a computer, the computer's own latency still adds to the sound.
 - **MIDI tracks:** GLO > SYSTEM > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.
-- **Clock in:** with CLK MIDI, TONIC follows the incoming clock, start, continue and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average. Since 0.19 the clocks are taken the moment they arrive (in the FM-1's 1 kHz timer, not with the screen), so it follows within about a millisecond; the first clock after Start is step 1, and Start and Stop go on to TONIC's own clock out.
+- **Clock in:** with CLK MIDI (or, since 0.28, USB, TRS or BLE alone), TONIC follows the incoming clock, start, continue and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average. Since 0.19 the clocks are taken the moment they arrive (in the FM-1's 1 kHz timer, not with the screen), so it follows within about a millisecond; the first clock after Start is step 1, and Start and Stop go on to TONIC's own clock out.
 
 ### Two FM-1s in time: TONIC and Hortator (0.19)
 
@@ -1028,10 +1024,49 @@ The FM-1's TRS jack is a MIDI input only and both FM-1s are USB devices, so two 
 
 | Leader | Follower |
 | --- | --- |
-| **TONIC**: GLO > SYSTEM **SYNC ON**, PLAY on TONIC | **Hortator**: GLO 1/7 **CLK USB** |
+| **TONIC**: GLO > SYSTEM **SYNC USB**, PLAY on TONIC | **Hortator**: GLO 1/7 **CLK USB** |
 | **Hortator**: SYSTEM 2/7 **SYNC USB**, PLAY on Hortator | **TONIC**: GLO > GLOBAL **CLK MIDI** |
 
 Both send Start, 24 clocks a quarter note with the first on step 1, and Stop; a PLAY always starts from the top (no Song Position). Routed through a computer, the clock comes a few milliseconds late on the follower: shift it in the router, or start the follower's pattern with a small micro timing. A USB-MIDI host box adds well under a millisecond.
+
+### The Bluetooth page (0.28)
+
+Hold HOME for the MENU, SELECT to **BLUETOOTH**, OCT+. SELECT moves the cursor, K1 changes a row, OCT+ acts on it, OCT− goes back to the MENU. Above the rows, the state: OFF, STARTING, `WAITING FOR A HOST: TONIC` or `CONNECTED: A COMPUTER` (ROLE DEVICE), `ON, NO DEVICE SAVED`, `ON, SEARCHING`, `CONNECTING`, `CONNECTED: <name>` (ROLE HOST). Under them the last thing that went wrong (`NO ANSWER`, `LOST`). `BT CONNECTED` and `BT LOST` show on any page.
+
+| Row | What it does |
+| --- | --- |
+| **BLUETOOTH** | ON starts Bluetooth (and, ROLE HOST, connects to the saved devices); OFF drops the link, the radio quiet. Also the MENU's BLUETOOTH row. |
+| **AUTOSTART** | ON (the default): Bluetooth starts at power-on. Saved. |
+| **ROLE** | **DEVICE**: a computer, a phone or a tablet connects to the FM-1. **HOST**: the FM-1 connects to its saved devices. Saved. |
+| **MODE** | **AUTO** (SMC DAW for a device whose name starts with SMC, else MIDI), **MIDI**, **SMC DAW**. Saved. |
+| **RECONNECT** | How long it waits between tries for a saved device that is not linked: **FAST** 2 s doubling to 16 s, **SLOW** 8 s then 16 s, **AUTO** SLOW while playing, FAST while stopped. Saved. |
+| a saved device | (up to 8; ROLE HOST) `*` when connected; its name; `CTRL`, `FM-1` or `SMC`; `ON`, `NEAR` (heard lately) or `AWAY`. OCT+: use it now (it goes first). K1 left: `FORGET <name>?`, OCT+ yes, OCT− no. |
+| **+ ADD A DEVICE** | (ROLE HOST) OCT+: an 8 s scan lists the devices around that are not saved, the Bluetooth MIDI ones (`MIDI`) first. SELECT one, OCT+: it is saved first and connected. `NOTHING FOUND`: OCT+ scans again; OCT− goes back. |
+
+With ROLE HOST and BLUETOOTH ON, the FM-1 looks for its saved devices and connects the first one that is near, in their order (ADD and OCT+ put a device first); when the link drops it tries again by itself.
+
+**Connecting a computer, phone or tablet** (ROLE DEVICE, BLUETOOTH ON; the page says `WAITING FOR A HOST: TONIC`):
+  - **Mac:** Audio MIDI Setup > Window > Show MIDI Studio > the Bluetooth button (Bluetooth Configuration) > TONIC > Connect.
+  - **iPhone / iPad:** in the app's own Bluetooth MIDI page (GarageBand: Settings > Advanced > Bluetooth MIDI Devices; AUM; Korg's BLE-MIDI connect). iOS has no system page for it.
+  - **Windows:** a DAW or a tool that pairs BLE MIDI devices (Windows' own Bluetooth settings do not make it a MIDI port).
+  - **Android:** an app with BLE MIDI (for example MIDI BLE Connect), then the DAW.
+
+**A Bluetooth MIDI controller** (ROLE HOST): switch it on, BLUETOOTH ON, + ADD A DEVICE, pick it, OCT+. Its notes play the tracks (GLO CH and ROUT), its CCs the sound parameters; the FM-1's notes go to it.
+
+**In time over Bluetooth:** to follow the computer's or device's clock set GLO **CLK BLE**; to send the FM-1's clock set GLO **SYNC BLE** (or **BOTH**, USB too). **Two TONICs:** one ROLE DEVICE, the other ROLE HOST with the first one added (it shows as `TONIC`, kind FM-1); the leader SYNC BLE, the follower CLK BLE: PLAY and STOP on the leader start and stop both, its tempo is the follower's. (Hortator's FM-Link, two FM-1s in time without MIDI clock, is its own protocol and not in TONIC.)
+
+**The SMC-Mixer** (M-VAVE's, in its DAW / Mackie Control mode; ROLE HOST, MODE AUTO or SMC DAW, + ADD A DEVICE, the `SMC` one): it becomes TONIC's mixer, and nothing but its LEDs is sent to it.
+
+| Control | TONIC |
+| --- | --- |
+| Fader 1–4 | track 1–4 LEVEL, once picked up: a fader does nothing until it reaches its track's level (within 2, or passing it), after each connection |
+| Knob 1–4 | the page's knobs 1–4, as the FM-1's own |
+| MUTE 1–4, SOLO 1–4 | mute / solo the track |
+| SELECT 1–4, BANK / CHANNEL left and right | the active track |
+| PLAY, STOP | play, stop |
+| REC | grid recording on / off |
+
+Its LEDs show the mutes, the solos, the active track, playing and stopped, and recording; they are sent again on every connection.
 
 ## 24. Shortcuts at a glance
 

@@ -38,10 +38,16 @@ typedef struct {
     uint8_t ins_lq;               /* (0.17) GLO > SYSTEM > INSHQ OFF: the inserts at the base rate */
     uint8_t mute_bar;             /* (0.18) the MUTE screen's mutes at the next bar */
     uint8_t no_zoom, no_accel, perf_page;   /* (0.20) MENU: no value pop-up, no knob acceleration, PERFORM stays */
-    uint8_t bt_off;               /* (0.27) MENU > BT OFF: no Bluetooth (an older record: 0, on) */
+    uint8_t bt_off;               /* (0.27) AUTOSTART OFF (0.28; 0.27: MENU > BT OFF): no Bluetooth at power-on */
     uint8_t ble_ok;               /* (0.27) ble below holds the radio's address */
     uint8_t rsv[19];
     struct plat_ble_rec ble;      /* (0.27) Bluetooth's record (APP_BLE_STORE): our address; older records end before */
+    uint8_t bt_role;              /* (0.28) 0 DEVICE (a computer connects to the FM-1), 1 HOST (the FM-1 connects) */
+    uint8_t bt_mode;              /* (0.28) 0 AUTO (SMC DAW for a device named SMC...), 1 MIDI, 2 SMC DAW */
+    uint8_t bt_recon;             /* (0.28) RECONNECT: 0 AUTO (slow while playing), 1 FAST, 2 SLOW */
+    uint8_t thru;                 /* (0.28) GLO THRU: notes and CCs from each MIDI input to the other outputs */
+    uint8_t bt_ndev, rsv3[3];     /* (0.28) the saved Bluetooth devices, the first tried first */
+    struct bt_dev { char name[14]; uint8_t addr[6], addr_rand, kind; } bt_dev[8];
 } settings_t;
 static settings_t set;
 
@@ -551,6 +557,15 @@ static void store_boot(void)
     {   /* (0.17) the settings in range: a damaged or foreign record cannot read past its tables */
         int k;
         if (set.chain_n > 64) set.chain_n = 0;
+        if (set.clock_in > 4) set.clock_in = 0;      /* (0.28: INT MIDI USB TRS BLE; SYNC OFF USB BLE BOTH) */
+        if (set.clock_out > 3) set.clock_out = 0;
+        if (set.bt_role > 1) set.bt_role = 0;
+        if (set.bt_mode > 2) set.bt_mode = 0;
+        if (set.bt_recon > 2) set.bt_recon = 0;
+        set.thru = set.thru ? 1 : 0;
+        if (set.bt_ndev > 8) set.bt_ndev = 0;
+        for (k = 0; k < 8; k++)
+            set.bt_dev[k].name[13] = 0;
         for (k = 0; k < 64; k++) set.chain[k] %= NPAT;
         if (set.song_n > 32) set.song_n = 0;
         for (k = 0; k < 32; k++) {

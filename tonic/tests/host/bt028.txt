@@ -1,0 +1,38 @@
+# 0.28: Bluetooth as Hortator's: MENU > BLUETOOTH, OCT+: the page; ROLE HOST, + ADD A DEVICE (the simulator's "BLE
+# MIDI"), saved and connected; FORGET; GLO CLK BLE, SYNC BOTH, THRU
+wait 1500
+press HOME
+wait 800
+release HOME
+wait 30
+spin SELECT 5
+wait 30
+tap OCT+
+wait 300
+shot bt_page.png
+spin SELECT 2
+spin K1 1
+wait 100
+spin SELECT 10
+wait 100
+tap OCT+
+wait 4000
+shot bt_scan.png
+wait 5000
+shot bt_found.png
+tap OCT+
+wait 1500
+expect ble_dev 4
+shot bt_linked.png
+midi 90 3C 64
+wait 100
+spin K1 -1
+wait 100
+shot bt_forget.png
+tap OCT+
+wait 300
+expect ble_dev 0
+tap OCT-
+wait 100
+tap OCT-
+wait 300

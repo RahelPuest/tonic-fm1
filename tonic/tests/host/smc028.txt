@@ -1,0 +1,41 @@
+# 0.28: the SMC-Mixer (Mackie Control, DAW mode) as the mixer: MODE SMC DAW with the simulator's device linked;
+# MUTE 1, SELECT 3, fader 2 picked up, PLAY / STOP; its LEDs sent back to it, no notes to it
+wait 1500
+press HOME
+wait 800
+release HOME
+wait 30
+spin SELECT 5
+wait 30
+tap OCT+
+wait 300
+spin SELECT 2
+spin K1 1
+spin SELECT 1
+spin K1 2
+wait 100
+spin SELECT 10
+wait 100
+tap OCT+
+wait 9000
+tap OCT+
+wait 1500
+expect ble_dev 4
+out
+midi BLE-DEV 90 10 7F
+midi BLE-DEV 90 1A 7F
+midi BLE-DEV E1 00 3C
+midi BLE-DEV E1 00 64
+midi BLE-DEV E1 00 70
+wait 300
+midi BLE-DEV 90 5E 7F
+wait 500
+out
+tap OCT-
+wait 50
+tap OCT-
+wait 300
+shot smc_home.png
+midi BLE-DEV 90 5D 7F
+wait 300
+out

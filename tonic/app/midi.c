@@ -67,11 +67,19 @@ void app_tick(void)
     int port, n = 0;
     mo_tick();                                       /* (0.23) MIDI out as the sound reaches it */
     while (n++ < 32 && plat_midi_in(&pkt, &port)) {
-        uint32_t st = (pkt >> 8) & 0xFFu;
-        if (st == 0xF8 || st == 0xFA || st == 0xFB || st == 0xFC) {
-            engine_clock_rt(st == 0xF8 ? 0 : st == 0xFA ? 1 : st == 0xFB ? 2 : 3);
+        uint32_t st = (pkt >> 8) & 0xFFu, from = plat_midi_in_from();
+        if (from == TO_BLE_DEV && bt_smc_in) {       /* (0.28) the SMC-Mixer: its own (app/bt.c) */
+            bt_smc_push(pkt);
             continue;
         }
+        if (st == 0xF8 || st == 0xFA || st == 0xFB || st == 0xFC) {
+            /* (0.28) GLO CLK: MIDI any input, or USB, TRS or BLE alone */
+            if (set.clock_in < 2 || port == (set.clock_in == 2 ? PORT_USB : set.clock_in == 3 ? PORT_TRS : PORT_BLE))
+                engine_clock_rt(st == 0xF8 ? 0 : st == 0xFA ? 1 : st == 0xFB ? 2 : 3);
+            continue;
+        }
+        if (set.thru && st >= 0x80u && st < 0xF0u)   /* (0.28) THRU: to the other outputs, never back */
+            plat_midi_send(pkt, (TO_USB | bt_to) & ~from);
         if (mrx_w - mrx_r < MRX) {
             mrx[mrx_w % MRX] = pkt;
             __asm__ volatile("" ::: "memory");
@@ -141,7 +149,7 @@ static void midi_poll(void)
  * with the next block's first sample. The output's place: the block that started playing when the render began,
  * and the ticks since */
 #define MTX 128
-static struct { uint32_t pkt, at; } mtx[MTX];
+static struct { uint32_t pkt, at, to; } mtx[MTX];   /* (0.28: to, each its own outputs) */
 static volatile uint32_t mtx_w, mtx_r;
 static volatile uint32_t mo_total;                   /* the samples rendered */
 static volatile uint32_t mo_base;                    /* the render's first sample, while it runs (and since) */
@@ -158,14 +166,15 @@ static void mo_render(uint32_t n, int begin)        /* app_render: around the en
         mo_in = 0;
     }
 }
-static void mo_send(uint32_t pkt)
+static void mo_send(uint32_t pkt, uint32_t to)
 {
     uint32_t f = mo_in ? 0 : plat_lock(), at = mo_in ? mo_base + eng_ofs : mo_total;
     if (mtx_w - mtx_r >= MTX)                        /* (full: at once, as before) */
-        plat_midi_send(pkt, TO_USB | TO_BLE);   /* (0.27: and Bluetooth) */
+        plat_midi_send(pkt, to);
     else {
         mtx[mtx_w % MTX].pkt = pkt;
         mtx[mtx_w % MTX].at = at;
+        mtx[mtx_w % MTX].to = to;
         __asm__ volatile("" ::: "memory");
         mtx_w++;
     }
@@ -178,7 +187,7 @@ static void mo_tick(void)                            /* app_tick: what is due by
     if (mo_ticks < 1000u)
         mo_ticks++;
     while (mtx_r != mtx_w && (int32_t)(pos - mtx[mtx_r % MTX].at) >= 0) {
-        plat_midi_send(mtx[mtx_r % MTX].pkt, TO_USB | TO_BLE);
+        plat_midi_send(mtx[mtx_r % MTX].pkt, mtx[mtx_r % MTX].to);
         __asm__ volatile("" ::: "memory");
         mtx_r++;
     }
@@ -188,11 +197,12 @@ static void mo_tick(void)                            /* app_tick: what is due by
 static void midi_out_cb(uint8_t st, uint8_t d1, uint8_t d2)
 {
     uint32_t cin = (uint32_t)(st >> 4);
-    mo_send(cin | (uint32_t)st << 8 | (uint32_t)d1 << 16 | (uint32_t)d2 << 24);
+    mo_send(cin | (uint32_t)st << 8 | (uint32_t)d1 << 16 | (uint32_t)d2 << 24, TO_USB | bt_to);   /* (0.27: and
+                                                     * Bluetooth; 0.28: not to the SMC-Mixer) */
 }
 static void clock_out_cb(int what)
 {
     static const uint8_t B[3] = {0xF8, 0xFA, 0xFC};
-    if (set.clock_out)
-        mo_send(0x0Fu | (uint32_t)B[what] << 8);
+    if (set.clock_out)                               /* (0.28) SYNC USB, BLE or BOTH */
+        mo_send(0x0Fu | (uint32_t)B[what] << 8, (set.clock_out & 1u ? TO_USB : 0u) | (set.clock_out & 2u ? bt_to : 0u));
 }

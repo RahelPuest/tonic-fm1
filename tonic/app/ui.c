@@ -27,7 +27,7 @@ static int8_t key_white[NKEYS], key_black[NKEYS];   /* key -> white index / blac
 /* (0.18) what a held button shows, after Hortator's way (DEADACTIVE): a tap does what it did (on the release), held
  * 0.4 s (or a key or knob with it) it opens its screen while held: HOME the MENU (it stays), FX PERFORM, SAVE the
  * patterns (CUE), GLO MUTE, SEQ TOOLS, EDIT the preset list (it stays), REC a FILL */
-enum { OV_NONE, OV_MENU, OV_PERF, OV_CUE, OV_MUTE, OV_TOOLS, OV_ENG };   /* (0.22: OV_ENG, EDIT held) */
+enum { OV_NONE, OV_MENU, OV_PERF, OV_CUE, OV_MUTE, OV_TOOLS, OV_ENG, OV_BT };   /* (0.28: OV_BT, MENU > BLUETOOTH) */   /* (0.22: OV_ENG, EDIT held) */
 #define HOLD_MS 400u
 
 static struct {
@@ -239,7 +239,8 @@ static int item_get(const item_t *it, int *locked)
         case GL_THEME_: return theme_pos(set.theme);   /* (0.19: its place in the shown order) */
         case GL_PCHG_: return set.pchg;
         case GL_INSHQ_: return !set.ins_lq;
-        case GL_BT_: return !set.bt_off;
+        case GL_BT_: return bt_on_now();
+        case GL_THRU_: return set.thru;
         case GL_MUTEB_: return set.mute_bar;
         case GL_ZOOM_: return !set.no_zoom;
         case GL_ACCEL_: return !set.no_accel;
@@ -419,7 +420,8 @@ static void item_set_raw(const item_t *it, int v)
         case GL_THEME_: set.theme = THEME_ORDER[v < 0 ? 0 : v >= NTHEME ? NTHEME - 1 : v]; set_dirty = 1; ob_valid = 0; break;
         case GL_PCHG_: set.pchg = (uint8_t)v; set_dirty = 1; break;
         case GL_INSHQ_: set.ins_lq = (uint8_t)!v; eng.ins_lq = set.ins_lq; set_dirty = 1; break;
-        case GL_BT_: set.bt_off = (uint8_t)!v; plat_ble_enable(v); set_dirty = 1; break;   /* (0.27) */
+        case GL_BT_: if ((v != 0) != bt_on_now()) bt_set_on(v); break;   /* (0.28: on now; AUTOSTART on its page) */
+        case GL_THRU_: set.thru = (uint8_t)(v != 0); set_dirty = 1; break;
         case GL_MUTEB_: set.mute_bar = (uint8_t)v; set_dirty = 1; break;
         case GL_ZOOM_: set.no_zoom = (uint8_t)!v; set_dirty = 1; break;
         case GL_ACCEL_: set.no_accel = (uint8_t)!v; set_dirty = 1; break;
@@ -1177,7 +1179,7 @@ static void hold_end(int sel)
         ui.perf_chain_n = 0;
         if (b == B_REC)
             eng.fill = 0;
-        if (b != B_HOME && ui.ov != OV_MENU && ui.ov != OV_ENG && !(b == B_FX && set.perf_page))   /* (0.20: PERF PAGE: it
+        if (b != B_HOME && ui.ov != OV_MENU && ui.ov != OV_BT && ui.ov != OV_ENG && !(b == B_FX && set.perf_page))   /* (0.20: PERF PAGE: it
                                                       * stays; 0.22: the engine screen too) */
             ui.ov = OV_NONE;
         ui.redraw = 1;
@@ -1189,7 +1191,7 @@ static void hold_end(int sel)
     }
     switch (b) {                                     /* the taps */
     case B_HOME:
-        if (ui.ov == OV_MENU)
+        if (ui.ov == OV_MENU || ui.ov == OV_BT)
             ui.ov = OV_NONE;
         else {
             if (ui.plist_on)
@@ -1334,9 +1336,13 @@ static void buttons(uint32_t b)
                 app_say("PRESETS", "CANCELLED");
             }
             ui.redraw = 1;
-        } else if (ui.ov == OV_MENU) {               /* MENU: OCT- closes */
+        } else if (ui.ov == OV_MENU) {               /* MENU: OCT- closes; (0.28) OCT+ on BLUETOOTH: its page */
             if (d < 0)
                 ui.ov = OV_NONE;
+            else if (MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_BT_)
+                ui.ov = OV_BT;
+        } else if (ui.ov == OV_BT) {                 /* (0.28) the Bluetooth page */
+            bt_oct(d);
         } else if (ui.ov == OV_ENG) {                /* (0.22) the engine screen: OCT+ takes the cursor's, OCT- closes */
             if (d > 0)
                 engine_pick(ui.eng_i);
@@ -1851,7 +1857,7 @@ static void encoders(void)
     int e;
     uint32_t now = plat_ms();
     for (e = 0; e < NE; e++) {
-        int d = plat_enc(e);
+        int d = plat_enc(e) + bt_knob_take(e);    /* (0.28: and the SMC-Mixer's knobs 1-4) */
         uint32_t dt;
         if (!d)
             continue;
@@ -1862,6 +1868,10 @@ static void encoders(void)
         if (ui.ov == OV_ENG) {                       /* (0.22) the engine screen: any knob moves the cursor */
             ui.eng_i = (uint8_t)clamp(ui.eng_i + d, 0, NENG - 1);
             ui.redraw = 1;
+            continue;
+        }
+        if (ui.ov == OV_BT) {                        /* (0.28) the Bluetooth page */
+            bt_enc(e, d);
             continue;
         }
         if (ui.ov == OV_MENU && e != EN_ALGO) {      /* (0.18) the MENU: SELECT the row, a knob its value */
@@ -1945,7 +1955,7 @@ static void leds(void)
         lit |= 1u << B_SEL;
     if (ui.hold_on && ui.hold_btn != 0xFF)           /* (0.18) the held button's screen up: its LED */
         lit |= 1u << ui.hold_btn;
-    if (ui.ov == OV_MENU)
+    if (ui.ov == OV_MENU || ui.ov == OV_BT)
         lit |= 1u << B_HOME;
     if (store_unsaved() && !eng.playing)
         mid_b |= 1u << B_SAVE;
