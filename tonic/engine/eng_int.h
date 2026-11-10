@@ -256,6 +256,8 @@ pattern_t *seq_cued(void);
 int seq_took_cue(void);
 void seq_at_change(int mute, int stop, int bpm10);   /* (0.17) at the next change point: mutes, a stop, a tempo */
 int seq_take_stop(void);
+extern volatile uint32_t clk_t24;
+extern volatile float clk_iv24;
 extern volatile uint32_t seq_clk_rx;                         /* (0.17) 1 once: the change point stopped the sequencer */
 int seq_step(int t);
 uint32_t seq_loops(void);

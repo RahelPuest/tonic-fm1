@@ -28,7 +28,7 @@ enum { TF_LEN_, TF_SCALE_, TF_TRANSP_, TF_VOICES_, TF_UNI_, TF_SPREAD_, TF_LAYER
 enum { PF_BPM_, PF_SWING_, PF_LMODE_, PF_MLEN_, PF_CHLEN_, PF_STEAL_, PF_REUSE_ };
 enum { GL_TMODE_, GL_CLKIN_, GL_CLKOUT_, GL_QUANT_, GL_VELS_, GL_VELF_, GL_MET_, GL_MIDI0_, GL_MIDI1_, GL_MIDI2_,
        GL_MIDI3_, GL_MIDIIN_, GL_TRKCH_, GL_MTRK_, GL_SROW_, GL_SPAT_, GL_SREP_, GL_SMUTE_, GL_SON_, GL_SLEN_,
-       GL_SEND_, GL_THEME_, GL_PCHG_, GL_INSHQ_, GL_MUTEB_, GL_ZOOM_, GL_ACCEL_, GL_PHOLD_, GL_BT_, GL_THRU_ };
+       GL_SEND_, GL_THEME_, GL_PCHG_, GL_INSHQ_, GL_MUTEB_, GL_ZOOM_, GL_ACCEL_, GL_PHOLD_, GL_BT_, GL_THRU_, GL_CLKOF_ };
 enum { AS_STEP_, AS_OFS_, AS_ON_ };
 enum { VW_LO_, VW_ZOOM_ };              /* the piano roll's view (not saved) */
 /* the euclidean generator [TONIC 0.6, 0.8]: cycle, hits, rotation, a named rhythm; accents' hits and rotation, ghost
@@ -210,7 +210,7 @@ static const row_t R_GLO[] = {
     {T_GLOB, {PF(PF_BPM_), PF(PF_SWING_), GL(GL_CLKIN_), GL(GL_MIDIIN_)}},
     {"SYSTEM", {GL(GL_CLKOUT_), GL(GL_TRKCH_), GL(GL_MTRK_), GL(GL_TMODE_)}},
     {T_GLOB3, {GL(GL_MUTEB_), GL(GL_MET_), GL(GL_VELS_), GL(GL_QUANT_)}},
-    {T_GLOB3, {GL(GL_VELF_), GL(GL_THRU_), NO, NO}},   /* (0.28: THRU, as Hortator's GLOBAL 3/7) */
+    {T_GLOB3, {GL(GL_VELF_), GL(GL_THRU_), GL(GL_CLKOF_), NO}},   /* (0.29: CLKOF) */   /* (0.28: THRU, as Hortator's GLOBAL 3/7) */
     {"MIDI", {GL(GL_MIDI0_), GL(GL_MIDI1_), GL(GL_MIDI2_), GL(GL_MIDI3_)}},
 };
 
@@ -366,7 +366,7 @@ static const char *item_name(const item_t *it)
                                       "ROOT", "FOLD", "KCHRD", "MICRO"};
     static const char *const PFN[] = {"BPM", "SWG", "MODE", "MLEN", "CHLEN", "STEAL", "REUSE"};
     static const char *const GLN[] = {"TEMPO", "CLK", "SYNC", "QUANT", "VEL", "FIXVL", "METRO",
-                                      "CH T1", "CH T2", "CH T3", "CH T4", "CH", "ROUT", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE", "ZOOM", "ACCEL", "PERF", "BLUETOOTH", "THRU"};   /* EXT: the active track plays out over MIDI only */
+                                      "CH T1", "CH T2", "CH T3", "CH T4", "CH", "ROUT", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE", "ZOOM", "ACCEL", "PERF", "BLUETOOTH", "THRU", "CLKOF"};   /* EXT: the active track plays out over MIDI only */
     static const char *const STN[NSS] = {"KS A", "KS B1", "KS B2", "KTRK", "TYPE", "SLOPE", "AMT", "STYLE",
                                          "GATE", "PLAY", "PRIO", "V>VOL", "PBDEP", "OCT", "MODE", "SPD", "RNG",
                                          "LEN", "STEPS", "ENG", "PAD 1", "PAD 2", "PAD 3", "PAD 4",
@@ -680,6 +680,7 @@ static range_t item_range(const item_t *it)
         case GL_MET_: r.hi = 1; r.fmt = F_LIST; r.list = L_CLK; break;
         case GL_CLKOUT_: r.hi = 3; r.fmt = F_LIST; r.list = L_SYNC; break;
         case GL_THRU_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
+        case GL_CLKOF_: r.lo = -30; r.hi = 30; break;   /* (0.29) ms */
         case GL_CLKIN_: r.hi = 4; r.fmt = F_LIST; r.list = L_CLKIN; break;   /* (0.22: INT / MIDI, as Hortator's CLK) */
         case GL_TRKCH_: r.hi = 1; r.fmt = F_LIST; r.list = L_ROUT; break;    /* (SEL: the CH channel plays the active
                                                                                * track; TRK: 1-4 the tracks too) */

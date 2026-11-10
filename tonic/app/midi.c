@@ -75,7 +75,7 @@ void app_tick(void)
         if (st == 0xF8 || st == 0xFA || st == 0xFB || st == 0xFC) {
             /* (0.28) GLO CLK: MIDI any input, or USB, TRS or BLE alone */
             if (set.clock_in < 2 || port == (set.clock_in == 2 ? PORT_USB : set.clock_in == 3 ? PORT_TRS : PORT_BLE))
-                engine_clock_rt(st == 0xF8 ? 0 : st == 0xFA ? 1 : st == 0xFB ? 2 : 3);
+                engine_clock_rt(st == 0xF8 ? 0 : st == 0xFA ? 1 : st == 0xFB ? 2 : 3, plat_midi_in_t24());
             continue;
         }
         if (set.thru && st >= 0x80u && st < 0xF0u)   /* (0.28) THRU: to the other outputs, never back */

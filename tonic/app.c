@@ -18,6 +18,7 @@
                                          * the BRAIDS area in, the reverb's 32 KB at 16 bits out: as long; 0.17: the
                                          * chorus line and the pre-delay in, the 2016 B the delay's rounding left out) */
 static uint8_t engine_pool[ENGINE_POOL] PLAT_POOL;
+typedef char eng_ahead_check[ENG_AHEAD == APP_BLOCK ? 1 : -1];   /* (0.29) */
 
 static void demo_check(void);
 static int step_held_any(void);
@@ -145,6 +146,7 @@ static void mo_render(uint32_t n, int begin);
 void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
 {
     mo_render(n, 1);
+    eng_t24 = plat_ticks24();                        /* (0.29) the followed clock's timeline */
     engine_render(lr, n, master_q12);
     mo_render(n, 0);
 }

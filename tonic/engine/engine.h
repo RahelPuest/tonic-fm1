@@ -126,7 +126,11 @@ void engine_rec_param(int trk, int param, int val);  /* a knob turned while live
 /* (0.19) MIDI clock in, from the 1 kHz tick (app_tick: the moment it comes, not at the next screen frame): 0 a clock
  * (F8), 1 Start (FA), 2 Continue (FB), 3 Stop (FC); with ext_clock. Start and Stop take effect in the render's next
  * block, and go on to the clock out (as Hortator forwards them) */
-void engine_clock_rt(int what);
+void engine_clock_rt(int what, uint32_t t24);   /* (0.29) t24: when it was sent or landed, on plat_ticks24's clock */
+extern volatile uint32_t eng_t24;                /* (0.29) plat_ticks24 at the render's call (the app sets it) */
+extern volatile int eng_clk_ofs;                 /* (0.29) GLO CLKOF: the followed clock this many ms ahead */
+#define ENG_AHEAD 256u                            /* (0.29) frames from the render's call to its first sample heard
+                                                  * (app.h APP_BLOCK: the other half of the DMA buffer plays first) */
 
 /* the sound a track plays now (its pattern sound, the voice parameters: for the screen) */
 const sound_t *engine_sound(int trk);

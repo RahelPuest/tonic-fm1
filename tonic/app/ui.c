@@ -241,6 +241,7 @@ static int item_get(const item_t *it, int *locked)
         case GL_INSHQ_: return !set.ins_lq;
         case GL_BT_: return bt_on_now();
         case GL_THRU_: return set.thru;
+        case GL_CLKOF_: return set.clk_ofs;
         case GL_MUTEB_: return set.mute_bar;
         case GL_ZOOM_: return !set.no_zoom;
         case GL_ACCEL_: return !set.no_accel;
@@ -422,6 +423,7 @@ static void item_set_raw(const item_t *it, int v)
         case GL_INSHQ_: set.ins_lq = (uint8_t)!v; eng.ins_lq = set.ins_lq; set_dirty = 1; break;
         case GL_BT_: if ((v != 0) != bt_on_now()) bt_set_on(v); break;   /* (0.28: on now; AUTOSTART on its page) */
         case GL_THRU_: set.thru = (uint8_t)(v != 0); set_dirty = 1; break;
+        case GL_CLKOF_: set.clk_ofs = (int8_t)clamp(v, -30, 30); eng_clk_ofs = set.clk_ofs; set_dirty = 1; break;
         case GL_MUTEB_: set.mute_bar = (uint8_t)v; set_dirty = 1; break;
         case GL_ZOOM_: set.no_zoom = (uint8_t)!v; set_dirty = 1; break;
         case GL_ACCEL_: set.no_accel = (uint8_t)!v; set_dirty = 1; break;

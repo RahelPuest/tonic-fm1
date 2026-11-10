@@ -631,15 +631,32 @@ void seq_block(void)
     int t;
     if (eng_speed != 1.0f)                           /* HALF, TAPE [TONIC 0.7] */
         d1x *= eng_speed;
-    if (eng.ext_clock && eng.playing) {              /* (0.17) MIDI clock in: 4 ticks a clock, locked to the clocks
-                                                      * received (never past the next, caught up when behind); the
-                                                      * tempo only smooths between them */
-        uint32_t rx = seq_clk_rx;                    /* (the first clock after START is tick 0) */
-        float lo = rx ? (float)(rx - 1u) * 4.0f : 0.0f, hi = rx ? lo + 4.0f : 0.0f;
-        if (slave_pos + d1x > hi)
-            d1x = hi - slave_pos > 0.0f ? hi - slave_pos : 0.0f;
-        else if (slave_pos + d1x < lo)
-            d1x = lo - slave_pos;
+    if (eng.ext_clock && eng.playing) {              /* MIDI clock in: 4 ticks a clock. (0.29) Where the leader is
+                                                      * when this block is heard: the last clock's place and time, on
+                                                      * at the clocks' interval (at most six clocks, a 16th, past the
+                                                      * last one received: Bluetooth's connection events), GLO CLKOF
+                                                      * ms ahead; the sequencer runs at the tempo
+                                                      * and is drawn there a little each block (a big gap: at once).
+                                                      * 0.17-0.28 held at each clock received: Bluetooth's clocks come
+                                                      * a connection event's worth at a time, and the steps jittered */
+        uint32_t rx = seq_clk_rx, t0;                /* (the first clock after START is tick 0) */
+        float iv = clk_iv24;
+        do {
+            rx = seq_clk_rx;
+            t0 = clk_t24;
+        } while (rx != seq_clk_rx);
+        if (!rx)
+            d1x = 0.0f;
+        else {
+            uint32_t now = eng_t24 + (uint32_t)((float)(eng_ofs + ENG_AHEAD) * (24000000.0f * INV_SR)) +
+                           (uint32_t)(eng_clk_ofs * 24000);
+            float e = iv > 0.0f ? 4.0f * (float)(int32_t)(now - t0) / iv : 0.0f, err;
+            e = e < -4.0f ? -4.0f : e > 24.0f ? 24.0f : e;
+            err = (float)(rx - 1u) * 4.0f + e - (slave_pos + d1x);
+            d1x += err > 12.0f || err < -12.0f ? err : err * 0.15f;
+            if (d1x < 0.0f)
+                d1x = 0.0f;
+        }
         slave_pos += d1x;
     }
     eng_now++;

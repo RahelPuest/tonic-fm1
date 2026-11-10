@@ -40,7 +40,8 @@ typedef struct {
     uint8_t no_zoom, no_accel, perf_page;   /* (0.20) MENU: no value pop-up, no knob acceleration, PERFORM stays */
     uint8_t bt_off;               /* (0.27) AUTOSTART OFF (0.28; 0.27: MENU > BT OFF): no Bluetooth at power-on */
     uint8_t ble_ok;               /* (0.27) ble below holds the radio's address */
-    uint8_t rsv[19];
+    int8_t clk_ofs;               /* (0.29) GLO CLKOF: the followed clock this many ms ahead (-30..30) */
+    uint8_t rsv[18];
     struct plat_ble_rec ble;      /* (0.27) Bluetooth's record (APP_BLE_STORE): our address; older records end before */
     uint8_t bt_role;              /* (0.28) 0 DEVICE (a computer connects to the FM-1), 1 HOST (the FM-1 connects) */
     uint8_t bt_mode;              /* (0.28) 0 AUTO (SMC DAW for a device named SMC...), 1 MIDI, 2 SMC DAW */
@@ -559,6 +560,7 @@ static void store_boot(void)
         if (set.chain_n > 64) set.chain_n = 0;
         if (set.clock_in > 4) set.clock_in = 0;      /* (0.28: INT MIDI USB TRS BLE; SYNC OFF USB BLE BOTH) */
         if (set.clock_out > 3) set.clock_out = 0;
+        if (set.clk_ofs < -30 || set.clk_ofs > 30) set.clk_ofs = 0;
         if (set.bt_role > 1) set.bt_role = 0;
         if (set.bt_mode > 2) set.bt_mode = 0;
         if (set.bt_recon > 2) set.bt_recon = 0;
@@ -611,6 +613,7 @@ static void store_boot(void)
     eng.mute = set.mute;
     eng.rec_quant = set.quant;
     eng.ext_clock = set.clock_in;
+    eng_clk_ofs = set.clk_ofs;
     eng.ins_lq = set.ins_lq;
     for (i = 0; i < NTRK; i++)
         eng_midi_chan[i] = set.midi_out[i];
