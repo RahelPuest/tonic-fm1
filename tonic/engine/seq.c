@@ -48,7 +48,8 @@ static float gtick;               /* ticks since boot (the arpeggiator's clock) 
 static uint8_t starting;          /* the first block after PLAY */
 static pattern_t *cued;
 static float clk;                 /* (0.17) MIDI clock out: ticks to the next clock */
-volatile uint32_t seq_clk_rx;     /* (0.17) MIDI clocks received since START (the main loop counts) */
+volatile uint32_t seq_clk_rx;
+volatile float clk_err_ms;        /* (0.30) the follower's error squared, smoothed (ms^2: the page takes the root) */     /* (0.17) MIDI clocks received since START (the main loop counts) */
 static float slave_pos;           /* (0.17) ticks played since then */
 static uint8_t clk_run;           /* (0.17) the clock runs: PLAY sent its first */
 static volatile int16_t pend_mute = -1, pend_bpm10;   /* (0.17) what the next change point brings */
@@ -653,6 +654,7 @@ void seq_block(void)
             float e = iv > 0.0f ? 4.0f * (float)(int32_t)(now - t0) / iv : 0.0f, err;
             e = e < -4.0f ? -4.0f : e > 24.0f ? 24.0f : e;
             err = (float)(rx - 1u) * 4.0f + e - (slave_pos + d1x);
+            clk_err_ms += ((err * iv * (1.0f / 96000.0f)) * (err * iv * (1.0f / 96000.0f)) - clk_err_ms) * 0.002f;
             d1x += err > 12.0f || err < -12.0f ? err : err * 0.15f;
             if (d1x < 0.0f)
                 d1x = 0.0f;

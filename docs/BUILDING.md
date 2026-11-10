@@ -44,7 +44,7 @@ From `tonic/`:
 ```sh
 . tools/env.sh                                 # toolchain, SDK, fribidi, emsdk
 python3 ../base/tools/build.py .               # build/tonic.fwsc (identity FM-1_4700) + build/tonic.bin
-python3 ../base/tools/build.py . --release 0.29  # build/tonic-0.29.fwsc (identity FM-1_47002900)
+python3 ../base/tools/build.py . --release 0.30  # build/tonic-0.30.fwsc (identity FM-1_47003000)
 python3 ../base/tools/build.py . --host        # build/host/tonic_host (the simulator)
 python3 ../base/tools/build.py . --web         # build/emu/ (the browser emulator)
 tools/bench_build.sh                           # build/bench/tonic-bench.fwsc (CPU benchmark firmware)
@@ -56,9 +56,9 @@ The device build checks the memory budget and prints it, e.g.
 `image 435848 B; SRAM 482868 B of 491264: RAM code 35088 B, .data+.bss 118856 B, pool 328924 B; free 8396 B (8192 kept spare)`.
 
 The installer site (installer page, emulator, manual, backup page):
-`python3 ../base/tools/make_site.py . build/tonic-0.29.fwsc 0.29 OUT_DIR` (needs a release build). Copy the
+`python3 ../base/tools/make_site.py . build/tonic-0.30.fwsc 0.30 OUT_DIR` (needs a release build). Copy the
 earlier packages into `OUT_DIR/firmware/` to keep them downloadable (the landing page links `tonic-0.1.fwsc`,
-`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc`, `tonic-0.12.fwsc`, `tonic-0.12.1.fwsc`, `tonic-0.13.fwsc`, `tonic-0.14.fwsc`, `tonic-0.15.fwsc`, `tonic-0.16.fwsc`, `tonic-0.17.fwsc`, `tonic-0.18.fwsc`, `tonic-0.19.fwsc`, `tonic-0.20.fwsc`, `tonic-0.21.fwsc`, `tonic-0.22.fwsc`, `tonic-0.23.fwsc`, `tonic-0.24.fwsc`, `tonic-0.25.fwsc`, `tonic-0.26.fwsc`, `tonic-0.27.fwsc` and `tonic-0.28.fwsc`).
+`tonic-0.2.fwsc`, `tonic-0.3.fwsc`, `tonic-0.3.1.fwsc`, `tonic-0.3.2.fwsc`, `tonic-0.4.fwsc`, `tonic-0.4.1.fwsc`, `tonic-0.5.fwsc`, `tonic-0.5.1.fwsc`, `tonic-0.5.2.fwsc`, `tonic-0.6.fwsc`, `tonic-0.6.1.fwsc`, `tonic-0.7.fwsc`, `tonic-0.8.fwsc`, `tonic-0.9.fwsc`, `tonic-0.9.1.fwsc`, `tonic-0.9.2.fwsc`, `tonic-0.10.fwsc`, `tonic-0.10.1.fwsc`, `tonic-0.11.fwsc`, `tonic-0.12.fwsc`, `tonic-0.12.1.fwsc`, `tonic-0.13.fwsc`, `tonic-0.14.fwsc`, `tonic-0.15.fwsc`, `tonic-0.16.fwsc`, `tonic-0.17.fwsc`, `tonic-0.18.fwsc`, `tonic-0.19.fwsc`, `tonic-0.20.fwsc`, `tonic-0.21.fwsc`, `tonic-0.22.fwsc`, `tonic-0.23.fwsc`, `tonic-0.24.fwsc`, `tonic-0.25.fwsc`, `tonic-0.26.fwsc`, `tonic-0.27.fwsc`, `tonic-0.28.fwsc` and `tonic-0.29.fwsc`).
 
 ## Tests
 

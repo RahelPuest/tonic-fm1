@@ -128,7 +128,9 @@ void engine_rec_param(int trk, int param, int val);  /* a knob turned while live
  * block, and go on to the clock out (as Hortator forwards them) */
 void engine_clock_rt(int what, uint32_t t24);   /* (0.29) t24: when it was sent or landed, on plat_ticks24's clock */
 extern volatile uint32_t eng_t24;                /* (0.29) plat_ticks24 at the render's call (the app sets it) */
-extern volatile int eng_clk_ofs;                 /* (0.29) GLO CLKOF: the followed clock this many ms ahead */
+extern volatile int eng_clk_ofs;
+extern volatile float clk_jit_ms, clk_err_ms;    /* (0.30) the clock in: its scatter about its line, and how far
+                                                  * the sequencer was from the leader (rms, ms) */                 /* (0.29) GLO CLKOF: the followed clock this many ms ahead */
 #define ENG_AHEAD 256u                            /* (0.29) frames from the render's call to its first sample heard
                                                   * (app.h APP_BLOCK: the other half of the DMA buffer plays first) */
 

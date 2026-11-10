@@ -448,6 +448,14 @@ static void bt_draw(void)
         }
     }
     o_ink = K_DIM;
+    if (eng.ext_clock && clk_jit_ms > 0.0f) {      /* (0.30) the clock followed: its scatter, the follower's error */
+        tx_cpy(a, "CLOCK JIT ");
+        tx_num(a + tx_len(a), (int)(clk_jit_ms * 10.0f + 0.5f));
+        tx_cat(a, "  ERR ");
+        tx_num(a + tx_len(a), (int)(fm_sqrtf(clk_err_ms) * 10.0f + 0.5f));
+        tx_cat(a, " (0.1 MS)");
+        o_ts(0, 101, a, 1);
+    }
     if (bt.forget) {
         tx_cpy(a, "FORGET ");
         tx_cat(a, set.bt_dev[bt.forget - 1].name);

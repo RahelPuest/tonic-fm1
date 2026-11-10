@@ -759,34 +759,57 @@ float engine_lfo_view(int trk, int lfo)
  * intervals and the sequencer's place come from those, not from when the main loop read them (Bluetooth hands them
  * over a connection event's worth at a time) */
 static uint32_t clk_n;
-static float clk_avg;
 volatile uint32_t eng_t24, clk_t24;                  /* the render's call; the last clock's time */
 volatile float clk_iv24;                             /* a clock's interval, ticks of 24 MHz (smoothed) */
 volatile int eng_clk_ofs;
 static volatile uint8_t rt_start, rt_stop;            /* (0.19) Start / Continue (1 / 2), Stop: for the render */
-static uint32_t clk_gt, clk_gn, clk_pt;               /* (0.29) the clocks with one time (a group), its time, the
-                                                      * group's before: a bunch without the sender's stamps (USB
-                                                      * unstamped, a test) shares its span */
+/* (0.30) the clocks' line: a least-squares fit of the last CLK_FIT clocks' times against their numbers (a beat), its
+ * slope the interval and the tempo, its value at the newest clock the time the sequencer follows. One stamp's noise
+ * (Bluetooth's 1 ms stamps, the link's offset found anew, a bunch with one time) is averaged out, the line laid
+ * through the least delayed of them; a tempo change is followed within the beat. A gap (a stop, a lost link) starts the line again */
+#define CLK_FIT 24
+static uint32_t clk_ring[CLK_FIT], clk_nr;          /* the times, the clocks on the line */
+volatile float clk_jit_ms;                          /* the clocks' scatter about the line (rms, ms): GLO, the page */
 static void clock_in_tick(uint32_t t24)
 {
-    if (!clk_n || (int32_t)(t24 - clk_gt) > 96000) {   /* a new time (4 ms on: clocks are 8 ms apart at 300 BPM): the last group's interval known */
-        if (clk_n && clk_pt && clk_gn) {             /* (0.17) the intervals averaged, not the tempos */
-            float iv = (float)(clk_gt - clk_pt) * (1.0f / 24000000.0f) / (float)clk_gn;
-            if (clk_avg <= 0.0f || iv < clk_avg * 4.0f)   /* (0.19: a gap, a stop between: not a tempo) */
-                clk_avg = clk_avg > 0.0f ? clk_avg + (iv - clk_avg) * 0.05f : iv;
-            {
-                float bpm = 60.0f / (clk_avg * 24.0f);
-                if (bpm > 20.0f && bpm < 400.0f) {
-                    eng.bpm = fm_floorf(bpm * 10.0f + 0.5f) * 0.1f;
-                    clk_iv24 = clk_avg * 24000000.0f;
-                }
-            }
+    uint32_t i, m, newest;
+    float sx = 0, sy = 0, sxx = 0, sxy = 0, b, a, r2 = 0;
+    if (clk_nr && (int32_t)(t24 - clk_ring[(clk_nr - 1u) % CLK_FIT]) > (int32_t)(clk_iv24 > 0.0f ? clk_iv24 * 4.0f : 24000000.0f))
+        clk_nr = 0;                                  /* (a gap: a new line) */
+    clk_ring[clk_nr % CLK_FIT] = t24;
+    clk_nr++;
+    m = clk_nr < CLK_FIT ? clk_nr : CLK_FIT;
+    newest = t24;
+    if (m >= 3u) {
+        for (i = 0; i < m; i++) {                    /* x: the clock's number from the newest (0, -1, ...), y: ms */
+            float x = -(float)i, y = (float)(int32_t)(clk_ring[(clk_nr - 1u - i) % CLK_FIT] - newest) * (1.0f / 24000.0f);
+            sx += x; sy += y; sxx += x * x; sxy += x * y;
         }
-        clk_pt = clk_n ? clk_gt : 0u;
-        clk_gt = t24;
-        clk_gn = 1;
-    } else
-        clk_gn++;
+        b = ((float)m * sxy - sx * sy) / ((float)m * sxx - sx * sx);
+        a = (sy - b * sx) / (float)m;
+        {
+            float lo = 1e9f;
+            for (i = 0; i < m; i++) {
+                float x = -(float)i, y = (float)(int32_t)(clk_ring[(clk_nr - 1u - i) % CLK_FIT] - newest) * (1.0f / 24000.0f),
+                      e = y - (a + b * x);
+                r2 += e * e;
+                lo = e < lo ? e : lo;
+            }
+            clk_jit_ms = fm_sqrtf(r2 / (float)m);
+            a += lo;                                 /* a clock comes late, never early: the line through the least
+                                                      * delayed ones (as fm1-base's Bluetooth time, ble_time.c) */
+        }
+        if (b > 2.0f && b < 130.0f) {                /* (20..300 BPM: a clock every 125..8.3 ms) */
+            float bpm = 60000.0f / (b * 24.0f);
+            eng.bpm = fm_floorf(bpm * 10.0f + 0.5f) * 0.1f;
+            clk_iv24 = b * 24000.0f;
+            t24 = newest + (uint32_t)(int32_t)(a * 24000.0f);   /* the line's time for the newest clock */
+        }
+    } else if (m == 2u) {
+        float iv = (float)(int32_t)(t24 - clk_ring[(clk_nr - 2u) % CLK_FIT]);
+        if (iv > 48000.0f && iv < 3120000.0f)
+            clk_iv24 = iv;
+    }
     clk_t24 = t24;
     clk_n++;
     __asm__ volatile("" ::: "memory");
@@ -799,7 +822,8 @@ void engine_clock_rt(int what, uint32_t t24)
         return;
     switch (what) {
     case 0: clock_in_tick(t24); break;
-    case 1: seq_clk_rx = 0; rt_stop = 0; rt_start = 1; break;   /* (the next clock is the first step's) */
+    case 1: seq_clk_rx = 0; rt_stop = 0; rt_start = 1; break;   /* (the next clock is the first step's; the line
+                                                      * goes on: the leader's clocks run through a Start) */
     case 2: if (!eng.playing) rt_start = 2; break;
     default: rt_start = 0; rt_stop = 1; break;
     }
