@@ -149,7 +149,8 @@ static void midi_poll(void)
  * with the next block's first sample. The output's place: the block that started playing when the render began,
  * and the ticks since */
 #define MTX 128
-static struct { uint32_t pkt, at, to; } mtx[MTX];   /* (0.28: to, each its own outputs) */
+static struct { uint32_t pkt, at; } mtx[MTX];
+static uint8_t mtx_to[MTX];                          /* (0.28: each its own outputs; 0.31: a byte, its own array) */
 static volatile uint32_t mtx_w, mtx_r;
 static volatile uint32_t mo_total;                   /* the samples rendered */
 static volatile uint32_t mo_base;                    /* the render's first sample, while it runs (and since) */
@@ -174,7 +175,7 @@ static void mo_send(uint32_t pkt, uint32_t to)
     else {
         mtx[mtx_w % MTX].pkt = pkt;
         mtx[mtx_w % MTX].at = at;
-        mtx[mtx_w % MTX].to = to;
+        mtx_to[mtx_w % MTX] = (uint8_t)to;
         __asm__ volatile("" ::: "memory");
         mtx_w++;
     }
@@ -187,7 +188,7 @@ static void mo_tick(void)                            /* app_tick: what is due by
     if (mo_ticks < 1000u)
         mo_ticks++;
     while (mtx_r != mtx_w && (int32_t)(pos - mtx[mtx_r % MTX].at) >= 0) {
-        plat_midi_send(mtx[mtx_r % MTX].pkt, mtx[mtx_r % MTX].to);
+        plat_midi_send(mtx[mtx_r % MTX].pkt, mtx_to[mtx_r % MTX]);
         __asm__ volatile("" ::: "memory");
         mtx_r++;
     }

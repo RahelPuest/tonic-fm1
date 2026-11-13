@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.30.fwsc
+python3 base/tools/fm1_install.py tonic-0.31.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -106,6 +106,7 @@ python3 base/tools/fm1_install.py tonic-0.30.fwsc
 | 0.28 | Bluetooth as Hortator's: the Bluetooth page, devices the FM-1 connects itself, the SMC-Mixer, CLK and SYNC by input, THRU |
 | 0.29 | the MIDI clock followed by its time stamps (no more jitter over Bluetooth), CLKOF |
 | 0.30 | the followed clock's tempo and place from a line through a beat of clocks; its jitter shown on the Bluetooth page |
+| 0.31 | MENU > USB HOST: two FM-1s on one USB-C cable, in time to within a millisecond |
 
 ## 3. The concepts
 
@@ -921,7 +922,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 - **PATTERNS:** a pattern key cues the pattern (as SEQ > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
 - **MUTE:** the track boxes are filled when heard, open when muted, half filled when silent because another track is soloed (an **S** marks a soloed track). With **NEXT BAR** (black 11, or GLO > GLOBAL > MUTE) a mute made while playing blinks and lands on the next bar's first step. Solo is not saved; mutes are.
 - **TOOLS:** DUPLICATE makes the track twice as long (up to 64 steps), the new half a copy with its locks; REVERSE plays the steps back to front (their micro timing mirrored); CLEAR TRACK asks for a second press within 2 s. The grid's own black-key functions (section 11) are still there.
-- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate); **BLUETOOTH** (on / off now; OCT+ on it opens the Bluetooth page, section 23). It also says whether the second CPU core runs and whether Bluetooth is connected. Tempo, clock, velocity and MIDI are on GLO.
+- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate); **BLUETOOTH** (on / off now; OCT+ on it opens the Bluetooth page, section 23); **USB HOST** (0.31: the USB port a host for another FM-1 or a USB-MIDI device, section 23; not saved, every start is a device). It also says whether the second CPU core runs and whether Bluetooth is connected. Tempo, clock, velocity and MIDI are on GLO.
 
 ### Momentary effects (TONIC 0.7)
 
@@ -979,7 +980,7 @@ Since 0.20 GLO holds only what is the whole project's or the device's, as on Hor
 | **EDIT > SETUP** | PLAY (POLY, POLYM (one LFO for all voices), MONO, LEGAT (legato)), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
 | **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages, every engine but the kit. |
 | **LFO > VEL MOD** | Four destinations, each with a depth of ±128: velocity moves any listed parameter. (0.24: MODWHEEL, AFTERTCH, BREATH and PITCHBND are gone, as the FM-1 has no wheel, no aftertouch and no breath input; a sound's old routings of them stay in it and do nothing, and an older TONIC plays them again.) |
-| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ, BLUETOOTH (section 20; its page: section 23). |
+| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ, BLUETOOTH, USB HOST (section 20; Bluetooth's page and USB HOST: section 23). |
 
 ![The GLO page](img/glo.png "GLO > GLOBAL")
 
@@ -1020,9 +1021,11 @@ A pattern has a fixed room in the flash. A lock, an edit of a sound or a loaded 
 - **MIDI tracks:** GLO > SYSTEM > EXT makes the active track play an external instrument over USB-MIDI. Its trigs, chords, NOTE, VEL and LEN locks, conditions, micro timing, retrigs and arpeggios all go out, and no internal voice plays.
 - **Clock in:** with CLK MIDI (or, since 0.28, USB, TRS or BLE alone), TONIC follows the incoming clock, start, continue and stop. Since 0.17 it locks to the clocks themselves (four ticks a clock), so it stays in time with the master however long it plays; the tempo shown is the average. Since 0.19 the clocks are taken the moment they arrive (in the FM-1's 1 kHz timer, not with the screen), so it follows within about a millisecond; the first clock after Start is step 1, and Start and Stop go on to TONIC's own clock out. **Since 0.29** each clock's time is when it was sent (Bluetooth: the sender's BLE-MIDI time stamp) or landed (USB and TRS, stamped within 0.05 ms), not when it was read; the sequencer runs on at the clocks' tempo and is drawn towards where the leader is when its own sound is heard, instead of waiting at each clock. Bluetooth hands clocks over a connection event's worth at a time; they no longer make the steps stumble. **Since 0.30** the tempo and the place come from a line through the last 24 clocks' times (a beat), laid through the least delayed of them: one stamp's noise is averaged out, and the line needs no lag. In the emulator, clocks arriving three at a time every 63 ms against the same clocks even: 0.28 40 ms late and only 8 % of the steps within 2 ms; 0.30 0.7 ms off, the steps within 2 ms but where two hits lie close. The Bluetooth page shows the clock that is followed: **CLOCK JIT** (how far its clocks scatter about their line) and **ERR** (how far TONIC was from it), both in tenths of a ms. **CLKOF** (GLO > GLOBAL, −30 to +30 ms) moves the followed clock that many ms ahead (or back): turn it until the two machines sound together (over Bluetooth the link's own delay, a few ms, remains).
 
-### Two FM-1s in time: TONIC and Hortator (0.19)
+### Two FM-1s in time: TONIC and Hortator (0.19, 0.31)
 
-The FM-1's TRS jack is a MIDI input only and both FM-1s are USB devices, so two of them need something in between that is a USB host: a computer (a DAW or a MIDI router passing one FM-1's clock to the other) or a USB-MIDI host box (a Kenton MIDI USB Host, a CME U6MIDI Pro, a Retrokits RK-006 …). Hortator's FM-Link is Bluetooth and only in its Bluetooth version; TONIC has no Bluetooth (its memory is used by the sound).
+**Since 0.31, on one USB-C cable (MENU > USB HOST).** One FM-1 plays the computer's part: hold HOME, SELECT to **USB HOST**, K1 to ON. It says `USB HOST LOOKING`; plug the other FM-1 in with a USB-C to USB-C data cable and it says `USB CONNECTED TONIC FM-1` (the MENU's line under the rows: `USB HOST: TONIC FM-1`). The other FM-1 leaves USB HOST OFF: to it the first is a computer. MIDI then goes both ways as over USB with a computer: the leader GLO > SYSTEM **SYNC USB** (or BOTH), the follower GLO > GLOBAL **CLK USB** (or MIDI); either FM-1 can lead. The clocks are stamped where they land (within half a millisecond: the host asks the other FM-1 2000 times a second), so the follower keeps within about a millisecond, far closer than over Bluetooth. The FM-1 gives its USB port no power as a host: both run on their batteries (neither charges meanwhile), or a powered USB hub (the host FM-1 on its computer port, the other on one of its ports) or a USB-C adapter with a power input feeds them. While it is a host the FM-1 has no computer: no USB audio, no backup, no update; USB HOST OFF (or a restart: every start is a device) gives the port back to the computer. Unplugged, it says `USB LOST LOOKING`, the notes the other FM-1 held are let go, and it connects again when plugged in. A USB-MIDI keyboard or synth works the same way (a powered hub or adapter for its power); a device without MIDI shows `NO MIDI DEVICE`.
+
+Without USB HOST: the FM-1's TRS jack is a MIDI input only and both FM-1s are USB devices, so two of them need something in between that is a USB host: a computer (a DAW or a MIDI router passing one FM-1's clock to the other) or a USB-MIDI host box (a Kenton MIDI USB Host, a CME U6MIDI Pro, a Retrokits RK-006 …), or Bluetooth (the Bluetooth page, below: ROLE HOST on one, the other found with + ADD A DEVICE). Hortator's FM-Link is Bluetooth and only in its Bluetooth version.
 
 | Leader | Follower |
 | --- | --- |

@@ -15,7 +15,7 @@
 
 <p align="center">
   <img alt="Licence MPL-2.0" src="https://img.shields.io/badge/licence-MPL--2.0-blue">
-  <img alt="Version 0.30" src="https://img.shields.io/badge/version-0.30-orange">
+  <img alt="Version 0.31" src="https://img.shields.io/badge/version-0.31-orange">
   <img alt="Runs on the M-VAVE FM-1" src="https://img.shields.io/badge/runs%20on-M--VAVE%20FM--1-brightgreen">
 </p>
 
@@ -62,6 +62,8 @@ FM-1's flash.
   reconnected by themselves); the MENU's Bluetooth page; GLO CLK USB / TRS / BLE, SYNC USB / BLE / BOTH, THRU. On
   fm1-base's own Bluetooth stack. Since 0.29 the MIDI clock is followed by its time stamps, since 0.30 along
   a line through a beat of clocks (no jitter over Bluetooth), with CLKOF to line two machines up.
+- **Two FM-1s on one USB-C cable** (0.31): MENU > USB HOST makes one FM-1 the other's host, as a computer would be;
+  SYNC USB on the leader, CLK USB on the follower: in time to within a millisecond, no computer, no extra box.
 - **Starts on every FM-1** (0.25): a crash at every start on some FM-1s (pc 02017644, then safe mode) fixed.
 - **Only what the FM-1 has** (0.24): the MODWHEEL, AFTERTCH, BREATH and PITCHBND pages gone from LFO, VEL MOD
   the last; MIDI pitch bend still bends by PBDEP.
@@ -117,7 +119,7 @@ You need an M-VAVE FM-1, a USB data cable, and Chrome or Edge (or Python 3 for t
    ```sh
    git clone --recursive https://github.com/RahelPuest/tonic-fm1.git && cd tonic-fm1
    pip3 install mido python-rtmidi
-   python3 base/tools/fm1_install.py release/tonic-0.30.fwsc
+   python3 base/tools/fm1_install.py release/tonic-0.31.fwsc
    ```
 3. **Going back** to the stock firmware: the web installer's *back to stock* button, or
    `python3 base/tools/fm1_install.py FM-1_015.fwsc` with M-VAVE's V15 package.

@@ -38,6 +38,8 @@ static int bt_knob_take(int e);
 static int bt_on_now(void);
 static void bt_set_on(int on);
 static void bt_smc_push(uint32_t pkt);
+static int usbh_on_now(void);
+static void usbh_set_on(int on);
 extern volatile uint32_t bt_to;
 extern volatile uint8_t bt_smc_in;
 #include "ui.c"

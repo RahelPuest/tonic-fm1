@@ -226,6 +226,30 @@ static void smc_in(uint32_t pkt)
     }
 }
 static int bt_on_now(void) { return bt.on; }
+/* (0.31) the USB port as a host (fm1-base usb_host): another FM-1 (or a USB-MIDI device) on one USB-C cable, its MIDI
+ * on PORT_USB and TO_USB as a computer's would be; no computer meanwhile. Not saved: every boot is a device */
+static uint8_t usbh_on;
+static int usbh_on_now(void) { return usbh_on; }
+static void usbh_set_on(int on)
+{
+    usbh_on = (uint8_t)(on != 0);
+    plat_usb_host(usbh_on);
+}
+static void usbh_poll(void)
+{
+    int m = plat_usb_host_msg(), t;
+    if (m == USBH_MSG_ON || m == USBH_MSG_OFF)
+        app_say("USB HOST", m == USBH_MSG_ON ? "LOOKING" : "OFF");
+    else if (m == USBH_MSG_MIDI)
+        app_say("USB CONNECTED", plat_usb_host_name());
+    else if (m == USBH_MSG_NOMIDI || m == USBH_MSG_LOW)
+        app_say("USB HOST", "NO MIDI DEVICE");
+    else if (m == USBH_MSG_LOST && usbh_on)
+        app_say("USB LOST", "LOOKING");
+    if (plat_usb_lost())                             /* the notes the USB session held */
+        for (t = 0; t < NTRK; t++)
+            engine_all_off(t);
+}
 static void bt_smc_push(uint32_t pkt)                /* app_tick: the SMC-Mixer's MIDI, for bt_poll */
 {
     if (smc_w - smc_r < SMC_Q) {
@@ -248,6 +272,7 @@ static int bt_knob_take(int e)                      /* ui.c: an SMC knob's turns
 static void bt_poll(void)
 {
     uint32_t now = plat_ms();
+    usbh_poll();
     int ready = bt.on && plat_ble_state() == BLE_READY, dev = ready ? plat_ble_device() : BLE_DEV_OFF;
     int host = ready && plat_ble_connected(), smc;
     if (host != bt.host_was) {                       /* a computer (ROLE DEVICE) */

@@ -1963,6 +1963,11 @@ static void o_menu(void)                             /* HOME held: the settings 
     o_ink = K_DIM;
     tx_cpy(v, engine_dual_on() ? "TWO CPU CORES" : "ONE CPU CORE");
     o_ts(0, 93, v, 1);
+    if (MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_USBH_) {   /* (0.31) */
+        tx_cpy(v, !usbh_on_now() ? "USB: A COMPUTER" : plat_usb_host_state() != USBH_CONNECTED ? "USB HOST: LOOKING" : "USB HOST: ");
+        if (usbh_on_now() && plat_usb_host_state() == USBH_CONNECTED)
+            tx_cat(v, plat_usb_host_name());
+    } else
     tx_cpy(v, MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_BT_ ? "OCT+: THE BLUETOOTH PAGE" :
               !bt_on_now() ? "BLUETOOTH OFF" : plat_ble_connected() || plat_ble_device() == BLE_DEV_READY ?
               "BLUETOOTH CONNECTED" : "BLUETOOTH ON");   /* (0.27, 0.28) */

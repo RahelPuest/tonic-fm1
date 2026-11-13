@@ -1,0 +1,49 @@
+# 0.31: MENU > USB HOST: the USB port a host, another FM-1 on one USB-C cable; GLO CLK USB follows its clock, the
+# notes go to it; unplugged: lost, looking again; off: a device for the computer again
+wait 1500
+press HOME
+wait 800
+release HOME
+wait 30
+spin SELECT 6
+wait 30
+expect usbh 0
+spin K1 1
+wait 100
+expect usbh 1
+shot usbh_looking.png
+usbh plug TONIC_FM-1
+wait 400
+expect usbh 2
+shot usbh_linked.png
+tap OCT-
+wait 100
+tap GLO
+wait 30
+expect row 0
+spin K3 2
+wait 30
+tap HOME
+wait 30
+expect playing 0
+usbh midi FA
+wait 5
+expect playing 1
+expect step 0
+usbh clock 9 21
+expect step 1
+usbh midi FC
+wait 10
+expect playing 0
+usbh unplug
+wait 100
+expect usbh 1
+press HOME
+wait 800
+release HOME
+wait 30
+spin K1 -1
+wait 100
+expect usbh 0
+tap OCT-
+wait 100

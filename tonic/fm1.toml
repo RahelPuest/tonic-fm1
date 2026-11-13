@@ -13,6 +13,7 @@ cpu2_fallback = true           # a failure of it: one core until power-off, no r
 cpu2_stack = 4096              # its jobs' stack (0.17: 3180 B deep at most, measured)
 ram_layout = "packed"          # (0.27) one SRAM budget: RAM code, .data/.bss and the pool
 main_stack = 8192              # the main loop's stack: twice its static worst (4,012 B; was 24,320)
+stack_bounds = ["uh_hub_port_probe=2", "uh_probe=2"]   # (0.31) the USB host's hub: a hub's port probed at depth 1, no deeper
 stack_check = true             # the stacks' static worst checked against their sizes
 ir_pass = "tools/ir_copy.py"   # (its IR kept for that; the code the same)
 ram_code_allow = ["voice_block"]
@@ -21,6 +22,7 @@ ble_stack = "own"              # fm1-base's own stack (Henri David's): +10 KB of
 ble_diag = false               # the link layer's diagnostics left out
 midi_stamp = true              # (0.29) USB and TRS MIDI stamped where it lands (the clock followed by it)
 ble_midi_time = true           # (0.29) Bluetooth MIDI by the sender's time (its BLE-MIDI stamps)
+usb_host = true                # (0.31) the USB port as a host: a second FM-1 on one USB-C cable
 ble_central = 3                # (0.28) and it connects to Bluetooth MIDI devices itself (ROLE HOST), no pairing   # its BRAIDS and ENS blocks run from the flash, through a pointer
 words = "words.tsv"
 backup = true                  # backup and restore of the project over USB (base/tools/fm1_backup.py)
