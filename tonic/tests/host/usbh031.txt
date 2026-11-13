@@ -1,11 +1,11 @@
-# 0.31: MENU > USB HOST: the USB port a host, another FM-1 on one USB-C cable; GLO CLK USB follows its clock, the
+# 0.31 (0.32: the MENU row after BT AUDIO): MENU > USB HOST: the USB port a host, another FM-1 on one USB-C cable; GLO CLK USB follows its clock, the
 # notes go to it; unplugged: lost, looking again; off: a device for the computer again
 wait 1500
 press HOME
 wait 800
 release HOME
 wait 30
-spin SELECT 6
+spin SELECT 7
 wait 30
 expect usbh 0
 spin K1 1

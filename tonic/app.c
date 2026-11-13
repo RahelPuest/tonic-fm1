@@ -11,12 +11,13 @@
 #endif
 
 /* the engine's buffers: HARM tables, chorus, reverb, delay (the delay takes what is left) */
-#define ENGINE_POOL (210u * 1024u + (NVOICE - 8u) * 1028u + BR_AREA - 32768u + ENG_DUAL_BYTES + ENG_FXRAM_BYTES - 2016u)   /* (of the delay line: 12 KB went to undo, 6 KB to the
+#define ENGINE_POOL (210u * 1024u + (NVOICE - 8u) * 1028u + BR_AREA - 32768u + ENG_DUAL_BYTES + ENG_FXRAM_BYTES - 2016u - 32768u)   /* (of the delay line: 12 KB went to undo, 6 KB to the
                                          * full-resolution screen, 2 KB to the drum kits' sounds; 0.11: each voice past
                                          * eight brings its HARM table's 1028 B, so the delay line stays as long; 0.13:
                                          * undo's pattern copy came back, COPY's buffer went to RAMTEXT: as long; 0.14:
                                          * the BRAIDS area in, the reverb's 32 KB at 16 bits out: as long; 0.17: the
-                                         * chorus line and the pre-delay in, the 2016 B the delay's rounding left out) */
+                                         * chorus line and the pre-delay in, the 2016 B the delay's rounding left out; 0.32: 32 KB
+                                         * to Bluetooth audio, the line 1.58 -> 1.21 s) */
 static uint8_t engine_pool[ENGINE_POOL] PLAT_POOL;
 typedef char eng_ahead_check[ENG_AHEAD == APP_BLOCK ? 1 : -1];   /* (0.29) */
 
@@ -39,6 +40,13 @@ static int bt_on_now(void);
 static void bt_set_on(int on);
 static void bt_smc_push(uint32_t pkt);
 static int usbh_on_now(void);
+static int hp_on_now(void);
+static void hp_set_on(int on);
+static void hp_enc(int e, int d);
+static void hp_oct(int d);
+static void hp_draw(void);
+static void hp_poll(void);
+static void hp_init(void);
 static void usbh_set_on(int on);
 extern volatile uint32_t bt_to;
 extern volatile uint8_t bt_smc_in;
@@ -47,6 +55,7 @@ extern volatile uint8_t bt_smc_in;
 #include "midi.c"
 #include "app/cpu1.c"                               /* (0.16) the second core */
 #include "app/bt.c"                                 /* (0.28) Bluetooth as Hortator has it */
+#include "app/bta.c"                                /* (0.32) Bluetooth audio to headphones */
 
 #if defined(__has_include)
 #if __has_include("tonic_bench.h")
@@ -134,6 +143,7 @@ void app_init(void)
     eng_midi_out = midi_out_cb;
     eng_clock_cb = clock_out_cb;
     bt_init();
+    hp_init();
     ui.grp = G_HOME;
     ui.row[G_ENV] = 1;                               /* FLTR: FREQ RESO TYPE ENV first */
     ui.roll_lo = -1;                                 /* the piano roll fits the notes */

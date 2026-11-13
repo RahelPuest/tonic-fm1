@@ -15,7 +15,8 @@ fm1-emu. It is a custom firmware: installing is at your own risk; the installer 
 - [Source code on GitHub](https://github.com/RahelPuest/tonic-fm1).
 - Since 0.12 projects are saved in a new format: versions before 0.12 cannot read what 0.12 or later saved. Take a USB backup first if you
   may want to go back.
-- Earlier versions stay available: [0.30](firmware/tonic-0.30.fwsc) (two FM-1s over Bluetooth or a computer only),
+- Earlier versions stay available: [0.31](firmware/tonic-0.31.fwsc) (no Bluetooth headphones, the delay up to 1.58 s),
+  [0.30](firmware/tonic-0.30.fwsc) (two FM-1s over Bluetooth or a computer only),
   [0.29](firmware/tonic-0.29.fwsc) (the clock followed stamp by stamp),
   [0.28](firmware/tonic-0.28.fwsc) (the MIDI clock followed clock by clock: jitter over Bluetooth),
   [0.27](firmware/tonic-0.27.fwsc) (Bluetooth MIDI as a device only),

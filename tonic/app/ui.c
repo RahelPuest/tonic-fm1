@@ -27,7 +27,7 @@ static int8_t key_white[NKEYS], key_black[NKEYS];   /* key -> white index / blac
 /* (0.18) what a held button shows, after Hortator's way (DEADACTIVE): a tap does what it did (on the release), held
  * 0.4 s (or a key or knob with it) it opens its screen while held: HOME the MENU (it stays), FX PERFORM, SAVE the
  * patterns (CUE), GLO MUTE, SEQ TOOLS, EDIT the preset list (it stays), REC a FILL */
-enum { OV_NONE, OV_MENU, OV_PERF, OV_CUE, OV_MUTE, OV_TOOLS, OV_ENG, OV_BT };   /* (0.28: OV_BT, MENU > BLUETOOTH) */   /* (0.22: OV_ENG, EDIT held) */
+enum { OV_NONE, OV_MENU, OV_PERF, OV_CUE, OV_MUTE, OV_TOOLS, OV_ENG, OV_BT, OV_BTA };   /* (0.28: OV_BT, MENU > BLUETOOTH) */   /* (0.22: OV_ENG, EDIT held) */
 #define HOLD_MS 400u
 
 static struct {
@@ -96,7 +96,7 @@ static plock_t clip_lock[NLOCK] PLAT_POOL;
 static void lock_compact_safe(void);
 static int page_held(void);
 /* (0.18) the MENU (HOME held): the settings of the device rather than the pattern */
-static const item_t MENU_IT[] = {GL(GL_THEME_), GL(GL_ZOOM_), GL(GL_ACCEL_), GL(GL_PHOLD_), GL(GL_INSHQ_), GL(GL_BT_), GL(GL_USBH_)};   /* (0.20:
+static const item_t MENU_IT[] = {GL(GL_THEME_), GL(GL_ZOOM_), GL(GL_ACCEL_), GL(GL_PHOLD_), GL(GL_INSHQ_), GL(GL_BT_), GL(GL_BTA_), GL(GL_USBH_)};   /* (0.20:
                                                       * the device's, as Hortator's menu; the rest on GLO) */
 #define NMENU ((int)(sizeof MENU_IT / sizeof MENU_IT[0]))
 static void control_all(const item_t *it, int v);
@@ -241,6 +241,7 @@ static int item_get(const item_t *it, int *locked)
         case GL_INSHQ_: return !set.ins_lq;
         case GL_BT_: return bt_on_now();
         case GL_USBH_: return usbh_on_now();
+        case GL_BTA_: return hp_on_now();
         case GL_THRU_: return set.thru;
         case GL_CLKOF_: return set.clk_ofs;
         case GL_MUTEB_: return set.mute_bar;
@@ -422,8 +423,9 @@ static void item_set_raw(const item_t *it, int v)
         case GL_THEME_: set.theme = THEME_ORDER[v < 0 ? 0 : v >= NTHEME ? NTHEME - 1 : v]; set_dirty = 1; ob_valid = 0; break;
         case GL_PCHG_: set.pchg = (uint8_t)v; set_dirty = 1; break;
         case GL_INSHQ_: set.ins_lq = (uint8_t)!v; eng.ins_lq = set.ins_lq; set_dirty = 1; break;
-        case GL_BT_: if ((v != 0) != bt_on_now()) bt_set_on(v); break;
-        case GL_USBH_: usbh_set_on(v != 0); break;   /* (0.31) */   /* (0.28: on now; AUTOSTART on its page) */
+        case GL_BT_: if ((v != 0) != bt_on_now()) bt_set_on(v); break;   /* (0.28: on now; AUTOSTART on its page) */
+        case GL_USBH_: usbh_set_on(v != 0); break;   /* (0.31) */
+        case GL_BTA_: if ((v != 0) != hp_on_now()) hp_set_on(v); break;   /* (0.32) */
         case GL_THRU_: set.thru = (uint8_t)(v != 0); set_dirty = 1; break;
         case GL_CLKOF_: set.clk_ofs = (int8_t)clamp(v, -30, 30); eng_clk_ofs = set.clk_ofs; set_dirty = 1; break;
         case GL_MUTEB_: set.mute_bar = (uint8_t)v; set_dirty = 1; break;
@@ -1183,7 +1185,7 @@ static void hold_end(int sel)
         ui.perf_chain_n = 0;
         if (b == B_REC)
             eng.fill = 0;
-        if (b != B_HOME && ui.ov != OV_MENU && ui.ov != OV_BT && ui.ov != OV_ENG && !(b == B_FX && set.perf_page))   /* (0.20: PERF PAGE: it
+        if (b != B_HOME && ui.ov != OV_MENU && ui.ov != OV_BT && ui.ov != OV_BTA && ui.ov != OV_ENG && !(b == B_FX && set.perf_page))   /* (0.20: PERF PAGE: it
                                                       * stays; 0.22: the engine screen too) */
             ui.ov = OV_NONE;
         ui.redraw = 1;
@@ -1195,7 +1197,7 @@ static void hold_end(int sel)
     }
     switch (b) {                                     /* the taps */
     case B_HOME:
-        if (ui.ov == OV_MENU || ui.ov == OV_BT)
+        if (ui.ov == OV_MENU || ui.ov == OV_BT || ui.ov == OV_BTA)
             ui.ov = OV_NONE;
         else {
             if (ui.plist_on)
@@ -1345,8 +1347,12 @@ static void buttons(uint32_t b)
                 ui.ov = OV_NONE;
             else if (MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_BT_)
                 ui.ov = OV_BT;
+            else if (MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_BTA_)
+                ui.ov = OV_BTA;                      /* (0.32) */
         } else if (ui.ov == OV_BT) {                 /* (0.28) the Bluetooth page */
             bt_oct(d);
+        } else if (ui.ov == OV_BTA) {                /* (0.32) the Bluetooth audio page */
+            hp_oct(d);
         } else if (ui.ov == OV_ENG) {                /* (0.22) the engine screen: OCT+ takes the cursor's, OCT- closes */
             if (d > 0)
                 engine_pick(ui.eng_i);
@@ -1878,6 +1884,10 @@ static void encoders(void)
             bt_enc(e, d);
             continue;
         }
+        if (ui.ov == OV_BTA) {                       /* (0.32) the Bluetooth audio page */
+            hp_enc(e, d);
+            continue;
+        }
         if (ui.ov == OV_MENU && e != EN_ALGO) {      /* (0.18) the MENU: SELECT the row, a knob its value */
             if (e == EN_SELECT)
                 ui.menu_i = (uint8_t)clamp(ui.menu_i + d, 0, NMENU - 1);
@@ -1959,7 +1969,7 @@ static void leds(void)
         lit |= 1u << B_SEL;
     if (ui.hold_on && ui.hold_btn != 0xFF)           /* (0.18) the held button's screen up: its LED */
         lit |= 1u << ui.hold_btn;
-    if (ui.ov == OV_MENU || ui.ov == OV_BT)
+    if (ui.ov == OV_MENU || ui.ov == OV_BT || ui.ov == OV_BTA)
         lit |= 1u << B_HOME;
     if (store_unsaved() && !eng.playing)
         mid_b |= 1u << B_SAVE;

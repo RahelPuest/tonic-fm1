@@ -1967,7 +1967,9 @@ static void o_menu(void)                             /* HOME held: the settings 
         tx_cpy(v, !usbh_on_now() ? "USB: A COMPUTER" : plat_usb_host_state() != USBH_CONNECTED ? "USB HOST: LOOKING" : "USB HOST: ");
         if (usbh_on_now() && plat_usb_host_state() == USBH_CONNECTED)
             tx_cat(v, plat_usb_host_name());
-    } else
+    } else if (MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_BTA_)   /* (0.32) */
+        tx_cpy(v, "OCT+: HEADPHONES AND SPEAKERS");
+    else
     tx_cpy(v, MENU_IT[ui.menu_i].kind == IK_GLB && MENU_IT[ui.menu_i].id == GL_BT_ ? "OCT+: THE BLUETOOTH PAGE" :
               !bt_on_now() ? "BLUETOOTH OFF" : plat_ble_connected() || plat_ble_device() == BLE_DEV_READY ?
               "BLUETOOTH CONNECTED" : "BLUETOOTH ON");   /* (0.27, 0.28) */
@@ -2298,6 +2300,8 @@ static void ui_paint(uint32_t now, int touch)
         o_menu();
     else if (ui.ov == OV_BT)
         bt_draw();
+    else if (ui.ov == OV_BTA)
+        hp_draw();
     else if (ui.ov == OV_ENG)
         o_engsel();
     else if (ui.grp == G_HOME)

@@ -62,7 +62,7 @@ TONIC installs over USB with the FM-1's normal update path. You can use the **In
 
 ```sh
 python3 base/tools/fm1_install.py --info
-python3 base/tools/fm1_install.py tonic-0.31.fwsc
+python3 base/tools/fm1_install.py tonic-0.32.fwsc
 ```
 
 > Before the first install, take a full flash backup if you want to keep your stock patches. TONIC uses the same flash area for its project. Going back to stock brings the factory voices back, but not your old stock patches. The full procedure, with every check the installer makes, is in `docs/INSTALL.md`.
@@ -107,6 +107,7 @@ python3 base/tools/fm1_install.py tonic-0.31.fwsc
 | 0.29 | the MIDI clock followed by its time stamps (no more jitter over Bluetooth), CLKOF |
 | 0.30 | the followed clock's tempo and place from a line through a beat of clocks; its jitter shown on the Bluetooth page |
 | 0.31 | MENU > USB HOST: two FM-1s on one USB-C cable, in time to within a millisecond |
+| 0.32 | MENU > BT AUDIO: the sound to Bluetooth headphones and speakers; the delay line 1.21 s |
 
 ## 3. The concepts
 
@@ -827,7 +828,7 @@ The effects are per pattern and can be locked per step from any track; a lock ho
 
 | Param | What it does |
 | --- | --- |
-| TIME | 1/128 note to a bar, in 128ths with the usual values named (1/16, 1/8., 1/4T …); up to about 1.7 s. |
+| TIME | 1/128 note to a bar, in 128ths with the usual values named (1/16, 1/8., 1/4T …); up to 1.21 s (0.32: 1.58 s before, the rest went to Bluetooth audio; ping-pong half of it). |
 | X | Ping-pong. |
 | WID | Stereo width or pan of the repeats. |
 | FDBK | Feedback, 0–198. Above 127 it swells, but a soft limit keeps it bounded. |
@@ -922,7 +923,7 @@ Most buttons do two things, as on Hortator (DEADACTIVE's drum firmware for the F
 - **PATTERNS:** a pattern key cues the pattern (as SEQ > SONG > CHNG says: at the end, at once from step 1, or at once in place); several in a row while SAVE is held make a chain, shown with the pattern playing marked **>**. The playing pattern's key is lit, a cued one blinks.
 - **MUTE:** the track boxes are filled when heard, open when muted, half filled when silent because another track is soloed (an **S** marks a soloed track). With **NEXT BAR** (black 11, or GLO > GLOBAL > MUTE) a mute made while playing blinks and lands on the next bar's first step. Solo is not saved; mutes are.
 - **TOOLS:** DUPLICATE makes the track twice as long (up to 64 steps), the new half a copy with its locks; REVERSE plays the steps back to front (their micro timing mirrored); CLEAR TRACK asks for a second press within 2 s. The grid's own black-key functions (section 11) are still there.
-- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate); **BLUETOOTH** (on / off now; OCT+ on it opens the Bluetooth page, section 23); **USB HOST** (0.31: the USB port a host for another FM-1 or a USB-MIDI device, section 23; not saved, every start is a device). It also says whether the second CPU core runs and whether Bluetooth is connected. Tempo, clock, velocity and MIDI are on GLO.
+- **MENU** (0.20, as Hortator's: the screen and the hands): **THEME**; **ZOOM** (the value pop-up on / off); **ACCEL** (knob acceleration on / off: off, every detent is one step); **PERF** (HOLD: PERFORM while FX is held / PAGE: an FX hold leaves PERFORM open, an FX tap or OCT− closes it); **INSHQ** (the inserts at twice the rate); **BLUETOOTH** (on / off now; OCT+ on it opens the Bluetooth page, section 23); **BT AUDIO** (0.32: the sound to Bluetooth headphones on / off now; OCT+ on it opens its page, section 23); **USB HOST** (0.31: the USB port a host for another FM-1 or a USB-MIDI device, section 23; not saved, every start is a device). It also says whether the second CPU core runs and whether Bluetooth is connected. Tempo, clock, velocity and MIDI are on GLO.
 
 ### Momentary effects (TONIC 0.7)
 
@@ -980,7 +981,7 @@ Since 0.20 GLO holds only what is the whole project's or the device's, as on Hor
 | **EDIT > SETUP** | PLAY (POLY, POLYM (one LFO for all voices), MONO, LEGAT (legato)), PRIO (LAST, LOW, HIGH), V>VOL (velocity to volume: OFF, LOG, LIN, EXP), PBDEP (pitch bend range, 0–24 semitones); KS A, KS B1, KS B2 (key scaling: less modulation up the keyboard), OCT (the sound's octave, ±2). |
 | **EDIT > PORTA** | TYPE (TRACK, VOICE, LEGAT), SLOPE (RATE or constant TIME), AMT, STYLE (GLIDE, GLISS: in semitones); GATE. With the engine's pages, every engine but the kit. |
 | **LFO > VEL MOD** | Four destinations, each with a depth of ±128: velocity moves any listed parameter. (0.24: MODWHEEL, AFTERTCH, BREATH and PITCHBND are gone, as the FM-1 has no wheel, no aftertouch and no breath input; a sound's old routings of them stay in it and do nothing, and an older TONIC plays them again.) |
-| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ, BLUETOOTH, USB HOST (section 20; Bluetooth's page and USB HOST: section 23). |
+| **MENU** (HOME held) | THEME, ZOOM, ACCEL, PERF, INSHQ, BLUETOOTH, BT AUDIO, USB HOST (section 20; the Bluetooth pages and USB HOST: section 23). |
 
 ![The GLO page](img/glo.png "GLO > GLOBAL")
 
@@ -1072,6 +1073,26 @@ With ROLE HOST and BLUETOOTH ON, the FM-1 looks for its saved devices and connec
 | REC | grid recording on / off |
 
 Its LEDs show the mutes, the solos, the active track, playing and stopped, and recording; they are sent again on every connection.
+
+### Bluetooth headphones and speakers: BT AUDIO (0.32)
+
+TONIC sends its sound to Bluetooth headphones and speakers (A2DP, SBC: every Bluetooth headphone has it), on fm1-base's own Bluetooth stack beside Bluetooth MIDI. While it plays to them, the FM-1's own output (its speaker and the headphone jack) is silent.
+
+**Pairing, once:** put the headphones into pairing mode (usually the power button held until a light flashes). Hold HOME for the MENU, SELECT to **BT AUDIO**, OCT+: its page. SELECT to **+ ADD HEADPHONES**, OCT+: it searches for about 10 s (`SEARCHING`), then lists what it found. SELECT the headphones, OCT+: they are paired and play (`PLAYING: <name>`, and `BT AUDIO <name>` on any page). From then on they are remembered (four at most, the last one used first) and need no pairing again.
+
+| Row | |
+| --- | --- |
+| **AUDIO** | ON: Bluetooth audio ready (the radio up); OFF: the link dropped, the sound back on the FM-1. Also the MENU's BT AUDIO row. |
+| **AUTOCONNECT** | ON (the default): at every start the last headphones are called, if any were paired; switch them on and they play. OFF: only when you ask. |
+| **OUTPUT** | while it plays: BLUETOOTH, or FM-1 (the sound back on the FM-1 at once, the link kept: back to the headphones at once, without connecting again). |
+| the remembered devices | OCT+ connects it (the one playing: OCT+ hangs up); K1 to the left, then OCT+: FORGET. |
+| **+ ADD HEADPHONES** | the search and the list, as above. |
+
+Under the rows: what the FM-1 adds to the delay (`DELAY 20 MS + HEADPHONES`), and what went wrong last: `NO ANSWER: HEADPHONES ON?` (called, no answer: off, too far, or connected to a phone), `REFUSED: PAIRING MODE?`, `LOST` (and `BT AUDIO LOST` on any page).
+
+**The delay to the ear.** The headphones keep their own buffer: from a key to the ear expect 150 to 300 ms, depending on the headphones. That is fine for listening to patterns and shaping sounds, not for playing the pads in time; for that, the FM-1's own output or wired headphones. Two FM-1s in time: use USB HOST (above) rather than Bluetooth MIDI while audio streams, since both share one radio.
+
+The memory for it (32 KB) came from the delay line: TIME reaches 1.21 s instead of 1.58 s.
 
 ## 24. Shortcuts at a glance
 

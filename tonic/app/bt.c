@@ -273,6 +273,7 @@ static void bt_poll(void)
 {
     uint32_t now = plat_ms();
     usbh_poll();
+    hp_poll();
     int ready = bt.on && plat_ble_state() == BLE_READY, dev = ready ? plat_ble_device() : BLE_DEV_OFF;
     int host = ready && plat_ble_connected(), smc;
     if (host != bt.host_was) {                       /* a computer (ROLE DEVICE) */

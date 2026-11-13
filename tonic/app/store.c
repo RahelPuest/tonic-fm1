@@ -47,7 +47,8 @@ typedef struct {
     uint8_t bt_mode;              /* (0.28) 0 AUTO (SMC DAW for a device named SMC...), 1 MIDI, 2 SMC DAW */
     uint8_t bt_recon;             /* (0.28) RECONNECT: 0 AUTO (slow while playing), 1 FAST, 2 SLOW */
     uint8_t thru;                 /* (0.28) GLO THRU: notes and CCs from each MIDI input to the other outputs */
-    uint8_t bt_ndev, rsv3[3];     /* (0.28) the saved Bluetooth devices, the first tried first */
+    uint8_t bt_ndev;              /* (0.28) the saved Bluetooth devices, the first tried first */
+    uint8_t bta_noauto, rsv3[2];  /* (0.32) Bluetooth audio: AUTOCONNECT off (0: the last headphones at the start) */
     struct bt_dev { char name[14]; uint8_t addr[6], addr_rand, kind; } bt_dev[8];
 } settings_t;
 static settings_t set;
@@ -566,6 +567,7 @@ static void store_boot(void)
         if (set.bt_recon > 2) set.bt_recon = 0;
         set.thru = set.thru ? 1 : 0;
         if (set.bt_ndev > 8) set.bt_ndev = 0;
+        if (set.bta_noauto > 1) set.bta_noauto = 0;   /* (0.32) */
         for (k = 0; k < 8; k++)
             set.bt_dev[k].name[13] = 0;
         for (k = 0; k < 64; k++) set.chain[k] %= NPAT;

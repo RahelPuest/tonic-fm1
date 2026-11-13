@@ -28,7 +28,7 @@ enum { TF_LEN_, TF_SCALE_, TF_TRANSP_, TF_VOICES_, TF_UNI_, TF_SPREAD_, TF_LAYER
 enum { PF_BPM_, PF_SWING_, PF_LMODE_, PF_MLEN_, PF_CHLEN_, PF_STEAL_, PF_REUSE_ };
 enum { GL_TMODE_, GL_CLKIN_, GL_CLKOUT_, GL_QUANT_, GL_VELS_, GL_VELF_, GL_MET_, GL_MIDI0_, GL_MIDI1_, GL_MIDI2_,
        GL_MIDI3_, GL_MIDIIN_, GL_TRKCH_, GL_MTRK_, GL_SROW_, GL_SPAT_, GL_SREP_, GL_SMUTE_, GL_SON_, GL_SLEN_,
-       GL_SEND_, GL_THEME_, GL_PCHG_, GL_INSHQ_, GL_MUTEB_, GL_ZOOM_, GL_ACCEL_, GL_PHOLD_, GL_BT_, GL_THRU_, GL_CLKOF_, GL_USBH_ };
+       GL_SEND_, GL_THEME_, GL_PCHG_, GL_INSHQ_, GL_MUTEB_, GL_ZOOM_, GL_ACCEL_, GL_PHOLD_, GL_BT_, GL_THRU_, GL_CLKOF_, GL_USBH_, GL_BTA_ };
 enum { AS_STEP_, AS_OFS_, AS_ON_ };
 enum { VW_LO_, VW_ZOOM_ };              /* the piano roll's view (not saved) */
 /* the euclidean generator [TONIC 0.6, 0.8]: cycle, hits, rotation, a named rhythm; accents' hits and rotation, ghost
@@ -366,7 +366,7 @@ static const char *item_name(const item_t *it)
                                       "ROOT", "FOLD", "KCHRD", "MICRO"};
     static const char *const PFN[] = {"BPM", "SWG", "MODE", "MLEN", "CHLEN", "STEAL", "REUSE"};
     static const char *const GLN[] = {"TEMPO", "CLK", "SYNC", "QUANT", "VEL", "FIXVL", "METRO",
-                                      "CH T1", "CH T2", "CH T3", "CH T4", "CH", "ROUT", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE", "ZOOM", "ACCEL", "PERF", "BLUETOOTH", "THRU", "CLKOF", "USB HOST"};   /* EXT: the active track plays out over MIDI only */
+                                      "CH T1", "CH T2", "CH T3", "CH T4", "CH", "ROUT", "EXT", "ROW", "PTN", "REPT", "MUTE", "SONG", "ROWS", "END", "THEME", "CHNG", "INSHQ", "MUTE", "ZOOM", "ACCEL", "PERF", "BLUETOOTH", "THRU", "CLKOF", "USB HOST", "BT AUDIO"};   /* EXT: the active track plays out over MIDI only */
     static const char *const STN[NSS] = {"KS A", "KS B1", "KS B2", "KTRK", "TYPE", "SLOPE", "AMT", "STYLE",
                                          "GATE", "PLAY", "PRIO", "V>VOL", "PBDEP", "OCT", "MODE", "SPD", "RNG",
                                          "LEN", "STEPS", "ENG", "PAD 1", "PAD 2", "PAD 3", "PAD 4",
@@ -697,6 +697,7 @@ static range_t item_range(const item_t *it)
         case GL_PCHG_: r.hi = 2; r.fmt = F_LIST; r.list = L_PCHG; break;
         case GL_INSHQ_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
         case GL_BT_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;   /* (0.27) Bluetooth MIDI */
+        case GL_BTA_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;   /* (0.32) Bluetooth audio */
         case GL_USBH_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;   /* (0.31) the USB port a host (not saved) */
         case GL_MUTEB_: r.hi = 1; r.fmt = F_LIST; r.list = L_MUTEB; break;
         case GL_ZOOM_: case GL_ACCEL_: r.hi = 1; r.fmt = F_LIST; r.list = L_OFFON; break;
