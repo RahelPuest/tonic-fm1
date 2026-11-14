@@ -182,3 +182,5 @@ TONIC is **MPL-2.0** ([LICENSE](LICENSE), details in [LICENSING.md](LICENSING.md
 TONIC is an independent work inspired by the Elektron Digitone. It is not affiliated with or endorsed by Elektron or
 M-VAVE, and it contains no Elektron code or data. Digitone is a trademark of Elektron Music Machines; M-VAVE and FM-1
 are trademarks of their owners.
+
+You can also try Tonic in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
